@@ -17,21 +17,32 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 Iniciando Puppeteer para generar PDF...');
 
-    // TEMPORAL: Desactivar Puppeteer en producción hasta resolver configuración
-    const isProduction = process.env.VERCEL === '1';
+    // Detectar si estamos en producción (Vercel)
+    const isProduction = process.env.VERCEL === '1' || 
+                        process.env.VERCEL_ENV === 'production' ||
+                        process.env.NODE_ENV === 'production';
+    
+    console.log('🔍 Entorno detectado:', {
+      VERCEL: process.env.VERCEL,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      NODE_ENV: process.env.NODE_ENV,
+      isProduction
+    });
     
     if (isProduction) {
       // En producción, devolver error para que use fallback del cliente
       console.log('⚠️ Puppeteer desactivado en producción, usando fallback cliente');
       return NextResponse.json(
         { 
-          error: 'Puppeteer not configured in production yet',
-          message: 'Using client-side fallback',
+          error: 'Puppeteer not available in production',
+          message: 'Using client-side fallback for PDF generation',
           useClientFallback: true,
         },
         { status: 503 } // Service Unavailable
       );
     }
+    
+    console.log('✅ Entorno de desarrollo detectado, cargando Puppeteer...');
     
     // Solo ejecutar en desarrollo
     const puppeteer = await import('puppeteer');
