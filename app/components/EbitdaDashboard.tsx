@@ -92,7 +92,7 @@ export default function EbitdaDashboard({ sections }: EbitdaDashboardProps) {
         }
       });
 
-      // Construir HTML completo con estilos inline
+      // Construir HTML completo con estilos inline optimizados para PDF
       const fullHtml = `
         <!DOCTYPE html>
         <html>
@@ -100,11 +100,80 @@ export default function EbitdaDashboard({ sections }: EbitdaDashboardProps) {
             <meta charset="UTF-8">
             <style>
               ${styles}
+              
+              /* Estilos específicos para PDF */
+              @media print {
+                * {
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+              }
+              
               body {
                 margin: 0;
                 padding: 20px;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
                 background: white;
+                width: 100%;
+                max-width: 1200px;
+                margin: 0 auto;
+              }
+              
+              /* Forzar que los gráficos no se superpongan */
+              .space-y-6 > * {
+                margin-bottom: 24px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              
+              /* Grid de métricas - mantener en una fila */
+              .grid-cols-1.md\\:grid-cols-3 {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 16px !important;
+                margin-bottom: 24px !important;
+              }
+              
+              /* Grid de gráficos - forzar columnas separadas */
+              .grid-cols-1.md\\:grid-cols-2 {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 16px !important;
+                margin-bottom: 24px !important;
+              }
+              
+              /* Asegurar que cada contenedor de gráfico tenga altura fija */
+              .grid-cols-1.md\\:grid-cols-2 > div {
+                height: 400px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              
+              /* ChartContainer debe respetar su espacio */
+              .bg-white.rounded-lg.shadow-md {
+                padding: 16px !important;
+                margin-bottom: 16px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              
+              /* Tabla debe empezar en nueva página si es necesario */
+              table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-top: 24px !important;
+              }
+              
+              /* Imágenes (canvas convertidos) deben mantener aspecto */
+              img {
+                max-width: 100% !important;
+                height: auto !important;
+                display: block !important;
+              }
+              
+              /* Ocultar botón de exportar PDF */
+              .fixed.bottom-6 {
+                display: none !important;
               }
             </style>
           </head>

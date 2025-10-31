@@ -99,11 +99,58 @@ export default function GraphView({
             <meta charset="UTF-8">
             <style>
               ${styles}
+              
+              /* Estilos específicos para PDF */
+              @media print {
+                * {
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+              }
+              
               body {
                 margin: 0;
                 padding: 20px;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
                 background: white;
+                width: 100%;
+                max-width: 1200px;
+                margin: 0 auto;
+              }
+              
+              /* Forzar separación entre elementos */
+              .space-y-6 > *, .space-y-8 > * {
+                margin-bottom: 32px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              
+              /* Grid de gráficos - forzar layout vertical en PDF */
+              .grid-cols-1.md\\:grid-cols-2, .grid-cols-1.lg\\:grid-cols-2 {
+                display: grid !important;
+                grid-template-columns: 1fr !important;
+                gap: 24px !important;
+              }
+              
+              /* Cada contenedor de gráfico con altura adecuada */
+              .bg-white.rounded-lg.shadow-md {
+                padding: 16px !important;
+                margin-bottom: 24px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                min-height: 400px !important;
+              }
+              
+              /* Imágenes (canvas convertidos) */
+              img {
+                max-width: 100% !important;
+                height: auto !important;
+                display: block !important;
+              }
+              
+              /* Ocultar elementos de navegación */
+              .fixed, button {
+                display: none !important;
               }
             </style>
           </head>
