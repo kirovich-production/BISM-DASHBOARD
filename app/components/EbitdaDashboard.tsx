@@ -98,82 +98,117 @@ export default function EbitdaDashboard({ sections }: EbitdaDashboardProps) {
         <html>
           <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
               ${styles}
               
-              /* Estilos específicos para PDF */
-              @media print {
-                * {
-                  -webkit-print-color-adjust: exact !important;
-                  print-color-adjust: exact !important;
-                }
+              /* Reset básico */
+              * {
+                box-sizing: border-box;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
               
               body {
                 margin: 0;
-                padding: 20px;
+                padding: 16px;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
                 background: white;
                 width: 100%;
-                max-width: 1200px;
-                margin: 0 auto;
+                max-width: 100%;
+                overflow-x: hidden;
               }
               
-              /* Forzar que los gráficos no se superpongan */
-              .space-y-6 > * {
-                margin-bottom: 24px !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
+              /* Contenedor principal */
+              .space-y-6 {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                width: 100%;
               }
               
-              /* Grid de métricas - mantener en una fila */
+              /* Grid de métricas - 3 columnas compactas */
               .grid-cols-1.md\\:grid-cols-3 {
                 display: grid !important;
                 grid-template-columns: repeat(3, 1fr) !important;
-                gap: 16px !important;
-                margin-bottom: 24px !important;
+                gap: 12px !important;
+                margin-bottom: 16px !important;
+                width: 100%;
               }
               
-              /* Grid de gráficos - forzar columnas separadas */
+              /* Cards de métricas más compactas */
+              .grid-cols-1.md\\:grid-cols-3 > div {
+                padding: 12px !important;
+                min-height: auto !important;
+              }
+              
+              /* Grid de gráficos - 2 columnas lado a lado */
               .grid-cols-1.md\\:grid-cols-2 {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
-                gap: 16px !important;
-                margin-bottom: 24px !important;
-              }
-              
-              /* Asegurar que cada contenedor de gráfico tenga altura fija */
-              .grid-cols-1.md\\:grid-cols-2 > div {
-                height: 400px !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-              }
-              
-              /* ChartContainer debe respetar su espacio */
-              .bg-white.rounded-lg.shadow-md {
-                padding: 16px !important;
+                gap: 12px !important;
                 margin-bottom: 16px !important;
+                width: 100%;
                 page-break-inside: avoid !important;
-                break-inside: avoid !important;
               }
               
-              /* Tabla debe empezar en nueva página si es necesario */
+              /* Contenedores de gráficos con altura controlada */
+              .bg-white.rounded-lg.shadow-md {
+                padding: 12px !important;
+                margin-bottom: 12px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+              }
+              
+              /* Asegurar que canvas/imágenes respeten el contenedor */
+              .bg-white.rounded-lg.shadow-md > div {
+                width: 100% !important;
+                height: 280px !important;
+                position: relative !important;
+              }
+              
+              /* Imágenes de canvas con aspect ratio correcto */
+              img {
+                max-width: 100% !important;
+                max-height: 100% !important;
+                width: auto !important;
+                height: auto !important;
+                object-fit: contain !important;
+                display: block !important;
+                margin: 0 auto !important;
+              }
+              
+              /* Títulos de gráficos más compactos */
+              h3 {
+                font-size: 14px !important;
+                margin: 0 0 8px 0 !important;
+                padding: 0 !important;
+              }
+              
+              /* Tabla responsiva */
               table {
                 width: 100% !important;
                 border-collapse: collapse !important;
-                margin-top: 24px !important;
+                margin-top: 16px !important;
+                font-size: 11px !important;
               }
               
-              /* Imágenes (canvas convertidos) deben mantener aspecto */
-              img {
-                max-width: 100% !important;
-                height: auto !important;
-                display: block !important;
+              th, td {
+                padding: 6px 8px !important;
               }
               
-              /* Ocultar botón de exportar PDF */
-              .fixed.bottom-6 {
+              /* Ocultar elementos de UI */
+              .fixed.bottom-6,
+              button {
                 display: none !important;
+              }
+              
+              /* Forzar ancho completo en todo */
+              > * {
+                max-width: 100% !important;
               }
             </style>
           </head>

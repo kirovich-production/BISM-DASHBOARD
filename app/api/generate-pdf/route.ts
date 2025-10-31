@@ -36,21 +36,23 @@ export async function POST(request: NextRequest) {
         html,
         options: {
           printBackground: true,
-          format: 'Letter',
+          format: 'A4',
+          landscape: false,
           margin: {
-            top: '0.5in',
-            bottom: '0.5in',
-            left: '0.5in',
-            right: '0.5in',
+            top: '0.4in',
+            bottom: '0.4in',
+            left: '0.3in',
+            right: '0.3in',
           },
           preferCSSPageSize: false,
-          displayHeaderFooter: true,
-          headerTemplate: '<span></span>',
-          footerTemplate: `
-            <div style="font-size:10px; text-align:center; width:100%; padding: 5px 0;">
-              <span class="pageNumber"></span> / <span class="totalPages"></span>
-            </div>
-          `,
+          displayHeaderFooter: false,
+          scale: 0.8,
+          // Opciones adicionales para mejor renderizado
+          waitForSelector: 'body',
+          waitForTimeout: 2000,
+        },
+        gotoOptions: {
+          waitUntil: 'networkidle0',
         },
       }),
     });

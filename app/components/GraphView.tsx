@@ -97,59 +97,82 @@ export default function GraphView({
         <html>
           <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
               ${styles}
               
-              /* Estilos específicos para PDF */
-              @media print {
-                * {
-                  -webkit-print-color-adjust: exact !important;
-                  print-color-adjust: exact !important;
-                }
+              /* Reset básico */
+              * {
+                box-sizing: border-box;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
               
               body {
                 margin: 0;
-                padding: 20px;
+                padding: 16px;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
                 background: white;
                 width: 100%;
-                max-width: 1200px;
-                margin: 0 auto;
+                max-width: 100%;
+                overflow-x: hidden;
               }
               
-              /* Forzar separación entre elementos */
-              .space-y-6 > *, .space-y-8 > * {
-                margin-bottom: 32px !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
+              /* Contenedor principal */
+              .space-y-6, .space-y-8 {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                width: 100%;
               }
               
-              /* Grid de gráficos - forzar layout vertical en PDF */
+              /* Grid de gráficos - 2 columnas optimizadas */
               .grid-cols-1.md\\:grid-cols-2, .grid-cols-1.lg\\:grid-cols-2 {
                 display: grid !important;
-                grid-template-columns: 1fr !important;
-                gap: 24px !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 12px !important;
+                width: 100%;
+                page-break-inside: avoid !important;
               }
               
-              /* Cada contenedor de gráfico con altura adecuada */
+              /* Contenedores de gráficos */
               .bg-white.rounded-lg.shadow-md {
-                padding: 16px !important;
-                margin-bottom: 24px !important;
+                padding: 12px !important;
+                margin-bottom: 12px !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                min-height: 400px !important;
+                display: flex;
+                flex-direction: column;
+                width: 100%;
               }
               
-              /* Imágenes (canvas convertidos) */
+              /* Canvas/imágenes con altura controlada */
+              .bg-white.rounded-lg.shadow-md > div {
+                width: 100% !important;
+                height: 280px !important;
+                position: relative !important;
+              }
+              
+              /* Imágenes de canvas */
               img {
                 max-width: 100% !important;
+                max-height: 100% !important;
+                width: auto !important;
                 height: auto !important;
+                object-fit: contain !important;
                 display: block !important;
+                margin: 0 auto !important;
+              }
+              
+              /* Títulos compactos */
+              h3 {
+                font-size: 14px !important;
+                margin: 0 0 8px 0 !important;
+                padding: 0 !important;
               }
               
               /* Ocultar elementos de navegación */
-              .fixed, button {
+              .fixed, button, .sticky {
                 display: none !important;
               }
             </style>
