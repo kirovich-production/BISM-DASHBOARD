@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import TabNavigation from './components/TabNavigation';
 import DataTable from './components/DataTable';
 import PeriodInput from './components/PeriodInput';
-import VersionSelector from './components/VersionSelector';
+import GraphView from './components/GraphView';
+import EbitdaDashboard from './components/EbitdaDashboard';
+import DashboardView from './components/DashboardView';
+import DashboardSidebar from './components/DashboardSidebar';
 import { UploadResponse, UploadedDocument, Period } from '@/types';
 
 export default function Home() {
@@ -17,9 +20,10 @@ export default function Home() {
   const [loadingData, setLoadingData] = useState(false);
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+  const [selectedVersion] = useState<number | null>(null);
   const [uploadPeriod, setUploadPeriod] = useState<string>('');
   const [uploadPeriodLabel, setUploadPeriodLabel] = useState<string>('');
+  const [activeView, setActiveView] = useState<'dashboard' | 'charts' | 'ebitda' | 'tables' | 'upload'>('dashboard');
 
   // Cargar períodos al montar el componente
   useEffect(() => {
@@ -93,16 +97,6 @@ export default function Home() {
     }
   };
 
-  const handleVersionChange = useCallback((version: number | null) => {
-    setSelectedVersion(version);
-  }, []);
-
-  const handleVersionDeleted = useCallback(() => {
-    // Recargar períodos después de eliminar una versión
-    fetchPeriods();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -172,20 +166,40 @@ export default function Home() {
   const activeSection = excelData?.sections.find(s => s.name === activeTab);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            📊 BISM Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Sistema de análisis financiero - Carga y visualización de datos
-          </p>
-        </div>
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      {/* Dark Sidebar */}
+      <DashboardSidebar
+        activeView={activeView}
+        onViewChange={setActiveView}
+      />
 
-        {/* Upload Card */}
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-auto">
+        {activeView === 'dashboard' ? (
+          /* Dashboard View */
+          <div className="p-4 sm:p-6 lg:p-8">
+            <DashboardView
+              onNavigate={setActiveView}
+              selectedPeriod={selectedPeriod}
+              periodsCount={periods.length}
+            />
+          </div>
+        ) : activeView === 'upload' ? (
+          /* Upload Section Only */
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6 lg:p-8">
+            <div className="max-w-[95%] 2xl:max-w-[1800px] mx-auto">
+              {/* Header */}
+              <div className="text-center mb-6 md:mb-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+                  📊 BISM Dashboard
+                </h1>
+                <p className="text-sm md:text-base text-gray-600">
+                  Sistema de análisis financiero - Carga y visualización de datos
+                </p>
+              </div>
+
+              {/* Upload Card */}
+              <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 mb-6">
           <h2 className="text-xl font-bold text-gray-800 mb-6">
             📤 Cargar Nuevo Período
           </h2>
@@ -308,92 +322,135 @@ export default function Home() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Version Selector */}
-        {selectedPeriod && (
-          <div className="mb-6">
-            <VersionSelector 
-              selectedPeriod={selectedPeriod}
-              onVersionChange={handleVersionChange}
-              onVersionDeleted={handleVersionDeleted}
-            />
-          </div>
-        )}
-
-        {/* Data Visualization */}
-        {excelData && selectedPeriod && (
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="text-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">
-                 {excelData.fileName}
-              </h2>
-              {excelData.fileName && (
-                <h3 className="text-sm text-gray-600 mt-2 font-medium">
-                  Datos Financieros
-                </h3>
-              )}
-            </div>
-
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <p className="text-sm text-gray-600">
-                  Período: <strong>{excelData.periodLabel}</strong>
-                </p>
-                {excelData.version && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
-                    Versión {excelData.version}
-                  </span>
-                )}
               </div>
-              {excelData.uploadedAt && (
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">
-                    Cargado: {new Date(excelData.uploadedAt).toLocaleString('es-CL')}
-                  </p>
+            </div>
+          </div>
+        ) : activeView === 'tables' || activeView === 'charts' || activeView === 'ebitda' ? (
+          /* Tables, Charts and EBITDA Views */
+          excelData && selectedPeriod ? (
+            <div className="bg-white h-full overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-bold text-white">
+                      {excelData.fileName}
+                    </h2>
+                    <p className="text-indigo-100 text-xs md:text-sm mt-1">
+                      Datos Financieros - {excelData.periodLabel}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-1 w-full sm:w-auto">
+                    <button
+                      onClick={() => setActiveView('tables')}
+                      className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 rounded-md font-medium transition-all flex items-center justify-center gap-2 ${
+                        activeView === 'tables'
+                          ? 'bg-white text-indigo-600 shadow-lg'
+                          : 'text-white hover:bg-white/20'
+                      }`}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span className="hidden sm:inline">Tablas</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveView('charts')}
+                      className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 rounded-md font-medium transition-all flex items-center justify-center gap-2 ${
+                        activeView === 'charts'
+                          ? 'bg-white text-indigo-600 shadow-lg'
+                          : 'text-white hover:bg-white/20'
+                      }`}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                      <span className="hidden sm:inline">Gráficos</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              {activeView === 'tables' ? (
+                <div className="flex-1 overflow-auto p-6 md:p-8">
+                  <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm text-gray-600">
+                        Período: <strong>{excelData.periodLabel}</strong>
+                      </p>
+                      {excelData.version && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+                          Versión {excelData.version}
+                        </span>
+                      )}
+                    </div>
+                    {excelData.uploadedAt && (
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">
+                          Cargado: {new Date(excelData.uploadedAt).toLocaleString('es-CL')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+
+                  {loadingData ? (
+                    <div className="flex justify-center items-center py-12">
+                      <svg className="animate-spin h-8 w-8 text-indigo-600" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <DataTable 
+                      data={activeSection?.data || []} 
+                      sectionName={activeTab}
+                    />
+                  )}
+                </div>
+              ) : activeView === 'ebitda' ? (
+                <div className="flex-1 overflow-auto p-6 md:p-8">
+                  <EbitdaDashboard sections={excelData.sections} />
+                </div>
+              ) : (
+                <div className="flex-1 overflow-hidden">
+                  <GraphView
+                    selectedPeriod={selectedPeriod}
+                    onPeriodChange={setSelectedPeriod}
+                    availablePeriods={periods.map(p => p.period)}
+                    sections={excelData.sections}
+                  />
                 </div>
               )}
             </div>
-
-            <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-            {loadingData ? (
-              <div className="flex justify-center items-center py-12">
-                <svg className="animate-spin h-8 w-8 text-indigo-600" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          ) : (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8 flex items-center justify-center">
+              <div className="bg-white rounded-lg shadow-lg p-12 text-center max-w-md">
+                <svg className="mx-auto h-16 w-16 text-indigo-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  No hay datos disponibles
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  Primero debes cargar un archivo desde la sección &quot;Cargar Datos&quot;
+                </p>
+                <button
+                  onClick={() => setActiveView('upload')}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Ir a Cargar Datos
+                </button>
               </div>
-            ) : (
-              <DataTable 
-                data={activeSection?.data || []} 
-                sectionName={activeTab}
-              />
-            )}
-          </div>
-        )}
-
-        {!excelData && !loadingData && periods.length === 0 && (
-          <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p className="text-gray-500 text-lg">
-              No hay datos disponibles. Por favor, carga un archivo Excel.
-            </p>
-          </div>
-        )}
-
-        {!excelData && !loadingData && periods.length > 0 && (
-          <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-            <svg className="mx-auto h-12 w-12 text-indigo-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-gray-500 text-lg">
-              Selecciona un período para visualizar los datos.
-            </p>
-          </div>
-        )}
+            </div>
+          )
+        ) : null}
       </div>
     </div>
   );
