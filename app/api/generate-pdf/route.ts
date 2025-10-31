@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 Generando PDF con Browserless.io...');
 
-    // Llamar a Browserless.io API
-    const browserlessUrl = `https://chrome.browserless.io/pdf?token=${BROWSERLESS_TOKEN}`;
+    // Llamar a Browserless.io API (nueva URL)
+    const browserlessUrl = `https://production-sfo.browserless.io/pdf?token=${BROWSERLESS_TOKEN}`;
     
     const response = await fetch(browserlessUrl, {
       method: 'POST',

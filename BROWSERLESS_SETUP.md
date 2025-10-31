@@ -175,7 +175,7 @@ vercel env add BROWSERLESS_API_TOKEN production
 
 ```bash
 # Reemplazar YOUR_TOKEN con tu token real
-curl -X POST https://chrome.browserless.io/pdf?token=YOUR_TOKEN \
+curl -X POST https://production-sfo.browserless.io/pdf?token=YOUR_TOKEN \
   -H "Content-Type: application/json" \
   -d '{"html":"<h1>Test</h1>","options":{"format":"Letter"}}' \
   --output test.pdf
