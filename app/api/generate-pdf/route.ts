@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
 
 export const maxDuration = 60; // Tiempo máximo de ejecución: 60 segundos
 
@@ -22,32 +20,40 @@ export async function POST(request: NextRequest) {
     // Determinar si estamos en producción (Vercel) o desarrollo (local)
     const isProduction = process.env.VERCEL === '1';
     
+    // Importar dinámicamente según el entorno
+    const puppeteer = isProduction 
+      ? await import('puppeteer-core')
+      : await import('puppeteer');
+    
     // Lanzar navegador
-    browser = await puppeteer.launch({
-      headless: true,
-      args: isProduction
-        ? [
-            ...chromium.args,
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--single-process',
-          ]
-        : [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-          ],
-      executablePath: isProduction
-        ? await chromium.executablePath()
-        : process.platform === 'win32'
-        ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-        : process.platform === 'darwin'
-        ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-        : '/usr/bin/google-chrome',
-    });
+    if (isProduction) {
+      // En producción, usar @sparticuz/chromium
+      const chromium = await import('@sparticuz/chromium');
+      
+      browser = await puppeteer.default.launch({
+        headless: true,
+        args: [
+          ...chromium.default.args,
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--single-process',
+        ],
+        executablePath: await chromium.default.executablePath(),
+      });
+    } else {
+      // En desarrollo, usar Chrome local
+      browser = await puppeteer.default.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+        ],
+      });
+    }
 
     const page = await browser.newPage();
 
