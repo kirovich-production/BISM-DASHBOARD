@@ -159,6 +159,7 @@ export default function EbitdaDashboard({ sections }: EbitdaDashboardProps) {
       console.warn('Response status:', response.status);
       const errorData = await response.json().catch(() => ({}));
       console.warn('Error data:', errorData);
+      console.warn('Error message:', errorData.message || 'Sin mensaje de error');
       throw new Error('Puppeteer not available, using fallback');
 
     } catch {

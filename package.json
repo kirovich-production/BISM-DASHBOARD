@@ -9,12 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^141.0.0",
     "chart.js": "^4.5.1",
     "dom-to-image-more": "^3.7.2",
     "jspdf": "^3.0.3",
     "mongodb": "^6.20.0",
     "next": "16.0.1",
     "puppeteer": "^24.27.0",
+    "puppeteer-core": "^24.27.0",
     "react": "19.2.0",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "19.2.0",
