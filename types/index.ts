@@ -40,6 +40,9 @@ export interface UploadedDocument {
   _id?: string;
   fileName: string;
   sheetName: string;
+  period: string;  // Formato: YYYY-MM (Ej: "2025-01")
+  periodLabel: string;  // Formato: "Mes Año" (Ej: "Enero 2025")
+  version: number;  // 1, 2, 3... (autoincremental por período)
   uploadedAt: Date;
   sections: ExcelSection[];
 }
@@ -50,6 +53,9 @@ export interface UploadResponse {
   recordsInserted: number;
   fileName: string;
   sheetName: string;
+  period: string;
+  periodLabel: string;
+  version: number;
   sectionsFound: string[];
 }
 
@@ -57,4 +63,31 @@ export interface DataResponse {
   success: boolean;
   data: UploadedDocument | null;
   uploadedAt?: Date;
+}
+
+export interface Period {
+  _id?: string;
+  period: string;
+  periodLabel: string;
+  fileName: string;
+  version: number;
+  uploadedAt: Date;
+  versionCount?: number; // Total de versiones para este período
+}
+
+export interface PeriodsResponse {
+  success: boolean;
+  periods: Period[];
+}
+
+export interface DeleteResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface YearsRangeResponse {
+  success: boolean;
+  minYear: number;
+  maxYear: number;
+  years: number[];
 }

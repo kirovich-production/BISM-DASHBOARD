@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import TabNavigation from './components/TabNavigation';
 import DataTable from './components/DataTable';
-import { UploadResponse, UploadedDocument } from '@/types';
+import PeriodInput from './components/PeriodInput';
+import VersionSelector from './components/VersionSelector';
+import { UploadResponse, UploadedDocument, Period } from '@/types';
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,27 +15,76 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'Labranza' | 'Sevilla' | 'Consolidados'>('Labranza');
   const [excelData, setExcelData] = useState<UploadedDocument | null>(null);
   const [loadingData, setLoadingData] = useState(false);
+  const [periods, setPeriods] = useState<Period[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+  const [uploadPeriod, setUploadPeriod] = useState<string>('');
+  const [uploadPeriodLabel, setUploadPeriodLabel] = useState<string>('');
 
-  // Cargar datos al montar el componente
+  // Cargar períodos al montar el componente
   useEffect(() => {
-    fetchData();
+    fetchPeriods();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Recargar datos después de un upload exitoso
+  // Cargar datos del período y versión seleccionados
+  useEffect(() => {
+    if (selectedPeriod) {
+      fetchData(selectedPeriod, selectedVersion);
+    }
+  }, [selectedPeriod, selectedVersion]);
+
+  // Recargar períodos después de un upload exitoso
   useEffect(() => {
     if (uploadedData?.success) {
-      fetchData();
+      fetchPeriods();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uploadedData]);
 
-  const fetchData = async () => {
+  const fetchPeriods = async () => {
+    try {
+      const response = await fetch('/api/periods');
+      const result = await response.json();
+      
+      if (result.success && result.periods) {
+        setPeriods(result.periods);
+        
+        // Si no hay período seleccionado, seleccionar el más reciente
+        if (!selectedPeriod && result.periods.length > 0) {
+          setSelectedPeriod(result.periods[0].period);
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar períodos:', error);
+    }
+  };
+
+  const fetchData = async (period?: string, version?: number | null) => {
     setLoadingData(true);
     try {
-      const response = await fetch('/api/data');
+      let url = '/api/data';
+      const params = new URLSearchParams();
+      
+      if (period) {
+        params.append('period', period);
+      }
+      
+      if (version !== null && version !== undefined) {
+        params.append('version', version.toString());
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await fetch(url);
       const result = await response.json();
       
       if (result.success && result.data) {
         setExcelData(result.data);
+      } else {
+        setExcelData(null);
       }
     } catch (error) {
       console.error('Error al cargar datos:', error);
@@ -42,11 +93,26 @@ export default function Home() {
     }
   };
 
+  const handleVersionChange = useCallback((version: number | null) => {
+    setSelectedVersion(version);
+  }, []);
+
+  const handleVersionDeleted = useCallback(() => {
+    // Recargar períodos después de eliminar una versión
+    fetchPeriods();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
       setMessage(null);
     }
+  };
+
+  const handlePeriodInputChange = (period: string, periodLabel: string) => {
+    setUploadPeriod(period);
+    setUploadPeriodLabel(periodLabel);
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -57,12 +123,19 @@ export default function Home() {
       return;
     }
 
+    if (!uploadPeriod || !uploadPeriodLabel) {
+      setMessage({ type: 'error', text: 'Por favor selecciona un período' });
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
 
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('period', uploadPeriod);
+      formData.append('periodLabel', uploadPeriodLabel);
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -74,13 +147,16 @@ export default function Home() {
       if (response.ok) {
         setMessage({
           type: 'success',
-          text: `✅ ${result.message}. Secciones encontradas: ${result.sectionsFound.join(', ')}`
+          text: `✅ ${result.message}. Período: ${result.periodLabel}. Secciones encontradas: ${result.sectionsFound.join(', ')}`
         });
         setUploadedData(result);
         setFile(null);
         // Limpiar el input file
         const fileInput = document.getElementById('file-input') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
+        
+        // Seleccionar automáticamente el período recién cargado
+        setSelectedPeriod(result.period);
       } else {
         setMessage({ type: 'error', text: `❌ ${result.error}` });
       }
@@ -110,13 +186,20 @@ export default function Home() {
 
         {/* Upload Card */}
         <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-6">
+            📤 Cargar Nuevo Período
+          </h2>
+          
           <form onSubmit={handleUpload} className="space-y-6">
+            {/* Period Input */}
+            <PeriodInput onPeriodChange={handlePeriodInputChange} />
+
             <div>
               <label 
                 htmlFor="file-input" 
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Cargar archivo Excel (debe contener hoja &quot;Consolidado&quot;)
+                Archivo Excel (debe contener hoja &quot;Consolidado&quot;)
               </label>
               <input
                 id="file-input"
@@ -185,8 +268,8 @@ export default function Home() {
 
               <button
                 type="button"
-                onClick={fetchData}
-                disabled={loadingData}
+                onClick={() => selectedPeriod && fetchData(selectedPeriod, selectedVersion)}
+                disabled={loadingData || !selectedPeriod}
                 className="bg-gray-600 text-white py-3 px-6 rounded-lg
                   font-semibold hover:bg-gray-700 transition-colors
                   disabled:bg-gray-400 disabled:cursor-not-allowed
@@ -214,10 +297,11 @@ export default function Home() {
           )}
 
           {/* Upload Summary */}
-          {uploadedData && (
+            {uploadedData && (
             <div className="mt-6 bg-gray-50 border border-gray-200 rounded-md p-4">
               <h3 className="font-semibold text-gray-800 mb-2">📋 Resumen de carga</h3>
               <div className="space-y-1 text-sm text-gray-600">
+                <p><strong>Período:</strong> {uploadedData.periodLabel}</p>
                 <p><strong>Archivo:</strong> {uploadedData.fileName}</p>
                 <p><strong>Hoja:</strong> {uploadedData.sheetName}</p>
                 <p><strong>Secciones:</strong> {uploadedData.sectionsFound.join(', ')}</p>
@@ -226,17 +310,48 @@ export default function Home() {
           )}
         </div>
 
+        {/* Version Selector */}
+        {selectedPeriod && (
+          <div className="mb-6">
+            <VersionSelector 
+              selectedPeriod={selectedPeriod}
+              onVersionChange={handleVersionChange}
+              onVersionDeleted={handleVersionDeleted}
+            />
+          </div>
+        )}
+
         {/* Data Visualization */}
-        {excelData && (
+        {excelData && selectedPeriod && (
           <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="flex justify-between items-center mb-6">
+            <div className="text-center mb-4">
               <h2 className="text-2xl font-bold text-gray-800">
-                📈 Datos Financieros
+                 {excelData.fileName}
               </h2>
-              {excelData.uploadedAt && (
-                <p className="text-sm text-gray-500">
-                  Última actualización: {new Date(excelData.uploadedAt).toLocaleString('es-CL')}
+              {excelData.fileName && (
+                <h3 className="text-sm text-gray-600 mt-2 font-medium">
+                  Datos Financieros
+                </h3>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-gray-600">
+                  Período: <strong>{excelData.periodLabel}</strong>
                 </p>
+                {excelData.version && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+                    Versión {excelData.version}
+                  </span>
+                )}
+              </div>
+              {excelData.uploadedAt && (
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">
+                    Cargado: {new Date(excelData.uploadedAt).toLocaleString('es-CL')}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -258,13 +373,24 @@ export default function Home() {
           </div>
         )}
 
-        {!excelData && !loadingData && (
+        {!excelData && !loadingData && periods.length === 0 && (
           <div className="bg-white rounded-lg shadow-lg p-12 text-center">
             <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <p className="text-gray-500 text-lg">
               No hay datos disponibles. Por favor, carga un archivo Excel.
+            </p>
+          </div>
+        )}
+
+        {!excelData && !loadingData && periods.length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-12 text-center">
+            <svg className="mx-auto h-12 w-12 text-indigo-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-gray-500 text-lg">
+              Selecciona un período para visualizar los datos.
             </p>
           </div>
         )}

@@ -7,10 +7,19 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const period = formData.get('period') as string;
+    const periodLabel = formData.get('periodLabel') as string;
     
     if (!file) {
       return NextResponse.json(
         { error: 'No se proporcionó ningún archivo' },
+        { status: 400 }
+      );
+    }
+
+    if (!period || !periodLabel) {
+      return NextResponse.json(
+        { error: 'No se proporcionó el período' },
         { status: 400 }
       );
     }
@@ -196,10 +205,22 @@ export async function POST(request: NextRequest) {
     const { db } = await connectToDatabase();
     const collection = db.collection('excel_uploads');
 
+    // Obtener la versión más alta para este período
+    const existingPeriods = await collection
+      .find({ period })
+      .sort({ version: -1 })
+      .limit(1)
+      .toArray();
+    
+    const version = existingPeriods.length > 0 ? existingPeriods[0].version + 1 : 1;
+
     // Crear documento con metadata
     const document = {
       fileName: file.name,
       sheetName: consolidadoSheet,
+      period,
+      periodLabel,
+      version,
       uploadedAt: new Date(),
       sections: sections
     };
@@ -213,6 +234,9 @@ export async function POST(request: NextRequest) {
       recordsInserted: 1,
       fileName: file.name,
       sheetName: consolidadoSheet,
+      period,
+      periodLabel,
+      version,
       sectionsFound: sections.map(s => s.name)
     });
 
