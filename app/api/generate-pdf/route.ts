@@ -17,43 +17,35 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 Iniciando Puppeteer para generar PDF...');
 
-    // Determinar si estamos en producción (Vercel) o desarrollo (local)
+    // TEMPORAL: Desactivar Puppeteer en producción hasta resolver configuración
     const isProduction = process.env.VERCEL === '1';
     
-    // Importar dinámicamente según el entorno
-    const puppeteer = isProduction 
-      ? await import('puppeteer-core')
-      : await import('puppeteer');
-    
-    // Lanzar navegador
     if (isProduction) {
-      // En producción, usar @sparticuz/chromium
-      const chromium = await import('@sparticuz/chromium');
-      
-      browser = await puppeteer.default.launch({
-        headless: true,
-        args: [
-          ...chromium.default.args,
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--single-process',
-        ],
-        executablePath: await chromium.default.executablePath(),
-      });
-    } else {
-      // En desarrollo, usar Chrome local
-      browser = await puppeteer.default.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-        ],
-      });
+      // En producción, devolver error para que use fallback del cliente
+      console.log('⚠️ Puppeteer desactivado en producción, usando fallback cliente');
+      return NextResponse.json(
+        { 
+          error: 'Puppeteer not configured in production yet',
+          message: 'Using client-side fallback',
+          useClientFallback: true,
+        },
+        { status: 503 } // Service Unavailable
+      );
     }
+    
+    // Solo ejecutar en desarrollo
+    const puppeteer = await import('puppeteer');
+    
+    // En desarrollo, usar Chrome local
+    browser = await puppeteer.default.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ],
+    });
 
     const page = await browser.newPage();
 
