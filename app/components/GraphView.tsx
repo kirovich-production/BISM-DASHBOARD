@@ -33,9 +33,9 @@ export default function GraphView({
     document.body.appendChild(loadingDiv);
 
     try {
-      console.log('🎯 Intentando generar PDF con Puppeteer (servidor)...');
+      console.log('🎯 [v3.0-browserless] Generando PDF con Browserless.io...');
       
-      // PASO 1: Intentar con Puppeteer (servidor)
+      // PASO 1: Intentar con Browserless.io (servidor)
       // Primero, convertir los canvas ORIGINALES a imágenes (antes de clonar)
       const originalCanvases = contentRef.current.querySelectorAll('canvas');
       console.log(`📊 Encontrados ${originalCanvases.length} canvas en el DOM original`);
@@ -124,7 +124,7 @@ export default function GraphView({
         }),
       });
 
-      if (response.ok) {
+      if (response.ok && response.headers.get('Content-Type')?.includes('application/pdf')) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -137,7 +137,7 @@ export default function GraphView({
 
         const successDiv = document.createElement('div');
         successDiv.className = 'fixed bottom-20 right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999]';
-        successDiv.innerHTML = '✓ PDF generado con Puppeteer (servidor - alta calidad)';
+        successDiv.innerHTML = '✓ PDF generado con Browserless.io (calidad profesional)';
         document.body.appendChild(successDiv);
         setTimeout(() => {
           if (document.body.contains(successDiv)) {
@@ -145,15 +145,15 @@ export default function GraphView({
           }
         }, 3000);
 
-        console.log('✅ PDF generado con Puppeteer exitosamente');
+        console.log('✅ PDF generado con Browserless.io exitosamente');
         return;
       }
 
-      console.warn('⚠️ Puppeteer no disponible, usando fallback dom-to-image...');
+      console.warn('⚠️ Browserless no disponible, usando fallback dom-to-image...');
       console.warn('Response status:', response.status);
       const errorData = await response.json().catch(() => ({}));
       console.warn('Error data:', errorData);
-      throw new Error('Puppeteer not available, using fallback');
+      throw new Error('Browserless not available, using fallback');
 
     } catch {
       console.log('🔄 Usando método de fallback (dom-to-image)...');
