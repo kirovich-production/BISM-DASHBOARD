@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import GraphSidebar from './GraphSidebar';
 import ChartContainer from './charts/ChartContainer';
-import SalesAccumulatedChart, { type ChartRef } from './charts/SalesAccumulatedChart';
+import SalesAccumulatedChart from './charts/SalesAccumulatedChart';
 import SalesDistributionChart from './charts/SalesDistributionChart';
 import { useChartData } from './charts/useChartData';
 import type { ExcelRow } from '@/types';
@@ -21,18 +21,213 @@ export default function GraphView({
   availablePeriods,
   sections,
 }: GraphViewProps) {
-  const chartRef = useRef<ChartRef>(null);
-  const distributionChartRef = useRef<ChartRef>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const chartData = useChartData(sections);
 
-  console.log('GraphView render:', { selectedPeriod, availablePeriods, sections, chartData });
+  const handleExportPDF = async () => {
+    if (!contentRef.current) return;
 
-  const handleExport = () => {
-    chartRef.current?.exportToPNG();
-  };
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
+    loadingDiv.innerHTML = '<div class="bg-white p-6 rounded-lg"><div class="flex items-center gap-3"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div><p class="text-lg font-semibold">Generando PDF de alta calidad...</p></div></div>';
+    document.body.appendChild(loadingDiv);
 
-  const handleDistributionExport = () => {
-    distributionChartRef.current?.exportToPNG();
+    try {
+      console.log('🎯 Intentando generar PDF con Puppeteer (servidor)...');
+      
+      // PASO 1: Intentar con Puppeteer (servidor)
+      // Primero, convertir los canvas ORIGINALES a imágenes (antes de clonar)
+      const originalCanvases = contentRef.current.querySelectorAll('canvas');
+      console.log(`📊 Encontrados ${originalCanvases.length} canvas en el DOM original`);
+      
+      // Crear mapa de canvas -> imagen data URL
+      const canvasImages = new Map<HTMLCanvasElement, string>();
+      originalCanvases.forEach((canvas) => {
+        const htmlCanvas = canvas as HTMLCanvasElement;
+        try {
+          const dataUrl = htmlCanvas.toDataURL('image/png');
+          canvasImages.set(htmlCanvas, dataUrl);
+          console.log(`✓ Canvas convertido: ${dataUrl.substring(0, 50)}...`);
+        } catch (error) {
+          console.error('Error convirtiendo canvas:', error);
+        }
+      });
+
+      // Ahora clonar el contenido
+      const clonedContent = contentRef.current.cloneNode(true) as HTMLElement;
+      
+      const styles = Array.from(document.styleSheets)
+        .map(styleSheet => {
+          try {
+            return Array.from(styleSheet.cssRules)
+              .map(rule => rule.cssText)
+              .join('\n');
+          } catch {
+            return '';
+          }
+        })
+        .join('\n');
+
+      // Reemplazar los canvas clonados (vacíos) con imágenes
+      const clonedCanvases = clonedContent.querySelectorAll('canvas');
+      console.log(`📊 Reemplazando ${clonedCanvases.length} canvas clonados con imágenes...`);
+      
+      clonedCanvases.forEach((clonedCanvas, index) => {
+        const originalCanvas = Array.from(originalCanvases)[index] as HTMLCanvasElement;
+        const dataUrl = canvasImages.get(originalCanvas);
+        
+        if (dataUrl && clonedCanvas.parentNode) {
+          // Crear elemento img con la imagen del canvas original
+          const img = document.createElement('img');
+          img.src = dataUrl;
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = 'contain';
+          
+          // Reemplazar canvas clonado con img
+          clonedCanvas.parentNode.replaceChild(img, clonedCanvas);
+          console.log(`✓ Canvas ${index + 1} reemplazado con imagen`);
+        } else {
+          console.warn(`⚠️ No se pudo obtener imagen para canvas ${index + 1}`);
+        }
+      });
+
+      const fullHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              ${styles}
+              body {
+                margin: 0;
+                padding: 20px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: white;
+              }
+            </style>
+          </head>
+          <body>
+            ${clonedContent.outerHTML}
+          </body>
+        </html>
+      `;
+
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          html: fullHtml,
+          title: `graficos-ventas-${selectedPeriod || 'reporte'}`,
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `graficos-ventas-${selectedPeriod || 'reporte'}-${new Date().toISOString().split('T')[0]}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+
+        document.body.removeChild(loadingDiv);
+
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed bottom-20 right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999]';
+        successDiv.innerHTML = '✓ PDF generado exitosamente con calidad profesional';
+        document.body.appendChild(successDiv);
+        setTimeout(() => {
+          if (document.body.contains(successDiv)) {
+            document.body.removeChild(successDiv);
+          }
+        }, 3000);
+
+        console.log('✅ PDF generado con Puppeteer exitosamente');
+        return;
+      }
+
+      console.warn('⚠️ Puppeteer no disponible, usando fallback dom-to-image...');
+      throw new Error('Puppeteer not available, using fallback');
+
+    } catch {
+      console.log('🔄 Usando método de fallback (dom-to-image)...');
+      
+      try {
+        // FALLBACK: Usar dom-to-image-more
+        // @ts-expect-error - dom-to-image-more no tiene tipos oficiales
+        const domtoimage = (await import('dom-to-image-more')).default;
+        const jsPDF = (await import('jspdf')).default;
+
+        const dataUrl = await domtoimage.toPng(contentRef.current, {
+          quality: 1.0,
+          width: contentRef.current.scrollWidth,
+          height: contentRef.current.scrollHeight,
+          style: {
+            transform: 'scale(1)',
+            transformOrigin: 'top left',
+          },
+        });
+
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+        });
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        
+        const img = new Image();
+        img.src = dataUrl;
+        
+        await new Promise((resolve) => {
+          img.onload = resolve;
+        });
+
+        const imgWidth = pdfWidth - 20;
+        const imgHeight = (img.height * imgWidth) / img.width;
+        
+        let heightLeft = imgHeight;
+        let position = 10;
+
+        pdf.addImage(dataUrl, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= (pdfHeight - 20);
+
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight + 10;
+          pdf.addPage();
+          pdf.addImage(dataUrl, 'PNG', 10, position, imgWidth, imgHeight);
+          heightLeft -= (pdfHeight - 20);
+        }
+
+        pdf.save(`graficos-ventas-${selectedPeriod || 'reporte'}-${new Date().toISOString().split('T')[0]}.pdf`);
+        
+        document.body.removeChild(loadingDiv);
+        
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed bottom-20 right-6 bg-yellow-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999]';
+        successDiv.innerHTML = '✓ PDF generado (modo compatibilidad)';
+        document.body.appendChild(successDiv);
+        setTimeout(() => {
+          if (document.body.contains(successDiv)) {
+            document.body.removeChild(successDiv);
+          }
+        }, 3000);
+
+        console.log('✅ PDF generado con fallback dom-to-image');
+
+      } catch (fallbackError) {
+        console.error('❌ Error en fallback:', fallbackError);
+        const loadingDivs = document.querySelectorAll('.fixed.inset-0');
+        loadingDivs.forEach(div => div.remove());
+        
+        const errorMessage = fallbackError instanceof Error ? fallbackError.message : 'Error desconocido';
+        alert(`Error al generar el PDF:\n${errorMessage}\n\nRevisa la consola para más detalles.`);
+      }
+    }
   };
 
   // Calcular totales para el gráfico circular
@@ -74,6 +269,23 @@ export default function GraphView({
       />
       
       <div className="flex-1 overflow-auto p-4 md:p-6 xl:p-8">
+        {/* Botón de exportar PDF - fijo en la esquina */}
+        {selectedPeriod && sections.length > 0 && (
+          <div className="fixed bottom-6 right-6 z-50">
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-2 px-4 md:px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="hidden sm:inline font-medium">Exportar PDF</span>
+              <span className="sm:hidden font-medium">PDF</span>
+            </button>
+          </div>
+        )}
+        
+        <div ref={contentRef}>
         {!selectedPeriod ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
@@ -127,21 +339,16 @@ export default function GraphView({
             {/* Grid de gráficos lado a lado (50/50) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 2xl:gap-8">
               {/* Gráfico de Ventas Acumuladas */}
-              <ChartContainer
-                title="Ventas Netas Acumuladas"
-                onExport={handleExport}
-              >
-                <SalesAccumulatedChart ref={chartRef} data={chartData} />
+              <ChartContainer title="Ventas Netas Acumuladas">
+                <SalesAccumulatedChart data={chartData} />
               </ChartContainer>
 
               {/* Gráfico de Distribución - más grande */}
               <ChartContainer
                 title="Distribución de Ventas"
-                onExport={handleDistributionExport}
                 className="h-full min-h-[600px] md:min-h-[700px] lg:min-h-[750px]"
               >
                 <SalesDistributionChart 
-                  ref={distributionChartRef}
                   labranzaTotal={labranzaTotal}
                   sevillaTotal={sevillaTotal}
                 />
@@ -187,6 +394,7 @@ export default function GraphView({
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
