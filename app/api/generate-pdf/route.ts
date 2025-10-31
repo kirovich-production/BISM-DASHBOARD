@@ -4,17 +4,17 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    await request.json(); // Leer el body para evitar errores
+    await request.json();
 
-    // Siempre devolver error para usar fallback del cliente
-    // El fallback funciona perfectamente con los gráficos
-    console.log('📄 API route llamada - redirigiendo a fallback del cliente');
+    // API simplificada - siempre usa fallback del cliente
+    console.log('📄 PDF API v2 - Usando fallback del cliente');
     
     return NextResponse.json(
       { 
-        error: 'Server-side PDF generation disabled',
-        message: 'Using client-side PDF generation with dom-to-image',
+        error: 'Server-side PDF disabled',
+        message: 'Client-side PDF generation active',
         useClientFallback: true,
+        version: '2.0'
       },
       { status: 503 }
     );
@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { 
-        error: 'Error in PDF API',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'PDF API error',
+        message: error instanceof Error ? error.message : 'Unknown',
         useClientFallback: true,
       },
       { status: 500 }
