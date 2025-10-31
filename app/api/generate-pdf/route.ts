@@ -47,12 +47,6 @@ export async function POST(request: NextRequest) {
           preferCSSPageSize: false,
           displayHeaderFooter: false,
           scale: 0.8,
-          // Opciones adicionales para mejor renderizado
-          waitForSelector: 'body',
-          waitForTimeout: 2000,
-        },
-        gotoOptions: {
-          waitUntil: 'networkidle0',
         },
       }),
     });
