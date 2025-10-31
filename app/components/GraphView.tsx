@@ -137,7 +137,7 @@ export default function GraphView({
 
         const successDiv = document.createElement('div');
         successDiv.className = 'fixed bottom-20 right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999]';
-        successDiv.innerHTML = '✓ PDF generado exitosamente con calidad profesional';
+        successDiv.innerHTML = '✓ PDF generado con Puppeteer (servidor - alta calidad)';
         document.body.appendChild(successDiv);
         setTimeout(() => {
           if (document.body.contains(successDiv)) {
@@ -150,6 +150,9 @@ export default function GraphView({
       }
 
       console.warn('⚠️ Puppeteer no disponible, usando fallback dom-to-image...');
+      console.warn('Response status:', response.status);
+      const errorData = await response.json().catch(() => ({}));
+      console.warn('Error data:', errorData);
       throw new Error('Puppeteer not available, using fallback');
 
     } catch {
