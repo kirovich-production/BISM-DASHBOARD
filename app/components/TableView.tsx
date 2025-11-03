@@ -72,15 +72,8 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
             <title>Tablas Financieras - ${periodLabel}</title>
             <style>
               @page {
-                size: A4 portrait;
-                margin: 8mm 6mm;
-              }
-              
-              @media print {
-                body {
-                  width: 210mm !important;
-                  height: 297mm !important;
-                }
+                size: A4 landscape;
+                margin: 0;
               }
               
               * {
@@ -90,17 +83,17 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               }
               
               html {
-                width: 210mm;
-                height: 297mm;
+                width: 297mm;
+                height: 210mm;
               }
               
               body {
                 font-family: system-ui, -apple-system, sans-serif;
                 background: white;
-                padding: 8px;
-                width: 210mm;
-                max-width: 210mm;
-                min-height: 297mm;
+                padding: 12px;
+                width: 297mm;
+                max-width: 297mm;
+                min-height: 210mm;
               }
               
               /* Contenedor principal */
@@ -113,17 +106,18 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               table {
                 width: 100% !important;
                 max-width: 100% !important;
-                font-size: 7px !important;
+                font-size: 8px !important;
                 border-collapse: collapse !important;
                 table-layout: auto !important;
               }
               
               th, td {
-                padding: 3px 2px !important;
+                padding: 4px 3px !important;
                 border: 1px solid #d1d5db !important;
                 text-align: center !important;
                 white-space: nowrap !important;
                 overflow: visible !important;
+                font-size: 8px !important;
               }
               
               th {
@@ -132,19 +126,28 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
                 font-weight: 600 !important;
               }
               
-              /* Primera columna pegada a la izquierda */
+              /* Primera columna pegada a la izquierda - SIEMPRE VISIBLE */
               th:first-child,
               td:first-child {
                 text-align: left !important;
-                background: inherit !important;
-                min-width: 110px !important;
-                max-width: 130px !important;
-                width: 120px !important;
-                font-size: 7.5px !important;
-                padding: 4px 5px !important;
+                background: white !important;
+                position: relative !important;
+                min-width: 150px !important;
+                max-width: 200px !important;
+                width: 170px !important;
+                font-size: 9px !important;
+                padding: 5px 8px !important;
                 word-wrap: break-word !important;
                 white-space: normal !important;
                 line-height: 1.3 !important;
+                font-weight: 600 !important;
+                border-right: 2px solid #4f46e5 !important;
+              }
+              
+              /* Header de primera columna */
+              th:first-child {
+                background-color: #4f46e5 !important;
+                color: white !important;
               }
               
               /* Totales en negrita */
@@ -160,19 +163,19 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               
               /* Encabezados compactos */
               h2, h3 {
-                font-size: 11px !important;
+                font-size: 12px !important;
                 margin: 5px 0 !important;
                 padding: 0 !important;
               }
               
               p {
-                font-size: 8.5px !important;
+                font-size: 9px !important;
                 margin: 3px 0 !important;
               }
               
               /* Span pequeño */
               span {
-                font-size: 7.5px !important;
+                font-size: 8px !important;
               }
               
               /* Border del contenedor */
@@ -254,8 +257,8 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
         });
 
         const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'px',
+          orientation: 'landscape',
+          unit: 'mm',
           format: 'a4',
         });
 
@@ -265,15 +268,16 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
         const imgHeight = contentRef.current.scrollHeight;
         
         // Calcular escala para ajustar al ancho de la página
-        const scale = pdfWidth / imgWidth;
-        const scaledHeight = imgHeight * scale;
+        const scale = pdfWidth / (imgWidth * 0.264583); // Convertir px a mm
+        const scaledWidth = pdfWidth;
+        const scaledHeight = (imgHeight * 0.264583) * scale;
 
         pdf.addImage(
           dataUrl,
           'PNG',
           0,
           0,
-          pdfWidth,
+          scaledWidth,
           scaledHeight > pdfHeight ? pdfHeight : scaledHeight
         );
         pdf.save(`tablas-financieras-${periodLabel.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
