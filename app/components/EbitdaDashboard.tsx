@@ -166,7 +166,7 @@ export default function EbitdaDashboard({ sections }: EbitdaDashboardProps) {
               /* Asegurar que canvas/imágenes respeten el contenedor */
               .bg-white.rounded-lg.shadow-md > div {
                 width: 100% !important;
-                height: 280px !important;
+                height: 400px !important;
                 position: relative !important;
               }
               
@@ -473,17 +473,17 @@ export default function EbitdaDashboard({ sections }: EbitdaDashboardProps) {
         </div>
 
         {/* Gráfico principal: Ventas vs EBITDA */}
-        <ChartContainer title="Análisis de Ventas vs EBITDA">
+        <ChartContainer title="Análisis de Ventas vs EBITDA" className="min-h-[500px]">
           <SalesVsEbitdaChart data={salesVsEbitda} />
         </ChartContainer>
 
         {/* Gráficos secundarios lado a lado */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <ChartContainer title="Evolución EBITDA Mensual">
+          <ChartContainer title="Evolución EBITDA Mensual" className="min-h-[450px]">
             <EbitdaLineChart data={ebitdaMonthly} />
           </ChartContainer>
 
-          <ChartContainer title="Comparación por Unidad">
+          <ChartContainer title="Comparación por Unidad" className="min-h-[450px]">
             <EbitdaComparisonChart 
               labranzaTotal={ebitdaLabranza}
               sevillaTotal={ebitdaSevilla}
