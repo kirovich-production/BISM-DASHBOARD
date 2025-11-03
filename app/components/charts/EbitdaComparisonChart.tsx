@@ -72,6 +72,9 @@ const EbitdaComparisonChart = forwardRef<ChartRef, EbitdaComparisonChartProps>(
         legend: {
           display: false,
         },
+        datalabels: {
+          display: false,
+        },
         tooltip: {
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           padding: 12,

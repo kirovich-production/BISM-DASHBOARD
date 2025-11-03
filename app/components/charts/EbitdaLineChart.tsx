@@ -120,6 +120,9 @@ const EbitdaLineChart = forwardRef<ChartRef, EbitdaLineChartProps>(
             },
           },
         },
+        datalabels: {
+          display: false,
+        },
         tooltip: {
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           padding: 12,

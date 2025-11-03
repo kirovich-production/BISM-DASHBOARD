@@ -106,13 +106,15 @@ const SalesSevillaMonthlyChart = forwardRef<ChartRef, SalesSevillaMonthlyChartPr
           },
         },
         datalabels: {
-          anchor: 'end' as const,
-          align: 'top' as const,
-          color: 'rgb(234, 88, 12)',
+          anchor: 'center' as const,
+          align: 'center' as const,
+          color: '#000000',
           font: {
-            size: 11,
+            size: 14,
             weight: 'bold' as const,
           },
+          rotation: 0,
+          offset: 0,
           formatter: function(value: number) {
             return new Intl.NumberFormat('es-MX', {
               style: 'currency',

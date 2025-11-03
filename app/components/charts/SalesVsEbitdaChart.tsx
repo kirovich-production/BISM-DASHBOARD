@@ -104,6 +104,9 @@ const SalesVsEbitdaChart = forwardRef<ChartRef, SalesVsEbitdaChartProps>(
             },
           },
         },
+        datalabels: {
+          display: false,
+        },
         tooltip: {
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           padding: 12,

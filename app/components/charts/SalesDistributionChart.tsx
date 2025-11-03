@@ -58,6 +58,9 @@ const SalesDistributionChart = forwardRef<ChartRef, SalesDistributionChartProps>
         legend: {
           display: false, // Ocultamos la leyenda para ganar espacio
         },
+        datalabels: {
+          display: false,
+        },
         tooltip: {
           callbacks: {
             label: function(context: { label?: string; parsed: number }) {

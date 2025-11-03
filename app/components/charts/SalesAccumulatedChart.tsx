@@ -119,6 +119,9 @@ const SalesAccumulatedChart = forwardRef<ChartRef, SalesAccumulatedChartProps>(
             },
           },
         },
+        datalabels: {
+          display: false,
+        },
         tooltip: {
           callbacks: {
             label: function(context: { dataset: { label?: string }; parsed: { y: number | null } }) {
