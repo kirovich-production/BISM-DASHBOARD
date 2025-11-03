@@ -166,19 +166,17 @@ export default function EbitdaDashboard({ sections }: EbitdaDashboardProps) {
               /* Asegurar que canvas/imágenes respeten el contenedor */
               .bg-white.rounded-lg.shadow-md > div {
                 width: 100% !important;
-                height: 320px !important;
+                height: 450px !important;
                 position: relative !important;
               }
               
               /* Imágenes de canvas con aspect ratio correcto */
               img {
-                max-width: 100% !important;
-                max-height: 100% !important;
                 width: 100% !important;
                 height: 100% !important;
-                object-fit: contain !important;
+                object-fit: fill !important;
                 display: block !important;
-                margin: 0 auto !important;
+                margin: 0 !important;
               }
               
               /* Títulos de gráficos más compactos */
