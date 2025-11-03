@@ -61,7 +61,33 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
     try {
       console.log('📄 Método 1: Intentando con Browserless.io (producción)...');
       
+      // CRÍTICO: Preparar tabla para captura
+      // 1. Forzar scroll a la izquierda para capturar columna sticky
+      const scrollContainers = contentRef.current.querySelectorAll('.overflow-x-auto');
+      const originalScrollPositions: number[] = [];
+      scrollContainers.forEach((container, index) => {
+        originalScrollPositions[index] = container.scrollLeft;
+        container.scrollLeft = 0; // Forzar scroll al inicio
+      });
+
+      // 2. Remover temporalmente sticky de la columna Ítem para PDF
+      const stickyElements = contentRef.current.querySelectorAll('.sticky');
+      stickyElements.forEach(el => {
+        (el as HTMLElement).style.position = 'relative';
+      });
+
+      // 3. Esperar un momento para que se renderice
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const clonedContent = contentRef.current.cloneNode(true) as HTMLElement;
+
+      // 4. Restaurar sticky para la vista web
+      stickyElements.forEach(el => {
+        (el as HTMLElement).style.position = 'sticky';
+      });
+      scrollContainers.forEach((container, index) => {
+        container.scrollLeft = originalScrollPositions[index];
+      });
 
       const fullHtml = `
         <!DOCTYPE html>
@@ -157,8 +183,14 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               }
               
               /* Ocultar controles y navegación */
-              .fixed, button, .sticky, nav {
+              .fixed, button, nav {
                 display: none !important;
+              }
+              
+              /* Eliminar sticky en PDF - ya está capturado en la posición correcta */
+              .sticky {
+                position: relative !important;
+                left: auto !important;
               }
               
               /* Encabezados compactos */
