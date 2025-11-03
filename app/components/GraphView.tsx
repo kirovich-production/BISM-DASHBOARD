@@ -446,7 +446,7 @@ export default function GraphView({
               {/* Ventas Mensuales - Labranza */}
               <ChartContainer 
                 title="Ventas Mensuales - Labranza" 
-                className="min-h-[500px]"
+                className="min-h-[650px]"
               >
                 <SalesLabranzaMonthlyChart
                   monthlyData={monthlyData}
@@ -460,7 +460,7 @@ export default function GraphView({
               {/* Ventas Mensuales - Sevilla */}
               <ChartContainer 
                 title="Ventas Mensuales - Sevilla" 
-                className="min-h-[500px]"
+                className="min-h-[650px]"
               >
                 <SalesSevillaMonthlyChart
                   monthlyData={monthlyData}
@@ -474,7 +474,7 @@ export default function GraphView({
               {/* Ventas Mensuales - Consolidado */}
               <ChartContainer 
                 title="Ventas Mensuales - Consolidado" 
-                className="min-h-[500px]"
+                className="min-h-[650px]"
               >
                 <SalesConsolidadoMonthlyChart
                   monthlyData={monthlyData}

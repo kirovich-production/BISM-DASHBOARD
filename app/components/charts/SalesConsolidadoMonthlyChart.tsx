@@ -203,7 +203,7 @@ const SalesConsolidadoMonthlyChart = forwardRef<ChartRef, SalesConsolidadoMonthl
         </div>
 
         {/* Gráfico */}
-        <div className="flex-1 min-h-0">
+        <div className="h-[500px]">
           <Bar ref={chartRef} data={chartData} options={options as never} />
         </div>
       </div>
