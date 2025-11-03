@@ -118,6 +118,13 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
                 left: 0 !important;
                 background: inherit !important;
                 z-index: 1 !important;
+                max-width: 120px !important;
+                width: 120px !important;
+                font-size: 8px !important;
+                padding: 4px 6px !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
               }
               
               /* Totales en negrita */
