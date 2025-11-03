@@ -73,7 +73,14 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
             <style>
               @page {
                 size: A4 portrait;
-                margin: 10mm 8mm;
+                margin: 8mm 6mm;
+              }
+              
+              @media print {
+                body {
+                  width: 210mm !important;
+                  height: 297mm !important;
+                }
               }
               
               * {
@@ -82,12 +89,18 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
                 box-sizing: border-box;
               }
               
+              html {
+                width: 210mm;
+                height: 297mm;
+              }
+              
               body {
                 font-family: system-ui, -apple-system, sans-serif;
                 background: white;
-                padding: 10px;
+                padding: 8px;
                 width: 210mm;
                 max-width: 210mm;
+                min-height: 297mm;
               }
               
               /* Contenedor principal */
@@ -100,17 +113,17 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               table {
                 width: 100% !important;
                 max-width: 100% !important;
-                font-size: 6px !important;
+                font-size: 7px !important;
                 border-collapse: collapse !important;
-                table-layout: fixed !important;
+                table-layout: auto !important;
               }
               
               th, td {
-                padding: 2px 1px !important;
+                padding: 3px 2px !important;
                 border: 1px solid #d1d5db !important;
                 text-align: center !important;
                 white-space: nowrap !important;
-                overflow: hidden !important;
+                overflow: visible !important;
               }
               
               th {
@@ -123,17 +136,15 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               th:first-child,
               td:first-child {
                 text-align: left !important;
-                position: relative !important;
                 background: inherit !important;
-                z-index: 1 !important;
-                min-width: 100px !important;
-                max-width: 120px !important;
+                min-width: 110px !important;
+                max-width: 130px !important;
                 width: 120px !important;
-                font-size: 7px !important;
-                padding: 3px 4px !important;
+                font-size: 7.5px !important;
+                padding: 4px 5px !important;
                 word-wrap: break-word !important;
                 white-space: normal !important;
-                line-height: 1.2 !important;
+                line-height: 1.3 !important;
               }
               
               /* Totales en negrita */
@@ -149,19 +160,19 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               
               /* Encabezados compactos */
               h2, h3 {
-                font-size: 10px !important;
-                margin: 4px 0 !important;
+                font-size: 11px !important;
+                margin: 5px 0 !important;
                 padding: 0 !important;
               }
               
               p {
-                font-size: 8px !important;
-                margin: 2px 0 !important;
+                font-size: 8.5px !important;
+                margin: 3px 0 !important;
               }
               
               /* Span pequeño */
               span {
-                font-size: 7px !important;
+                font-size: 7.5px !important;
               }
               
               /* Border del contenedor */

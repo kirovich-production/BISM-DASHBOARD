@@ -36,17 +36,15 @@ export async function POST(request: NextRequest) {
         html,
         options: {
           printBackground: true,
-          format: 'A4',
-          landscape: false,
-          margin: {
-            top: '0.3in',
-            bottom: '0.3in',
-            left: '0.2in',
-            right: '0.2in',
-          },
           preferCSSPageSize: true,
           displayHeaderFooter: false,
-          scale: 0.95,
+          scale: 1.0,
+          margin: {
+            top: '0',
+            bottom: '0',
+            left: '0',
+            right: '0',
+          },
         },
       }),
     });
