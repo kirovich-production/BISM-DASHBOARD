@@ -81,8 +81,9 @@ export default function EbitdaDashboard({ sections }: EbitdaDashboardProps) {
           const img = document.createElement('img');
           img.src = dataUrl;
           img.style.width = '100%';
-          img.style.height = '100%';
-          img.style.objectFit = 'contain';
+          img.style.height = '450px';
+          img.style.objectFit = 'fill';
+          img.style.display = 'block';
           
           // Reemplazar canvas clonado con img
           clonedCanvas.parentNode.replaceChild(img, clonedCanvas);
@@ -163,20 +164,21 @@ export default function EbitdaDashboard({ sections }: EbitdaDashboardProps) {
                 width: 100%;
               }
               
-              /* Asegurar que canvas/imágenes respeten el contenedor */
-              .bg-white.rounded-lg.shadow-md > div {
-                width: 100% !important;
+              /* Contenedor del gráfico (div con clase relative) */
+              .bg-white.rounded-lg.shadow-md .relative {
                 height: 450px !important;
-                position: relative !important;
+                min-height: 450px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
               }
               
-              /* Imágenes de canvas con aspect ratio correcto */
-              img {
+              /* Imágenes de canvas con altura fija */
+              .bg-white.rounded-lg.shadow-md img {
                 width: 100% !important;
-                height: 100% !important;
+                height: 450px !important;
                 object-fit: fill !important;
                 display: block !important;
-                margin: 0 !important;
               }
               
               /* Títulos de gráficos más compactos */
