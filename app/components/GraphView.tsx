@@ -5,7 +5,11 @@ import GraphSidebar from './GraphSidebar';
 import ChartContainer from './charts/ChartContainer';
 import SalesAccumulatedChart from './charts/SalesAccumulatedChart';
 import SalesDistributionChart from './charts/SalesDistributionChart';
+import SalesLabranzaMonthlyChart from './charts/SalesLabranzaMonthlyChart';
+import SalesSevillaMonthlyChart from './charts/SalesSevillaMonthlyChart';
+import SalesConsolidadoMonthlyChart from './charts/SalesConsolidadoMonthlyChart';
 import { useChartData } from './charts/useChartData';
+import { useMonthlySalesData } from './charts/useMonthlySalesData';
 import type { ExcelRow } from '@/types';
 
 interface GraphViewProps {
@@ -23,6 +27,15 @@ export default function GraphView({
 }: GraphViewProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const chartData = useChartData(sections);
+  
+  // Hook para datos mensuales
+  const {
+    monthlyData,
+    quarterOptions,
+    monthOptions,
+    filterByQuarter,
+    filterByComparison,
+  } = useMonthlySalesData(chartData);
 
   const handleExportPDF = async () => {
     if (!contentRef.current) return;
@@ -424,6 +437,51 @@ export default function GraphView({
                 <SalesDistributionChart 
                   labranzaTotal={labranzaTotal}
                   sevillaTotal={sevillaTotal}
+                />
+              </ChartContainer>
+            </div>
+
+            {/* Nuevos gráficos de ventas mensuales por sucursal */}
+            <div className="space-y-4 md:space-y-6">
+              {/* Ventas Mensuales - Labranza */}
+              <ChartContainer 
+                title="Ventas Mensuales - Labranza" 
+                className="min-h-[500px]"
+              >
+                <SalesLabranzaMonthlyChart
+                  monthlyData={monthlyData}
+                  quarterOptions={quarterOptions}
+                  monthOptions={monthOptions}
+                  onFilterByQuarter={filterByQuarter}
+                  onFilterByComparison={filterByComparison}
+                />
+              </ChartContainer>
+
+              {/* Ventas Mensuales - Sevilla */}
+              <ChartContainer 
+                title="Ventas Mensuales - Sevilla" 
+                className="min-h-[500px]"
+              >
+                <SalesSevillaMonthlyChart
+                  monthlyData={monthlyData}
+                  quarterOptions={quarterOptions}
+                  monthOptions={monthOptions}
+                  onFilterByQuarter={filterByQuarter}
+                  onFilterByComparison={filterByComparison}
+                />
+              </ChartContainer>
+
+              {/* Ventas Mensuales - Consolidado */}
+              <ChartContainer 
+                title="Ventas Mensuales - Consolidado" 
+                className="min-h-[500px]"
+              >
+                <SalesConsolidadoMonthlyChart
+                  monthlyData={monthlyData}
+                  quarterOptions={quarterOptions}
+                  monthOptions={monthOptions}
+                  onFilterByQuarter={filterByQuarter}
+                  onFilterByComparison={filterByComparison}
                 />
               </ChartContainer>
             </div>
