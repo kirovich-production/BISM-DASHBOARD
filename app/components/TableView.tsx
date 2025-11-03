@@ -93,12 +93,12 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               /* Tablas responsive */
               table {
                 width: 100% !important;
-                font-size: 9px !important;
+                font-size: 7px !important;
                 border-collapse: collapse !important;
               }
               
               th, td {
-                padding: 4px 2px !important;
+                padding: 3px 2px !important;
                 border: 1px solid #d1d5db !important;
                 text-align: center !important;
                 white-space: nowrap !important;
@@ -118,13 +118,13 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
                 left: 0 !important;
                 background: inherit !important;
                 z-index: 1 !important;
-                max-width: 120px !important;
-                width: 120px !important;
+                min-width: 140px !important;
+                max-width: 180px !important;
+                width: auto !important;
                 font-size: 8px !important;
-                padding: 4px 6px !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
-                white-space: nowrap !important;
+                padding: 6px 8px !important;
+                word-wrap: break-word !important;
+                white-space: normal !important;
               }
               
               /* Totales en negrita */
@@ -228,18 +228,27 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
         });
 
         const pdf = new jsPDF({
-          orientation: 'landscape',
+          orientation: 'portrait',
           unit: 'px',
-          format: [contentRef.current.scrollWidth, contentRef.current.scrollHeight],
+          format: 'a4',
         });
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = contentRef.current.scrollWidth;
+        const imgHeight = contentRef.current.scrollHeight;
+        
+        // Calcular escala para ajustar al ancho de la página
+        const scale = pdfWidth / imgWidth;
+        const scaledHeight = imgHeight * scale;
 
         pdf.addImage(
           dataUrl,
           'PNG',
           0,
           0,
-          contentRef.current.scrollWidth,
-          contentRef.current.scrollHeight
+          pdfWidth,
+          scaledHeight > pdfHeight ? pdfHeight : scaledHeight
         );
         pdf.save(`tablas-financieras-${periodLabel.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
 
