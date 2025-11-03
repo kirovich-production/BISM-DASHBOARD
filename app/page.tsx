@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import TabNavigation from './components/TabNavigation';
-import DataTable from './components/DataTable';
 import PeriodInput from './components/PeriodInput';
 import GraphView from './components/GraphView';
 import EbitdaDashboard from './components/EbitdaDashboard';
 import DashboardView from './components/DashboardView';
 import DashboardSidebar from './components/DashboardSidebar';
-import TableViewControls from './components/TableViewControls';
+import TableView from './components/TableView';
 import { UploadResponse, UploadedDocument, Period } from '@/types';
 
 export default function Home() {
@@ -16,7 +14,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [uploadedData, setUploadedData] = useState<UploadResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<'Labranza' | 'Sevilla' | 'Consolidados'>('Labranza');
   const [excelData, setExcelData] = useState<UploadedDocument | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [periods, setPeriods] = useState<Period[]>([]);
@@ -25,9 +22,6 @@ export default function Home() {
   const [uploadPeriod, setUploadPeriod] = useState<string>('');
   const [uploadPeriodLabel, setUploadPeriodLabel] = useState<string>('');
   const [activeView, setActiveView] = useState<'dashboard' | 'charts' | 'ebitda' | 'tables' | 'upload'>('dashboard');
-  
-  // Estados para filtrado de tabla
-  const [tableVisibleMonths, setTableVisibleMonths] = useState<string[]>([]);
 
   // Cargar períodos al montar el componente
   useEffect(() => {
@@ -165,31 +159,6 @@ export default function Home() {
       setLoading(false);
     }
   };
-
-  // Manejar cambio de vista de tabla
-  const handleTableViewChange = (mode: 'all' | 'quarter' | 'comparison', data: { quarter?: string; month1?: string; month2?: string }) => {
-    const MONTHS = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-
-    if (mode === 'all') {
-      setTableVisibleMonths(MONTHS);
-    } else if (mode === 'quarter' && data.quarter) {
-      const quarters = {
-        'Q1': ['Enero', 'Febrero', 'Marzo'],
-        'Q2': ['Abril', 'Mayo', 'Junio'],
-        'Q3': ['Julio', 'Agosto', 'Septiembre'],
-        'Q4': ['Octubre', 'Noviembre', 'Diciembre']
-      };
-      setTableVisibleMonths(quarters[data.quarter as keyof typeof quarters] || []);
-    } else if (mode === 'comparison' && data.month1 && data.month2) {
-      setTableVisibleMonths([data.month1, data.month2]);
-    }
-  };
-
-  // Obtener datos de la sección activa
-  const activeSection = excelData?.sections.find(s => s.name === activeTab);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -400,49 +369,12 @@ export default function Home() {
 
               {/* Content */}
               {activeView === 'tables' ? (
-                <div className="flex-1 overflow-auto p-6 md:p-8">
-                  <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm text-gray-600">
-                        Período: <strong>{excelData.periodLabel}</strong>
-                      </p>
-                      {excelData.version && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
-                          Versión {excelData.version}
-                        </span>
-                      )}
-                    </div>
-                    {excelData.uploadedAt && (
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">
-                          Cargado: {new Date(excelData.uploadedAt).toLocaleString('es-CL')}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-                  {/* Controles de filtrado de tabla */}
-                  <div className="mb-6">
-                    <TableViewControls onViewChange={handleTableViewChange} />
-                  </div>
-
-                  {loadingData ? (
-                    <div className="flex justify-center items-center py-12">
-                      <svg className="animate-spin h-8 w-8 text-indigo-600" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                    </div>
-                  ) : (
-                    <DataTable 
-                      data={activeSection?.data || []} 
-                      sectionName={activeTab}
-                      visibleMonths={tableVisibleMonths}
-                    />
-                  )}
-                </div>
+                <TableView
+                  sections={excelData.sections}
+                  periodLabel={excelData.periodLabel}
+                  version={excelData.version}
+                  uploadedAt={excelData.uploadedAt}
+                />
               ) : activeView === 'ebitda' ? (
                 <div className="flex-1 overflow-auto p-6 md:p-8">
                   <EbitdaDashboard sections={excelData.sections} />
