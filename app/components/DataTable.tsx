@@ -6,6 +6,7 @@ import { ExcelRow } from '@/types';
 interface DataTableProps {
   data: ExcelRow[];
   sectionName: string;
+  visibleMonths?: string[]; // Nuevos props para filtrado
 }
 
 const MONTHS = [
@@ -13,7 +14,7 @@ const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
-export default function DataTable({ data, sectionName }: DataTableProps) {
+export default function DataTable({ data, sectionName, visibleMonths }: DataTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -21,6 +22,9 @@ export default function DataTable({ data, sectionName }: DataTableProps) {
       </div>
     );
   }
+
+  // Determinar qué meses mostrar
+  const displayMonths = visibleMonths && visibleMonths.length > 0 ? visibleMonths : MONTHS;
 
   const formatNumber = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
@@ -73,7 +77,7 @@ export default function DataTable({ data, sectionName }: DataTableProps) {
               <th className="border border-gray-300 px-4 py-3 text-left font-semibold sticky left-0 bg-indigo-600 z-10">
                 Ítem
               </th>
-              {MONTHS.map((month) => (
+              {displayMonths.map((month) => (
                 <th
                   key={month}
                   colSpan={2}
@@ -94,7 +98,7 @@ export default function DataTable({ data, sectionName }: DataTableProps) {
               <th className="border border-gray-300 px-4 py-2 text-left text-xs sticky left-0 bg-indigo-500 z-10">
                 
               </th>
-              {MONTHS.map((month) => (
+              {displayMonths.map((month) => (
                 <Fragment key={month}>
                   <th className="border border-gray-300 px-2 py-2 text-center text-xs">
                     Monto
@@ -132,7 +136,7 @@ export default function DataTable({ data, sectionName }: DataTableProps) {
                   <td className="border border-gray-300 px-4 py-2 text-left text-gray-900 font-medium sticky left-0 bg-inherit z-10">
                     {itemName}
                   </td>
-                  {MONTHS.map((month) => {
+                  {displayMonths.map((month) => {
                     const monthKey = month.charAt(0).toUpperCase() + month.slice(1);
                     const montoKey = `${monthKey} Monto`;
                     const percentKey = `${monthKey} %`;

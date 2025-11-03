@@ -8,6 +8,7 @@ import GraphView from './components/GraphView';
 import EbitdaDashboard from './components/EbitdaDashboard';
 import DashboardView from './components/DashboardView';
 import DashboardSidebar from './components/DashboardSidebar';
+import TableViewControls from './components/TableViewControls';
 import { UploadResponse, UploadedDocument, Period } from '@/types';
 
 export default function Home() {
@@ -24,6 +25,9 @@ export default function Home() {
   const [uploadPeriod, setUploadPeriod] = useState<string>('');
   const [uploadPeriodLabel, setUploadPeriodLabel] = useState<string>('');
   const [activeView, setActiveView] = useState<'dashboard' | 'charts' | 'ebitda' | 'tables' | 'upload'>('dashboard');
+  
+  // Estados para filtrado de tabla
+  const [tableVisibleMonths, setTableVisibleMonths] = useState<string[]>([]);
 
   // Cargar períodos al montar el componente
   useEffect(() => {
@@ -159,6 +163,28 @@ export default function Home() {
       setMessage({ type: 'error', text: '❌ Error al subir el archivo' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Manejar cambio de vista de tabla
+  const handleTableViewChange = (mode: 'all' | 'quarter' | 'comparison', data: { quarter?: string; month1?: string; month2?: string }) => {
+    const MONTHS = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    if (mode === 'all') {
+      setTableVisibleMonths(MONTHS);
+    } else if (mode === 'quarter' && data.quarter) {
+      const quarters = {
+        'Q1': ['Enero', 'Febrero', 'Marzo'],
+        'Q2': ['Abril', 'Mayo', 'Junio'],
+        'Q3': ['Julio', 'Agosto', 'Septiembre'],
+        'Q4': ['Octubre', 'Noviembre', 'Diciembre']
+      };
+      setTableVisibleMonths(quarters[data.quarter as keyof typeof quarters] || []);
+    } else if (mode === 'comparison' && data.month1 && data.month2) {
+      setTableVisibleMonths([data.month1, data.month2]);
     }
   };
 
@@ -397,6 +423,11 @@ export default function Home() {
 
                   <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
+                  {/* Controles de filtrado de tabla */}
+                  <div className="mb-6">
+                    <TableViewControls onViewChange={handleTableViewChange} />
+                  </div>
+
                   {loadingData ? (
                     <div className="flex justify-center items-center py-12">
                       <svg className="animate-spin h-8 w-8 text-indigo-600" viewBox="0 0 24 24">
@@ -408,6 +439,7 @@ export default function Home() {
                     <DataTable 
                       data={activeSection?.data || []} 
                       sectionName={activeTab}
+                      visibleMonths={tableVisibleMonths}
                     />
                   )}
                 </div>
