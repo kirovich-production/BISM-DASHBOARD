@@ -201,7 +201,7 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
       console.warn('⚠️ Browserless no disponible, usando fallback dom-to-image...');
       throw new Error('Browserless not available, using fallback');
 
-    } catch (error) {
+    } catch {
       console.log('🔄 Usando método de fallback (dom-to-image)...');
       
       try {
