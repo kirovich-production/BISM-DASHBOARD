@@ -477,8 +477,8 @@ export default function EbitdaDashboard({ sections }: EbitdaDashboardProps) {
           <SalesVsEbitdaChart data={salesVsEbitda} />
         </ChartContainer>
 
-        {/* Gráficos secundarios lado a lado */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        {/* Gráficos secundarios en vertical */}
+        <div className="space-y-4 md:space-y-6">
           <ChartContainer title="Evolución EBITDA Mensual" className="min-h-[450px]">
             <EbitdaLineChart data={ebitdaMonthly} />
           </ChartContainer>
