@@ -159,7 +159,12 @@ export default function GraphView({
                 width: 100%;
               }
               
-              /* Canvas/imágenes con altura controlada */
+              /* Canvas/imágenes con altura controlada para gráficos mensuales */
+              .bg-white.rounded-lg.shadow-md .h-\\[500px\\] {
+                height: 500px !important;
+              }
+              
+              /* Canvas/imágenes - altura general para gráficos antiguos */
               .bg-white.rounded-lg.shadow-md > div {
                 width: 100% !important;
                 height: 280px !important;

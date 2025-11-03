@@ -20,11 +20,11 @@ export default function QuarterSelector({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled || options.length === 0}
-      className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-900 font-medium"
     >
-      <option value="">Seleccionar trimestre</option>
+      <option value="" className="text-gray-500">Seleccionar trimestre</option>
       {options.map((option) => (
-        <option key={option.value} value={option.value}>
+        <option key={option.value} value={option.value} className="text-gray-900 font-medium">
           {option.label}
         </option>
       ))}

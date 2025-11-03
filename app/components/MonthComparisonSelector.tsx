@@ -25,27 +25,27 @@ export default function MonthComparisonSelector({
         value={month1}
         onChange={(e) => onMonth1Change(e.target.value)}
         disabled={disabled || options.length === 0}
-        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-900 font-medium"
       >
-        <option value="">Mes 1</option>
+        <option value="" className="text-gray-500">Mes 1</option>
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value} className="text-gray-900 font-medium">
             {option.label}
           </option>
         ))}
       </select>
       
-      <span className="text-sm text-gray-500 font-medium">vs</span>
+      <span className="text-sm text-gray-700 font-semibold">vs</span>
       
       <select
         value={month2}
         onChange={(e) => onMonth2Change(e.target.value)}
         disabled={disabled || options.length === 0}
-        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-900 font-medium"
       >
-        <option value="">Mes 2</option>
+        <option value="" className="text-gray-500">Mes 2</option>
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value} className="text-gray-900 font-medium">
             {option.label}
           </option>
         ))}
