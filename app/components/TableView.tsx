@@ -71,6 +71,11 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Tablas Financieras - ${periodLabel}</title>
             <style>
+              @page {
+                size: A4 portrait;
+                margin: 10mm 8mm;
+              }
+              
               * {
                 margin: 0;
                 padding: 0;
@@ -80,8 +85,9 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               body {
                 font-family: system-ui, -apple-system, sans-serif;
                 background: white;
-                padding: 20px;
-                width: 100%;
+                padding: 10px;
+                width: 210mm;
+                max-width: 210mm;
               }
               
               /* Contenedor principal */
@@ -93,15 +99,18 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               /* Tablas responsive */
               table {
                 width: 100% !important;
-                font-size: 7px !important;
+                max-width: 100% !important;
+                font-size: 6px !important;
                 border-collapse: collapse !important;
+                table-layout: fixed !important;
               }
               
               th, td {
-                padding: 3px 2px !important;
+                padding: 2px 1px !important;
                 border: 1px solid #d1d5db !important;
                 text-align: center !important;
                 white-space: nowrap !important;
+                overflow: hidden !important;
               }
               
               th {
@@ -114,17 +123,17 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               th:first-child,
               td:first-child {
                 text-align: left !important;
-                position: sticky !important;
-                left: 0 !important;
+                position: relative !important;
                 background: inherit !important;
                 z-index: 1 !important;
-                min-width: 140px !important;
-                max-width: 180px !important;
-                width: auto !important;
-                font-size: 8px !important;
-                padding: 6px 8px !important;
+                min-width: 100px !important;
+                max-width: 120px !important;
+                width: 120px !important;
+                font-size: 7px !important;
+                padding: 3px 4px !important;
                 word-wrap: break-word !important;
                 white-space: normal !important;
+                line-height: 1.2 !important;
               }
               
               /* Totales en negrita */
@@ -140,13 +149,19 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               
               /* Encabezados compactos */
               h2, h3 {
-                font-size: 12px !important;
-                margin: 8px 0 !important;
+                font-size: 10px !important;
+                margin: 4px 0 !important;
+                padding: 0 !important;
               }
               
               p {
-                font-size: 10px !important;
-                margin: 4px 0 !important;
+                font-size: 8px !important;
+                margin: 2px 0 !important;
+              }
+              
+              /* Span pequeño */
+              span {
+                font-size: 7px !important;
               }
               
               /* Border del contenedor */
