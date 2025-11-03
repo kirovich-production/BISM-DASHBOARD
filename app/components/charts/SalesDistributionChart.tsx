@@ -98,8 +98,6 @@ const SalesDistributionChart = forwardRef<ChartRef, SalesDistributionChartProps>
                 {new Intl.NumberFormat('es-MX', {
                   style: 'currency',
                   currency: 'MXN',
-                  notation: 'compact',
-                  compactDisplay: 'short',
                 }).format(labranzaTotal)}
               </p>
               <p className="text-base text-green-600 font-semibold">{labranzaPercentage}%</p>
@@ -114,8 +112,6 @@ const SalesDistributionChart = forwardRef<ChartRef, SalesDistributionChartProps>
                 {new Intl.NumberFormat('es-MX', {
                   style: 'currency',
                   currency: 'MXN',
-                  notation: 'compact',
-                  compactDisplay: 'short',
                 }).format(sevillaTotal)}
               </p>
               <p className="text-base text-orange-600 font-semibold">{sevillaPercentage}%</p>
@@ -128,8 +124,6 @@ const SalesDistributionChart = forwardRef<ChartRef, SalesDistributionChartProps>
               {new Intl.NumberFormat('es-MX', {
                 style: 'currency',
                 currency: 'MXN',
-                notation: 'compact',
-                compactDisplay: 'short',
               }).format(total)}
             </p>
           </div>

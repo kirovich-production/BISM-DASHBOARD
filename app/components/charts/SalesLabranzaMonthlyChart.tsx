@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Bar } from 'react-chartjs-2';
 import type { MonthlySalesDataPoint } from './useMonthlySalesData';
 import type { ChartRef } from './SalesAccumulatedChart';
@@ -22,7 +23,8 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ChartDataLabels
 );
 
 interface SalesLabranzaMonthlyChartProps {
@@ -101,6 +103,23 @@ const SalesLabranzaMonthlyChart = forwardRef<ChartRef, SalesLabranzaMonthlyChart
                 currency: 'MXN',
               }).format(context.parsed.y)}`;
             },
+          },
+        },
+        datalabels: {
+          anchor: 'end' as const,
+          align: 'top' as const,
+          color: 'rgb(34, 197, 94)',
+          font: {
+            size: 11,
+            weight: 'bold' as const,
+          },
+          formatter: function(value: number) {
+            return new Intl.NumberFormat('es-MX', {
+              style: 'currency',
+              currency: 'MXN',
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }).format(value);
           },
         },
       },

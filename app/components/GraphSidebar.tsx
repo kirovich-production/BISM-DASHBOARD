@@ -121,11 +121,11 @@ export default function GraphSidebar({ selectedPeriod, onPeriodChange, available
             <select
               value={selectedPeriod || ''}
               onChange={(e) => handlePeriodChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 font-medium"
             >
-              <option value="">Seleccionar período</option>
+              <option value="" className="text-gray-500">Seleccionar período</option>
               {availablePeriods.map((period) => (
-                <option key={period} value={period}>
+                <option key={period} value={period} className="text-gray-900 font-medium">
                   {period}
                 </option>
               ))}
