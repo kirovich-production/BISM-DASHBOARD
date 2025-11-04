@@ -58,12 +58,6 @@ export default function Home() {
     loadSession();
   }, []);
 
-  // Cargar períodos al montar el componente
-  useEffect(() => {
-    fetchPeriods();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Recargar períodos cuando cambia el usuario seleccionado
   useEffect(() => {
     if (selectedUserName) {

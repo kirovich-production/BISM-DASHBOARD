@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface Activity {
   id: string;
@@ -21,10 +21,19 @@ interface RecentActivityProps {
 export default function RecentActivity({ userName }: RecentActivityProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastFetchedUser = useRef<string | undefined>(undefined);
+  const fetchInProgress = useRef(false);
 
   useEffect(() => {
+    // Evitar doble llamada si ya estamos fetching o si el usuario no cambió
+    if (fetchInProgress.current || lastFetchedUser.current === userName) {
+      return;
+    }
+
     if (userName) {
       fetchActivities();
+    } else {
+      setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userName]);
@@ -34,6 +43,17 @@ export default function RecentActivity({ userName }: RecentActivityProps) {
       setLoading(false);
       return;
     }
+
+    // Prevenir llamadas concurrentes
+    if (fetchInProgress.current) {
+      return;
+    }
+
+    fetchInProgress.current = true;
+    lastFetchedUser.current = userName;
+
+    fetchInProgress.current = true;
+    lastFetchedUser.current = userName;
 
     try {
       const response = await fetch(`/api/recent-activity?userName=${encodeURIComponent(userName)}`);
@@ -46,6 +66,7 @@ export default function RecentActivity({ userName }: RecentActivityProps) {
       console.error('Error al cargar actividades:', error);
     } finally {
       setLoading(false);
+      fetchInProgress.current = false;
     }
   };
 
