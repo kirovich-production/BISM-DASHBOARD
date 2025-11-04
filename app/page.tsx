@@ -34,12 +34,20 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Recargar períodos cuando cambia el usuario seleccionado
+  useEffect(() => {
+    if (selectedUserId) {
+      fetchPeriods();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUserId]);
+
   // Cargar datos del período seleccionado
   useEffect(() => {
-    if (selectedPeriod) {
+    if (selectedPeriod && selectedUserId) {
       fetchData(selectedPeriod);
     }
-  }, [selectedPeriod]);
+  }, [selectedPeriod, selectedUserId]);
 
   // Recargar períodos después de un upload exitoso
   useEffect(() => {
@@ -51,7 +59,12 @@ export default function Home() {
 
   const fetchPeriods = async () => {
     try {
-      const response = await fetch('/api/periods');
+      let url = '/api/periods';
+      if (selectedUserId) {
+        url += `?userId=${encodeURIComponent(selectedUserId)}`;
+      }
+      
+      const response = await fetch(url);
       const result = await response.json();
       
       if (result.success && result.periods) {
@@ -75,6 +88,10 @@ export default function Home() {
       
       if (period) {
         params.append('period', period);
+      }
+      
+      if (selectedUserId) {
+        params.append('userId', selectedUserId);
       }
       
       if (params.toString()) {
@@ -111,6 +128,10 @@ export default function Home() {
   const handleUserChange = (userId: string, userName: string) => {
     setUploadUserId(userId);
     setUploadUserName(userName);
+    
+    // También actualizar el usuario seleccionado globalmente
+    setSelectedUserId(userId);
+    setSelectedUserName(userName);
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -179,6 +200,9 @@ export default function Home() {
       <DashboardSidebar
         activeView={activeView}
         onViewChange={setActiveView}
+        selectedUserId={selectedUserId}
+        selectedUserName={selectedUserName}
+        onUserChange={handleUserChange}
       />
 
       {/* Main Content Area */}

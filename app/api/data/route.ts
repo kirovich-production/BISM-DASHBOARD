@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const section = searchParams.get('section');
     const period = searchParams.get('period');
     const version = searchParams.get('version');
+    const userId = searchParams.get('userId');
 
     const { db } = await connectToDatabase();
     const collection = db.collection('excel_uploads');
@@ -16,7 +17,12 @@ export async function GET(request: NextRequest) {
 
     if (period) {
       // Filtro base por período
-      const filter: { period: string; version?: number } = { period };
+      const filter: { period: string; version?: number; userId?: string } = { period };
+      
+      // Agregar filtro de usuario si se proporciona
+      if (userId) {
+        filter.userId = userId;
+      }
       
       // Si se especifica versión, agregarla al filtro
       if (version) {
@@ -37,13 +43,16 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           data: null,
-          message: `No hay datos disponibles para el período ${period}${version ? ` versión ${version}` : ''}`
+          message: `No hay datos disponibles para el período ${period}${userId ? ` del usuario ${userId}` : ''}${version ? ` versión ${version}` : ''}`
         });
       }
     } else {
       // Obtener el documento más reciente (por período y versión)
+      // Si hay userId, filtrar por usuario
+      const filter = userId ? { userId } : {};
+      
       const latestUpload = await collection
-        .find({})
+        .find(filter)
         .sort({ period: -1, version: -1 })
         .limit(1)
         .toArray();
@@ -52,7 +61,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           data: null,
-          message: 'No hay datos disponibles'
+          message: userId ? `No hay datos disponibles para el usuario ${userId}` : 'No hay datos disponibles'
         });
       }
 

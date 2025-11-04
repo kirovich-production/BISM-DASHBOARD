@@ -1,13 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import GlobalUserSelector from './GlobalUserSelector';
 
 interface DashboardSidebarProps {
   activeView: 'dashboard' | 'charts' | 'ebitda' | 'tables' | 'upload';
   onViewChange: (view: 'dashboard' | 'charts' | 'ebitda' | 'tables' | 'upload') => void;
+  selectedUserId?: string | null;
+  selectedUserName?: string;
+  onUserChange: (userId: string, userName: string) => void;
 }
 
-export default function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarProps) {
+export default function DashboardSidebar({ activeView, onViewChange, selectedUserId, selectedUserName, onUserChange }: DashboardSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
@@ -121,7 +125,7 @@ export default function DashboardSidebar({ activeView, onViewChange }: Dashboard
       >
         {/* Logo */}
         <div className="p-6 border-b border-slate-700">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-4">
             <div className="bg-indigo-600 p-2 rounded-lg">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -137,6 +141,12 @@ export default function DashboardSidebar({ activeView, onViewChange }: Dashboard
               <p className="text-xs text-slate-400">Dashboard</p>
             </div>
           </div>
+          
+          {/* Selector de Usuario Global */}
+          <GlobalUserSelector 
+            onUserChange={onUserChange}
+            selectedUserId={selectedUserId}
+          />
         </div>
 
         {/* Navigation */}

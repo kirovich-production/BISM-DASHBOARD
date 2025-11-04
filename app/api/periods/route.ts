@@ -1,17 +1,24 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 
 // Obtener todos los períodos disponibles con sus versiones
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
     const { db } = await connectToDatabase();
     const collection = db.collection('excel_uploads');
     
-    // Obtener todos los documentos
+    // Filtro por usuario si se proporciona
+    const filter = userId ? { userId } : {};
+    
+    // Obtener todos los documentos (filtrados por usuario si aplica)
     const allPeriods = await collection
-      .find({}, {
+      .find(filter, {
         projection: {
           _id: 1,
+          userId: 1,
           period: 1,
           periodLabel: 1,
           fileName: 1,
@@ -42,6 +49,7 @@ export async function GET() {
     // Convertir a array y formatear
     const periods = Array.from(periodMap.values()).map(p => ({
       _id: p._id.toString(),
+      userId: p.userId,
       period: p.period,
       periodLabel: p.periodLabel,
       fileName: p.fileName,
@@ -58,7 +66,8 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      periods
+      periods,
+      userId: userId || null
     });
 
   } catch (error) {
