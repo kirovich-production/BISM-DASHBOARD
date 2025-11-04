@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import UserSelector from './UserSelector';
 
 interface PeriodInputProps {
   onPeriodChange: (period: string, periodLabel: string) => void;
+  onUserChange: (userId: string, userName: string) => void;
+  selectedUserId?: string | null;
 }
 
 const MONTHS = [
@@ -11,7 +14,7 @@ const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
-export default function PeriodInput({ onPeriodChange }: PeriodInputProps) {
+export default function PeriodInput({ onPeriodChange, onUserChange, selectedUserId }: PeriodInputProps) {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
@@ -67,12 +70,20 @@ export default function PeriodInput({ onPeriodChange }: PeriodInputProps) {
   }, []);
 
   return (
-    <div className="space-y-4">
-      <label className="block text-sm font-medium text-gray-700">
-        📅 Período de la carga
-      </label>
-      
-      <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-6">
+      {/* Selector de Usuario */}
+      <UserSelector 
+        onUserChange={onUserChange}
+        selectedUserId={selectedUserId}
+      />
+
+      {/* Selector de Período */}
+      <div className="space-y-4">
+        <label className="block text-sm font-medium text-gray-700">
+          📅 Período de la carga
+        </label>
+        
+        <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Mes</label>
           <select
@@ -112,12 +123,13 @@ export default function PeriodInput({ onPeriodChange }: PeriodInputProps) {
             )}
           </select>
         </div>
-      </div>
+        </div>
 
-      <div className="bg-indigo-50 border border-indigo-200 rounded-md p-3">
-        <p className="text-sm text-indigo-800">
-          <strong>Período seleccionado:</strong> {MONTHS[selectedMonth]} {selectedYear}
-        </p>
+        <div className="bg-indigo-50 border border-indigo-200 rounded-md p-3">
+          <p className="text-sm text-indigo-800">
+            <strong>Período seleccionado:</strong> {MONTHS[selectedMonth]} {selectedYear}
+          </p>
+        </div>
       </div>
     </div>
   );

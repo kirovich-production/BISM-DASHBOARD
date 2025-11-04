@@ -21,6 +21,12 @@ export default function Home() {
   const [uploadPeriod, setUploadPeriod] = useState<string>('');
   const [uploadPeriodLabel, setUploadPeriodLabel] = useState<string>('');
   const [activeView, setActiveView] = useState<'dashboard' | 'charts' | 'ebitda' | 'tables' | 'upload'>('dashboard');
+  
+  // Estados de usuario
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
+  const [uploadUserId, setUploadUserId] = useState<string>('');
+  const [uploadUserName, setUploadUserName] = useState<string>('');
 
   // Cargar períodos al montar el componente
   useEffect(() => {
@@ -102,6 +108,11 @@ export default function Home() {
     setUploadPeriodLabel(periodLabel);
   };
 
+  const handleUserChange = (userId: string, userName: string) => {
+    setUploadUserId(userId);
+    setUploadUserName(userName);
+  };
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -115,6 +126,11 @@ export default function Home() {
       return;
     }
 
+    if (!uploadUserId || !uploadUserName) {
+      setMessage({ type: 'error', text: '⚠️ Por favor selecciona un usuario antes de cargar el archivo' });
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
 
@@ -123,6 +139,8 @@ export default function Home() {
       formData.append('file', file);
       formData.append('period', uploadPeriod);
       formData.append('periodLabel', uploadPeriodLabel);
+      formData.append('userId', uploadUserId);
+      formData.append('userName', uploadUserName);
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -196,7 +214,11 @@ export default function Home() {
           
           <form onSubmit={handleUpload} className="space-y-6">
             {/* Period Input */}
-            <PeriodInput onPeriodChange={handlePeriodInputChange} />
+            <PeriodInput 
+              onPeriodChange={handlePeriodInputChange}
+              onUserChange={handleUserChange}
+              selectedUserId={uploadUserId}
+            />
 
             <div>
               <label 

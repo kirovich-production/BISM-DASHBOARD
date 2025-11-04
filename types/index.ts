@@ -1,3 +1,10 @@
+// Usuario del sistema
+export interface User {
+  id: string;
+  name: string;
+  createdAt: Date;
+}
+
 // Tipos para los datos del Excel y las respuestas de la API
 export interface ExcelRow {
   Item: string;
@@ -38,11 +45,12 @@ export interface ExcelSection {
 
 export interface UploadedDocument {
   _id?: string;
+  userId: string;  // ID del usuario propietario
   fileName: string;
   sheetName: string;
   period: string;  // Formato: YYYY-MM (Ej: "2025-01")
   periodLabel: string;  // Formato: "Mes Año" (Ej: "Enero 2025")
-  version: number;  // 1, 2, 3... (autoincremental por período)
+  version: number;  // 1, 2, 3... (autoincremental por período y usuario)
   uploadedAt: Date;
   sections: ExcelSection[];
 }
@@ -67,6 +75,7 @@ export interface DataResponse {
 
 export interface Period {
   _id?: string;
+  userId: string;  // ID del usuario propietario
   period: string;
   periodLabel: string;
   fileName: string;

@@ -9,6 +9,8 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const period = formData.get('period') as string;
     const periodLabel = formData.get('periodLabel') as string;
+    const userId = formData.get('userId') as string;
+    const userName = formData.get('userName') as string;
     
     if (!file) {
       return NextResponse.json(
@@ -20,6 +22,13 @@ export async function POST(request: NextRequest) {
     if (!period || !periodLabel) {
       return NextResponse.json(
         { error: 'No se proporcionó el período' },
+        { status: 400 }
+      );
+    }
+
+    if (!userId || !userName) {
+      return NextResponse.json(
+        { error: 'No se proporcionó el usuario. Por favor selecciona un usuario antes de cargar el archivo.' },
         { status: 400 }
       );
     }
@@ -205,17 +214,18 @@ export async function POST(request: NextRequest) {
     const { db } = await connectToDatabase();
     const collection = db.collection('excel_uploads');
 
-    // Obtener la versión más alta para este período
+    // Obtener la versión más alta para este período Y usuario
     const existingPeriods = await collection
-      .find({ period })
+      .find({ period, userId })
       .sort({ version: -1 })
       .limit(1)
       .toArray();
     
     const version = existingPeriods.length > 0 ? existingPeriods[0].version + 1 : 1;
 
-    // Crear documento con metadata
+    // Crear documento con metadata (incluyendo userId)
     const document = {
+      userId,
       fileName: file.name,
       sheetName: consolidadoSheet,
       period,
@@ -230,8 +240,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Datos cargados exitosamente',
+      message: `Datos cargados exitosamente para ${userName}`,
       recordsInserted: 1,
+      userId,
+      userName,
       fileName: file.name,
       sheetName: consolidadoSheet,
       period,
