@@ -5,7 +5,46 @@ export interface User {
   createdAt: Date;
 }
 
-// Tipos para los datos del Excel y las respuestas de la API
+// Sesión de usuario (DB Sessions)
+export interface UserSession {
+  sessionId: string;      // UUID único para la sesión
+  userId: string;         // ID del usuario
+  userName: string;       // Nombre del usuario (desnormalizado para performance)
+  createdAt: Date;        // Fecha de creación de la sesión
+  expiresAt: Date;        // Fecha de expiración (7 días por defecto)
+  lastActivityAt: Date;   // Última actividad (para renovar sesión)
+  userAgent?: string;     // Info del navegador (opcional, para seguridad)
+  ipAddress?: string;     // IP del usuario (opcional, para seguridad)
+}
+
+export interface SessionResponse {
+  success: boolean;
+  sessionId?: string;
+  userId?: string;
+  userName?: string;
+  error?: string;
+}
+
+// Datos EERR (Estado de Resultados) - Nuevo formato
+export interface EERRRow {
+  Item: string;
+  [key: string]: string | number | undefined;  // "Enero Monto", "Enero %", etc.
+}
+
+export interface EERRCategory {
+  name: string;
+  rows: EERRRow[];
+  total?: EERRRow;
+}
+
+export interface EERRData {
+  sheetName: string;
+  months: string[];
+  categories: EERRCategory[];
+  rawData?: unknown[];
+}
+
+// Tipos para los datos del Excel formato antiguo (Consolidado)
 export interface ExcelRow {
   Item: string;
   'Enero Monto'?: number;
@@ -52,7 +91,14 @@ export interface UploadedDocument {
   periodLabel: string;  // Formato: "Mes Año" (Ej: "Enero 2025")
   version: number;  // 1, 2, 3... (autoincremental por período y usuario)
   uploadedAt: Date;
-  sections: ExcelSection[];
+  
+  // NUEVAS ESTRUCTURAS:
+  consolidado?: ExcelSection[];  // Formato antiguo (3 secciones: Labranza, Sevilla, Consolidados)
+  sevilla?: EERRData;            // Nuevo formato EERR Sevilla
+  labranza?: EERRData;           // Nuevo formato EERR Labranza
+  
+  // DEPRECATED (mantener compatibilidad temporal):
+  sections?: ExcelSection[];
 }
 
 export interface UploadResponse {

@@ -13,10 +13,6 @@ export default function GlobalUserSelector({ onUserChange, selectedUserId }: Glo
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   const fetchUsers = async () => {
     try {
       const response = await fetch('/api/users');
@@ -37,6 +33,11 @@ export default function GlobalUserSelector({ onUserChange, selectedUserId }: Glo
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleUserSelect = (userId: string) => {
     const user = users.find(u => u.id === userId);
@@ -112,6 +113,7 @@ export default function GlobalUserSelector({ onUserChange, selectedUserId }: Glo
             <div className="bg-indigo-50 px-4 py-2 border-b border-indigo-200">
               <p className="text-xs font-semibold text-indigo-900">Seleccionar Usuario</p>
             </div>
+            
             <div className="max-h-64 overflow-y-auto">
               {users.map((user) => (
                 <button

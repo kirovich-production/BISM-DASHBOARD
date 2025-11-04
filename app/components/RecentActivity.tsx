@@ -14,17 +14,29 @@ interface Activity {
   timestamp: Date;
 }
 
-export default function RecentActivity() {
+interface RecentActivityProps {
+  userName?: string;
+}
+
+export default function RecentActivity({ userName }: RecentActivityProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchActivities();
-  }, []);
+    if (userName) {
+      fetchActivities();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userName]);
 
   const fetchActivities = async () => {
+    if (!userName) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch('/api/recent-activity');
+      const response = await fetch(`/api/recent-activity?userName=${encodeURIComponent(userName)}`);
       const data = await response.json();
       
       if (data.success) {

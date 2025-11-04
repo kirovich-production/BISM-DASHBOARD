@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
+import { connectToDatabase, getUserCollectionName } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const documentId = searchParams.get('id');
+    const userName = searchParams.get('userName');
 
     if (!documentId) {
       return NextResponse.json(
@@ -14,8 +15,19 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // IMPORTANTE: ahora necesitamos userName para saber qué colección consultar
+    if (!userName) {
+      return NextResponse.json(
+        { success: false, error: 'Se requiere el nombre del usuario (userName)' },
+        { status: 400 }
+      );
+    }
+
     const { db } = await connectToDatabase();
-    const collection = db.collection('excel_uploads');
+    
+    // Usar colección específica del usuario
+    const collectionName = getUserCollectionName(userName);
+    const collection = db.collection(collectionName);
 
     // Eliminar el documento
     const result = await collection.deleteOne({ _id: new ObjectId(documentId) });

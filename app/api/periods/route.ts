@@ -1,21 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
+import { connectToDatabase, getUserCollectionName } from '@/lib/mongodb';
 
 // Obtener todos los períodos disponibles con sus versiones
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const userName = searchParams.get('userName');
+
+    // IMPORTANTE: ahora necesitamos userName para saber qué colección consultar
+    if (!userName) {
+      return NextResponse.json(
+        { error: 'Se requiere el nombre del usuario (userName)' },
+        { status: 400 }
+      );
+    }
 
     const { db } = await connectToDatabase();
-    const collection = db.collection('excel_uploads');
     
-    // Filtro por usuario si se proporciona
-    const filter = userId ? { userId } : {};
+    // Usar colección específica del usuario
+    const collectionName = getUserCollectionName(userName);
+    const collection = db.collection(collectionName);
     
-    // Obtener todos los documentos (filtrados por usuario si aplica)
+    // Obtener todos los documentos de este usuario
     const allPeriods = await collection
-      .find(filter, {
+      .find({}, {
         projection: {
           _id: 1,
           userId: 1,
@@ -67,7 +75,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       periods,
-      userId: userId || null
+      userName
     });
 
   } catch (error) {

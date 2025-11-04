@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
+import { connectToDatabase, getUserCollectionName } from '@/lib/mongodb';
 
 // Obtener la carga más reciente de datos o por período/versión específica
 export async function GET(request: NextRequest) {
@@ -8,21 +8,27 @@ export async function GET(request: NextRequest) {
     const section = searchParams.get('section');
     const period = searchParams.get('period');
     const version = searchParams.get('version');
-    const userId = searchParams.get('userId');
+    const userName = searchParams.get('userName');
+
+    // IMPORTANTE: ahora necesitamos userName para saber qué colección consultar
+    if (!userName) {
+      return NextResponse.json(
+        { error: 'Se requiere el nombre del usuario (userName)' },
+        { status: 400 }
+      );
+    }
 
     const { db } = await connectToDatabase();
-    const collection = db.collection('excel_uploads');
+    
+    // Usar colección específica del usuario
+    const collectionName = getUserCollectionName(userName);
+    const collection = db.collection(collectionName);
     
     let data;
 
     if (period) {
-      // Filtro base por período
-      const filter: { period: string; version?: number; userId?: string } = { period };
-      
-      // Agregar filtro de usuario si se proporciona
-      if (userId) {
-        filter.userId = userId;
-      }
+      // Filtro base por período (ya no necesitamos userId porque cada usuario tiene su colección)
+      const filter: { period: string; version?: number } = { period };
       
       // Si se especifica versión, agregarla al filtro
       if (version) {
@@ -43,16 +49,13 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           data: null,
-          message: `No hay datos disponibles para el período ${period}${userId ? ` del usuario ${userId}` : ''}${version ? ` versión ${version}` : ''}`
+          message: `No hay datos disponibles para el período ${period}${version ? ` versión ${version}` : ''}`
         });
       }
     } else {
       // Obtener el documento más reciente (por período y versión)
-      // Si hay userId, filtrar por usuario
-      const filter = userId ? { userId } : {};
-      
       const latestUpload = await collection
-        .find(filter)
+        .find({})
         .sort({ period: -1, version: -1 })
         .limit(1)
         .toArray();
@@ -61,7 +64,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           data: null,
-          message: userId ? `No hay datos disponibles para el usuario ${userId}` : 'No hay datos disponibles'
+          message: `No hay datos disponibles para el usuario ${userName}`
         });
       }
 

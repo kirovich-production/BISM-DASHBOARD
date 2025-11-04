@@ -15,10 +15,17 @@ export default function UserSelector({ onUserChange, selectedUserId }: UserSelec
   const [newUserName, setNewUserName] = useState('');
   const [creatingUser, setCreatingUser] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>(selectedUserId || '');
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState<{ type: 'success' | 'error', title: string, message: string }>({ 
+    type: 'success', 
+    title: '', 
+    message: '' 
+  });
 
   // Cargar usuarios al montar
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Si hay un usuario seleccionado externamente, actualizarlo
@@ -26,6 +33,7 @@ export default function UserSelector({ onUserChange, selectedUserId }: UserSelec
     if (selectedUserId && selectedUserId !== currentUserId) {
       setCurrentUserId(selectedUserId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUserId]);
 
   const fetchUsers = async () => {
@@ -36,8 +44,21 @@ export default function UserSelector({ onUserChange, selectedUserId }: UserSelec
       if (result.success && result.users) {
         setUsers(result.users);
         
-        // Si no hay usuario seleccionado y hay usuarios, seleccionar el primero
-        if (!currentUserId && result.users.length > 0) {
+        // 🔍 Si hay usuario seleccionado (desde sesión), validar que existe
+        if (selectedUserId) {
+          const userExists = result.users.some((u: User) => u.id === selectedUserId);
+          
+          if (userExists) {
+            // El usuario existe, mantenerlo
+            setCurrentUserId(selectedUserId);
+          } else {
+            // Usuario no existe, limpiar selección
+            console.warn('⚠️ [UserSelector] Usuario de sesión no existe en BD');
+            setCurrentUserId('');
+            onUserChange('', '');
+          }
+        } else if (!currentUserId && result.users.length > 0) {
+          // No hay usuario seleccionado y hay usuarios, seleccionar el primero
           const firstUser = result.users[0];
           setCurrentUserId(firstUser.id);
           onUserChange(firstUser.id, firstUser.name);
@@ -60,7 +81,12 @@ export default function UserSelector({ onUserChange, selectedUserId }: UserSelec
 
   const handleCreateUser = async () => {
     if (!newUserName.trim()) {
-      alert('Por favor ingresa un nombre de usuario');
+      setModalMessage({
+        type: 'error',
+        title: 'Error de validación',
+        message: 'Por favor ingresa un nombre de usuario'
+      });
+      setShowModal(true);
       return;
     }
 
@@ -86,13 +112,28 @@ export default function UserSelector({ onUserChange, selectedUserId }: UserSelec
         setNewUserName('');
         setShowNewUserInput(false);
         
-        alert(`✅ Usuario "${result.user.name}" creado exitosamente`);
+        setModalMessage({
+          type: 'success',
+          title: 'Usuario creado',
+          message: `El usuario "${result.user.name}" fue creado exitosamente`
+        });
+        setShowModal(true);
       } else {
-        alert(`❌ Error: ${result.error || 'No se pudo crear el usuario'}`);
+        setModalMessage({
+          type: 'error',
+          title: 'Error al crear usuario',
+          message: result.error || 'No se pudo crear el usuario'
+        });
+        setShowModal(true);
       }
     } catch (error) {
       console.error('Error al crear usuario:', error);
-      alert('❌ Error al crear el usuario');
+      setModalMessage({
+        type: 'error',
+        title: 'Error de conexión',
+        message: 'No se pudo conectar con el servidor'
+      });
+      setShowModal(true);
     } finally {
       setCreatingUser(false);
     }
@@ -112,7 +153,58 @@ export default function UserSelector({ onUserChange, selectedUserId }: UserSelec
   }
 
   return (
-    <div className="space-y-3">
+    <>
+      {/* Modal centrado */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
+            <div className={`p-6 rounded-t-2xl ${
+              modalMessage.type === 'success' ? 'bg-gradient-to-r from-emerald-400 to-green-400' : 'bg-gradient-to-r from-red-400 to-rose-400'
+            }`}>
+              <div className="flex items-center gap-3 text-white">
+                {modalMessage.type === 'success' ? (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+                <h3 className="text-xl font-bold">{modalMessage.title}</h3>
+              </div>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 text-lg mb-6">{modalMessage.message}</p>
+              <button
+                onClick={() => setShowModal(false)}
+                className={`w-full py-3 rounded-lg font-semibold text-white transition-all transform hover:scale-[1.02] shadow-lg ${
+                  modalMessage.type === 'success' 
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600' 
+                    : 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600'
+                }`}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading overlay */}
+      {creatingUser && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Creando usuario...</h3>
+              <p className="text-gray-600">Por favor espera un momento</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3">
       <label className="block text-sm font-medium text-gray-700">
         👤 Usuario <span className="text-red-500">*</span>
       </label>
@@ -233,5 +325,6 @@ export default function UserSelector({ onUserChange, selectedUserId }: UserSelec
         </div>
       )}
     </div>
+    </>
   );
 }

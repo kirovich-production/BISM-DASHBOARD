@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
+import { connectToDatabase, getUserCollectionName } from '@/lib/mongodb';
 import * as XLSX from 'xlsx';
-import { ExcelSection, ExcelRow } from '@/types';
+import { parseEERR, parseConsolidado } from '@/lib/excelParser';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,174 +49,51 @@ export async function POST(request: NextRequest) {
     // Leer el archivo Excel
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    
+    console.log('='.repeat(60));
+    console.log(`[UPLOAD] 📂 Procesando archivo: ${file.name}`);
+    console.log(`[UPLOAD] 👤 Usuario: ${userName} (ID: ${userId})`);
+    console.log(`[UPLOAD] 📅 Período: ${periodLabel} (${period})`);
+    
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     
-    // Buscar la hoja "Consolidado"
-    const consolidadoSheet = workbook.SheetNames.find(
-      name => name.toLowerCase() === 'consolidado' || name.toLowerCase() === 'consolidados'
-    );
+    console.log(`[UPLOAD] 📋 Hojas en el Excel: ${workbook.SheetNames.join(', ')}`);
+    console.log('='.repeat(60));
+    
+    // Parsear las 3 hojas con las nuevas funciones
+    console.log('[UPLOAD] 🔄 Iniciando parseo de hojas...');
+    
+    const consolidadoData = parseConsolidado(workbook);
+    console.log(`[UPLOAD] Consolidado: ${consolidadoData ? '✅ OK' : '❌ FALLÓ'}`);
+    
+    const sevillaData = parseEERR(workbook, 'EERR SEVILLA');
+    console.log(`[UPLOAD] EERR SEVILLA: ${sevillaData ? '✅ OK' : '⚠️ No encontrada'}`);
+    
+    const labranzaData = parseEERR(workbook, 'EERR LABRANZA');
+    console.log(`[UPLOAD] EERR LABRANZA: ${labranzaData ? '✅ OK' : '⚠️ No encontrada'}`);
 
-    if (!consolidadoSheet) {
+    // Validar que al menos tengamos la hoja consolidado
+    if (!consolidadoData) {
+      console.error('[UPLOAD] ❌ ERROR: No se pudo parsear la hoja Consolidado');
       return NextResponse.json(
-        { error: 'No se encontró la hoja "Consolidado" en el archivo Excel' },
-        { status: 400 }
-      );
-    }
-
-    const worksheet = workbook.Sheets[consolidadoSheet];
-    
-    // Convertir a JSON SIN headers automáticos para capturar todas las filas
-    const allDataRaw = XLSX.utils.sheet_to_json(worksheet, { 
-      header: 1,
-      defval: '',
-      raw: false 
-    }) as unknown[][];
-
-    // Detectar las secciones y sus rangos
-    const sectionRanges: Array<{
-      name: 'Labranza' | 'Sevilla' | 'Consolidados',
-      startRow: number,
-      headerRow: number,
-      dataStartRow: number,
-      endRow: number
-    }> = [];
-    
-    for (let i = 0; i < allDataRaw.length; i++) {
-      const row = allDataRaw[i];
-      const rowText = row.map(v => String(v || '').toLowerCase().trim()).join(' ');
-      
-      // Detectar nombres de secciones
-      if (rowText.includes('labranza') && !rowText.includes('item')) {
-        sectionRanges.push({
-          name: 'Labranza',
-          startRow: i,
-          headerRow: -1,
-          dataStartRow: -1,
-          endRow: -1
-        });
-      } else if (rowText.includes('sevilla') && !rowText.includes('item')) {
-        sectionRanges.push({
-          name: 'Sevilla',
-          startRow: i,
-          headerRow: -1,
-          dataStartRow: -1,
-          endRow: -1
-        });
-      } else if (rowText.includes('consolidado') && !rowText.includes('item')) {
-        sectionRanges.push({
-          name: 'Consolidados',
-          startRow: i,
-          headerRow: -1,
-          dataStartRow: -1,
-          endRow: -1
-        });
-      }
-    }
-
-    // Para cada sección, encontrar sus headers y datos
-    for (let s = 0; s < sectionRanges.length; s++) {
-      const section = sectionRanges[s];
-      const nextSectionStart = s + 1 < sectionRanges.length ? sectionRanges[s + 1].startRow : allDataRaw.length;
-      
-      // Buscar la fila de meses (Enero, Febrero, etc.) después del inicio de la sección
-      for (let i = section.startRow + 1; i < nextSectionStart; i++) {
-        const row = allDataRaw[i];
-        const rowText = row.map(v => String(v || '').toLowerCase().trim()).join(' ');
-        
-        if (rowText.includes('enero') && rowText.includes('febrero')) {
-          section.headerRow = i;
-          section.dataStartRow = i + 2; // Saltar fila de meses y fila de Monto/%
-          break;
-        }
-      }
-      
-      // El final de esta sección es el inicio de la siguiente (o el final del archivo)
-      section.endRow = nextSectionStart;
-    }
-
-    // Construir headers a partir de la primera sección que tenga headers
-    const headers: string[] = ['Item'];
-    const firstSectionWithHeaders = sectionRanges.find(s => s.headerRow >= 0);
-    
-    if (firstSectionWithHeaders && firstSectionWithHeaders.headerRow >= 0) {
-      const monthRow = allDataRaw[firstSectionWithHeaders.headerRow];
-      const subHeaderRow = allDataRaw[firstSectionWithHeaders.headerRow + 1];
-      
-      let currentMonth = '';
-      for (let i = 1; i < monthRow.length; i++) {
-        const monthVal = String(monthRow[i] || '').trim();
-        const subVal = String(subHeaderRow[i] || '').trim().toLowerCase();
-        
-        if (monthVal && monthVal !== '') {
-          currentMonth = monthVal;
-        }
-        
-        if (currentMonth) {
-          if (subVal.includes('monto') || subVal === 'monto') {
-            headers.push(`${currentMonth} Monto`);
-          } else if (subVal === '%' || subVal.includes('%')) {
-            headers.push(`${currentMonth} %`);
-          } else if (subVal.includes('promedio')) {
-            headers.push(`${currentMonth} Promedio`);
-          } else if (subVal) {
-            headers.push(`${currentMonth} ${subVal}`);
-          }
-        }
-      }
-    }
-
-    // Parsear los datos de cada sección
-    const sections: ExcelSection[] = [];
-    
-    for (const sectionRange of sectionRanges) {
-      if (sectionRange.dataStartRow < 0) continue;
-      
-      const sectionData: ExcelRow[] = [];
-      
-      for (let i = sectionRange.dataStartRow; i < sectionRange.endRow; i++) {
-        const row = allDataRaw[i];
-        if (!row || row.length === 0 || !row[0]) continue;
-        
-        const firstCol = String(row[0] || '').trim();
-        // Detener si encontramos una fila vacía o el inicio de otra tabla
-        if (!firstCol || firstCol === '') break;
-        
-        const rowData: Record<string, unknown> = {};
-        for (let j = 0; j < headers.length && j < row.length; j++) {
-          rowData[headers[j]] = row[j];
-        }
-        sectionData.push(rowData as ExcelRow);
-      }
-      
-      if (sectionData.length > 0) {
-        sections.push({
-          name: sectionRange.name,
-          data: sectionData
-        });
-      }
-    }
-
-    if (sections.length === 0) {
-      return NextResponse.json(
-        { error: 'La hoja Consolidado está vacía' },
-        { status: 400 }
-      );
-    }
-
-    if (sections.length === 0) {
-      return NextResponse.json(
-        { error: 'No se pudieron detectar las secciones (Labranza, Sevilla, Consolidados)' },
+        { 
+          error: 'No se encontró o no se pudo procesar la hoja "Consolidado" en el archivo Excel. Revisa la consola del servidor para más detalles.',
+          sheetsFound: workbook.SheetNames
+        },
         { status: 400 }
       );
     }
 
     // Conectar a MongoDB
     const { db } = await connectToDatabase();
-    const collection = db.collection('excel_uploads');
+    
+    // Usar colección específica del usuario
+    const collectionName = getUserCollectionName(userName);
+    const collection = db.collection(collectionName);
 
-    // Obtener la versión más alta para este período Y usuario
+    // Obtener la versión más alta para este período (ya no necesitamos filtrar por userId)
     const existingPeriods = await collection
-      .find({ period, userId })
+      .find({ period })
       .sort({ version: -1 })
       .limit(1)
       .toArray();
@@ -227,16 +104,28 @@ export async function POST(request: NextRequest) {
     const document = {
       userId,
       fileName: file.name,
-      sheetName: consolidadoSheet,
       period,
       periodLabel,
       version,
       uploadedAt: new Date(),
-      sections: sections
+      // Datos parseados de las 3 hojas
+      consolidado: consolidadoData, // ExcelSection[] (formato antiguo)
+      sevilla: sevillaData,         // EERRData (formato nuevo)
+      labranza: labranzaData,       // EERRData (formato nuevo)
+      // Mantener sections por compatibilidad (deprecated)
+      sections: consolidadoData || []
     };
 
     // Insertar documento completo en MongoDB
-    await collection.insertOne(document);
+    const result = await collection.insertOne(document);
+    
+    console.log('[UPLOAD] ✅ Documento guardado en MongoDB:', {
+      insertedId: result.insertedId,
+      collection: collectionName,
+      period: periodLabel,
+      sectionsFound: consolidadoData?.map(s => s.name) || []
+    });
+    console.log('='.repeat(60));
 
     return NextResponse.json({
       success: true,
@@ -245,17 +134,28 @@ export async function POST(request: NextRequest) {
       userId,
       userName,
       fileName: file.name,
-      sheetName: consolidadoSheet,
       period,
       periodLabel,
       version,
-      sectionsFound: sections.map(s => s.name)
+      sheetsProcessed: [
+        consolidadoData ? 'Consolidado' : null,
+        sevillaData?.sheetName,
+        labranzaData?.sheetName
+      ].filter(Boolean),
+      // Mantener sectionsFound por compatibilidad con page.tsx
+      sectionsFound: consolidadoData?.map(s => s.name) || []
     });
 
   } catch (error) {
-    console.error('Error al procesar el archivo:', error);
+    console.error('='.repeat(60));
+    console.error('[UPLOAD] ❌ ERROR FATAL al procesar el archivo:');
+    console.error(error);
+    console.error('='.repeat(60));
     return NextResponse.json(
-      { error: 'Error al procesar el archivo Excel' },
+      { 
+        error: 'Error al procesar el archivo Excel. Revisa la consola del servidor para más detalles.',
+        details: error instanceof Error ? error.message : 'Error desconocido'
+      },
       { status: 500 }
     );
   }

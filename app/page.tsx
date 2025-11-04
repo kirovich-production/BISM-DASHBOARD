@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import PeriodInput from './components/PeriodInput';
-import GraphView from './components/GraphView';
-import EbitdaDashboard from './components/EbitdaDashboard';
 import DashboardView from './components/DashboardView';
 import DashboardSidebar from './components/DashboardSidebar';
 import TableView from './components/TableView';
+import SevillaTable from './components/tables/SevillaTable';
+import LabranzaTable from './components/tables/LabranzaTable';
 import { UploadResponse, UploadedDocument, Period } from '@/types';
 
 export default function Home() {
@@ -20,13 +20,43 @@ export default function Home() {
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [uploadPeriod, setUploadPeriod] = useState<string>('');
   const [uploadPeriodLabel, setUploadPeriodLabel] = useState<string>('');
-  const [activeView, setActiveView] = useState<'dashboard' | 'charts' | 'ebitda' | 'tables' | 'upload'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'sevilla' | 'labranza' | 'consolidado' | 'upload'>('dashboard');
   
   // Estados de usuario
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserName, setSelectedUserName] = useState<string>('');
   const [uploadUserId, setUploadUserId] = useState<string>('');
   const [uploadUserName, setUploadUserName] = useState<string>('');
+  // const [sessionLoading, setSessionLoading] = useState(true); // TODO: Usar para spinner de carga
+
+  // 🔄 Cargar sesión desde servidor (DB Sessions) al montar el componente
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        console.log('🔍 [SESSION] Verificando sesión activa...');
+        
+        const response = await fetch('/api/auth/session');
+        const result = await response.json();
+        
+        if (result.success && result.userId && result.userName) {
+          console.log('✅ [SESSION] Sesión válida encontrada:', result.userName);
+          setSelectedUserId(result.userId);
+          setSelectedUserName(result.userName);
+          setUploadUserId(result.userId);
+          setUploadUserName(result.userName);
+        } else {
+          console.log('ℹ️ [SESSION] No hay sesión activa o sesión inválida');
+          // No hay sesión válida, el usuario deberá seleccionar
+        }
+      } catch (error) {
+        console.error('❌ [SESSION] Error al cargar sesión:', error);
+      } finally {
+        // setSessionLoading(false); // TODO: Descomentar cuando se use sessionLoading
+      }
+    };
+
+    loadSession();
+  }, []);
 
   // Cargar períodos al montar el componente
   useEffect(() => {
@@ -36,18 +66,19 @@ export default function Home() {
 
   // Recargar períodos cuando cambia el usuario seleccionado
   useEffect(() => {
-    if (selectedUserId) {
+    if (selectedUserName) {
       fetchPeriods();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUserId]);
+  }, [selectedUserName]);
 
   // Cargar datos del período seleccionado
   useEffect(() => {
-    if (selectedPeriod && selectedUserId) {
+    if (selectedPeriod && selectedUserName) {
       fetchData(selectedPeriod);
     }
-  }, [selectedPeriod, selectedUserId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPeriod, selectedUserName]);
 
   // Recargar períodos después de un upload exitoso
   useEffect(() => {
@@ -60,8 +91,12 @@ export default function Home() {
   const fetchPeriods = async () => {
     try {
       let url = '/api/periods';
-      if (selectedUserId) {
-        url += `?userId=${encodeURIComponent(selectedUserId)}`;
+      if (selectedUserName) {
+        url += `?userName=${encodeURIComponent(selectedUserName)}`;
+      } else {
+        // Si no hay usuario seleccionado, no cargar períodos
+        setPeriods([]);
+        return;
       }
       
       const response = await fetch(url);
@@ -74,6 +109,21 @@ export default function Home() {
         if (!selectedPeriod && result.periods.length > 0) {
           setSelectedPeriod(result.periods[0].period);
         }
+      } else if (result.periods && result.periods.length === 0 && selectedUserName) {
+        // 🔍 Usuario guardado en localStorage pero sin períodos (posiblemente eliminado)
+        console.warn('⚠️ [fetchPeriods] Usuario guardado pero sin períodos. Verificando si existe...');
+        
+        // Intentar verificar si el usuario existe consultando la API
+        // Si no hay períodos, probablemente el usuario fue eliminado
+        // Limpiar localStorage para evitar confusión
+        console.log('🗑️ [fetchPeriods] Limpiando localStorage de usuario inexistente');
+        localStorage.removeItem('bism_selectedUserId');
+        localStorage.removeItem('bism_selectedUserName');
+        setSelectedUserId(null);
+        setSelectedUserName('');
+        setUploadUserId('');
+        setUploadUserName('');
+        setPeriods([]);
       }
     } catch (error) {
       console.error('Error al cargar períodos:', error);
@@ -90,8 +140,8 @@ export default function Home() {
         params.append('period', period);
       }
       
-      if (selectedUserId) {
-        params.append('userId', selectedUserId);
+      if (selectedUserName) {
+        params.append('userName', selectedUserName);
       }
       
       if (params.toString()) {
@@ -126,12 +176,58 @@ export default function Home() {
   };
 
   const handleUserChange = (userId: string, userName: string) => {
+    console.log('👤 [handleUserChange] Cambiando usuario:', userName, '(ID:', userId, ')');
+    
     setUploadUserId(userId);
     setUploadUserName(userName);
     
     // También actualizar el usuario seleccionado globalmente
     setSelectedUserId(userId);
     setSelectedUserName(userName);
+    
+    // 💾 Crear sesión en servidor (DB Sessions)
+    if (userId && userName) {
+      createSession(userId, userName);
+    } else {
+      // Si se limpia el usuario, cerrar sesión
+      deleteSession();
+    }
+  };
+
+  // 💾 Crear sesión en servidor
+  const createSession = async (userId: string, userName: string) => {
+    try {
+      console.log('💾 [SESSION] Creando sesión para:', userName);
+      
+      const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, userName })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ [SESSION] Sesión creada exitosamente');
+      } else {
+        console.error('❌ [SESSION] Error al crear sesión:', result.error);
+      }
+    } catch (error) {
+      console.error('❌ [SESSION] Error al crear sesión:', error);
+    }
+  };
+
+  // 🗑️ Cerrar sesión
+  const deleteSession = async () => {
+    try {
+      console.log('🗑️ [SESSION] Cerrando sesión...');
+      
+      await fetch('/api/auth/session', { method: 'DELETE' });
+      
+      console.log('✅ [SESSION] Sesión cerrada');
+    } catch (error) {
+      console.error('❌ [SESSION] Error al cerrar sesión:', error);
+    }
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -183,6 +279,22 @@ export default function Home() {
         
         // Seleccionar automáticamente el período recién cargado
         setSelectedPeriod(result.period);
+        
+        // 🎯 NUEVA LÓGICA: Crear sesión y redirigir a dashboard
+        console.log('✅ [handleUpload] Archivo cargado exitosamente, creando sesión y redirigiendo...');
+        
+        // Crear sesión con el usuario que subió los datos
+        await createSession(uploadUserId, uploadUserName);
+        
+        // Actualizar usuario seleccionado globalmente
+        setSelectedUserId(uploadUserId);
+        setSelectedUserName(uploadUserName);
+        
+        // Redirigir a dashboard
+        setTimeout(() => {
+          setActiveView('dashboard');
+        }, 1500); // Dar tiempo para ver mensaje de éxito
+        
       } else {
         setMessage({ type: 'error', text: `❌ ${result.error}` });
       }
@@ -214,12 +326,23 @@ export default function Home() {
               onNavigate={setActiveView}
               selectedPeriod={selectedPeriod}
               periodsCount={periods.length}
+              selectedUserName={selectedUserName}
+              hasData={excelData !== null}
+              availableSections={
+                excelData 
+                  ? [
+                      ...(excelData.sevilla ? ['sevilla'] : []),
+                      ...(excelData.labranza ? ['labranza'] : []),
+                      ...(excelData.sections && excelData.sections.length > 0 ? ['consolidado'] : [])
+                    ]
+                  : []
+              }
             />
           </div>
         ) : activeView === 'upload' ? (
           /* Upload Section Only */
           <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6 lg:p-8">
-            <div className="max-w-[95%] 2xl:max-w-[1800px] mx-auto">
+            <div className="max-w-4xl mx-auto">
               {/* Header */}
               <div className="text-center mb-6 md:mb-8">
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
@@ -231,10 +354,17 @@ export default function Home() {
               </div>
 
               {/* Upload Card */}
-              <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-6">
-            📤 Cargar Nuevo Período
-          </h2>
+              <div className="bg-white rounded-xl shadow-2xl p-6 sm:p-8 lg:p-10 mb-6 border border-gray-100">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+            <div className="bg-indigo-100 p-3 rounded-lg">
+              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              Cargar Nuevo Período
+            </h2>
+          </div>
           
           <form onSubmit={handleUpload} className="space-y-6">
             {/* Period Input */}
@@ -242,6 +372,7 @@ export default function Home() {
               onPeriodChange={handlePeriodInputChange}
               onUserChange={handleUserChange}
               selectedUserId={uploadUserId}
+              selectedUserName={uploadUserName}
             />
 
             <div>
@@ -267,24 +398,54 @@ export default function Home() {
             </div>
 
             {file && (
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                <p className="text-sm text-blue-800">
-                  📄 Archivo seleccionado: <strong>{file.name}</strong>
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  Tamaño: {(file.size / 1024).toFixed(2)} KB
-                </p>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-blue-900 mb-1">
+                      Archivo seleccionado
+                    </p>
+                    <p className="text-base font-bold text-blue-800">
+                      {file.name}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Tamaño: {(file.size / 1024).toFixed(2)} KB
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFile(null);
+                      const fileInput = document.getElementById('file-input') as HTMLInputElement;
+                      if (fileInput) fileInput.value = '';
+                    }}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                    title="Quitar archivo"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="submit"
-                disabled={!file || loading}
-                className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg
-                  font-semibold hover:bg-indigo-700 transition-colors
-                  disabled:bg-gray-400 disabled:cursor-not-allowed
-                  flex items-center justify-center gap-2"
+                disabled={!file || loading || !uploadUserId}
+                className="flex-1 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3.5 px-6 rounded-lg
+                  font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all
+                  disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed
+                  flex items-center justify-center gap-2 shadow-lg hover:shadow-xl
+                  transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 {loading ? (
                   <>
@@ -320,10 +481,11 @@ export default function Home() {
                 type="button"
                 onClick={() => selectedPeriod && fetchData(selectedPeriod)}
                 disabled={loadingData || !selectedPeriod}
-                className="bg-gray-600 text-white py-3 px-6 rounded-lg
-                  font-semibold hover:bg-gray-700 transition-colors
+                className="sm:w-auto px-6 bg-gray-600 text-white py-3.5 rounded-lg
+                  font-semibold hover:bg-gray-700 transition-all
                   disabled:bg-gray-400 disabled:cursor-not-allowed
-                  flex items-center gap-2"
+                  flex items-center justify-center gap-2 shadow-lg hover:shadow-xl
+                  transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -335,101 +497,95 @@ export default function Home() {
 
           {/* Messages */}
           {message && (
-            <div className={`mt-6 p-4 rounded-md ${
-              message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+            <div className={`mt-6 p-5 rounded-lg border-2 shadow-md ${
+              message.type === 'success' 
+                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
+                : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300'
             }`}>
-              <p className={`text-sm ${
-                message.type === 'success' ? 'text-green-800' : 'text-red-800'
-              }`}>
-                {message.text}
-              </p>
+              <div className="flex items-start gap-3">
+                <div className={`${
+                  message.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+                } p-2 rounded-lg`}>
+                  {message.type === 'success' ? (
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                </div>
+                <p className={`text-sm font-medium flex-1 ${
+                  message.type === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {message.text}
+                </p>
+              </div>
             </div>
           )}
 
           {/* Upload Summary */}
             {uploadedData && (
-            <div className="mt-6 bg-gray-50 border border-gray-200 rounded-md p-4">
-              <h3 className="font-semibold text-gray-800 mb-2">📋 Resumen de carga</h3>
-              <div className="space-y-1 text-sm text-gray-600">
-                <p><strong>Período:</strong> {uploadedData.periodLabel}</p>
-                <p><strong>Archivo:</strong> {uploadedData.fileName}</p>
-                <p><strong>Hoja:</strong> {uploadedData.sheetName}</p>
-                <p><strong>Secciones:</strong> {uploadedData.sectionsFound.join(', ')}</p>
+            <div className="mt-6 bg-gradient-to-r from-gray-50 to-slate-50 border-2 border-gray-300 rounded-lg p-5 shadow-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-indigo-100 p-2 rounded-lg">
+                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-gray-900 text-lg">Resumen de carga</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Período</p>
+                  <p className="text-sm font-bold text-gray-900">{uploadedData.periodLabel}</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Archivo</p>
+                  <p className="text-sm font-bold text-gray-900 truncate">{uploadedData.fileName}</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Hoja procesada</p>
+                  <p className="text-sm font-bold text-gray-900">{uploadedData.sheetName}</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Secciones</p>
+                  <p className="text-sm font-bold text-gray-900">{uploadedData.sectionsFound.join(', ')}</p>
+                </div>
               </div>
             </div>
           )}
               </div>
             </div>
           </div>
-        ) : activeView === 'tables' || activeView === 'charts' || activeView === 'ebitda' ? (
-          /* Tables, Charts and EBITDA Views */
+        ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' ? (
+          /* Sevilla, Labranza and Consolidado Views */
           excelData && selectedPeriod ? (
             <div className="bg-white h-full overflow-hidden flex flex-col">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 md:p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-white">
-                      {excelData.fileName}
-                    </h2>
-                    <p className="text-indigo-100 text-xs md:text-sm mt-1">
-                      Datos Financieros - {excelData.periodLabel}
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-1 w-full sm:w-auto">
-                    <button
-                      onClick={() => setActiveView('tables')}
-                      className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 rounded-md font-medium transition-all flex items-center justify-center gap-2 ${
-                        activeView === 'tables'
-                          ? 'bg-white text-indigo-600 shadow-lg'
-                          : 'text-white hover:bg-white/20'
-                      }`}
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      <span className="hidden sm:inline">Tablas</span>
-                    </button>
-                    <button
-                      onClick={() => setActiveView('charts')}
-                      className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 rounded-md font-medium transition-all flex items-center justify-center gap-2 ${
-                        activeView === 'charts'
-                          ? 'bg-white text-indigo-600 shadow-lg'
-                          : 'text-white hover:bg-white/20'
-                      }`}
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                      <span className="hidden sm:inline">Gráficos</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
               {/* Content */}
-              {activeView === 'tables' ? (
-                <TableView
-                  sections={excelData.sections}
+              {activeView === 'sevilla' ? (
+                <SevillaTable
+                  data={excelData.sevilla || null}
                   periodLabel={excelData.periodLabel}
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}
                 />
-              ) : activeView === 'ebitda' ? (
-                <div className="flex-1 overflow-auto p-6 md:p-8">
-                  <EbitdaDashboard sections={excelData.sections} />
-                </div>
-              ) : (
-                <div className="flex-1 overflow-hidden">
-                  <GraphView
-                    selectedPeriod={selectedPeriod}
-                    onPeriodChange={setSelectedPeriod}
-                    availablePeriods={periods.map(p => p.period)}
-                    sections={excelData.sections}
-                  />
-                </div>
-              )}
+              ) : activeView === 'labranza' ? (
+                <LabranzaTable
+                  data={excelData.labranza || null}
+                  periodLabel={excelData.periodLabel}
+                  version={excelData.version}
+                  uploadedAt={excelData.uploadedAt}
+                />
+              ) : activeView === 'consolidado' ? (
+                <TableView
+                  sections={excelData.sections || []}
+                  periodLabel={excelData.periodLabel}
+                  version={excelData.version}
+                  uploadedAt={excelData.uploadedAt}
+                />
+              ) : null}
             </div>
           ) : (
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8 flex items-center justify-center">

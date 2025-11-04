@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
+import { NextRequest, NextResponse } from 'next/server';
+import { connectToDatabase, getUserCollectionName } from '@/lib/mongodb';
 
 interface Upload {
   _id: { toString: () => string };
@@ -12,13 +12,27 @@ interface Upload {
   uploadedAt: Date;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const userName = searchParams.get('userName');
+
+    // IMPORTANTE: ahora necesitamos userName para saber qué colección consultar
+    if (!userName) {
+      return NextResponse.json(
+        { error: 'Se requiere el nombre del usuario (userName)' },
+        { status: 400 }
+      );
+    }
+
     const { db } = await connectToDatabase();
     
-    // Obtener las últimas 15 cargas ordenadas por fecha
+    // Usar colección específica del usuario
+    const collectionName = getUserCollectionName(userName);
+    
+    // Obtener las últimas 15 cargas ordenadas por fecha de este usuario
     const recentUploads = await db
-      .collection('excel_uploads')
+      .collection(collectionName)
       .find({})
       .sort({ uploadedAt: -1 })
       .limit(15)

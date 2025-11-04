@@ -27,3 +27,18 @@ export async function connectToDatabase() {
 
   return { client, db };
 }
+
+// Función helper para generar nombre de colección por usuario
+export function getUserCollectionName(userName: string): string {
+  // Normalizar el nombre: quitar espacios, acentos, caracteres especiales
+  // y convertir a minúsculas
+  const normalized = userName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+    .replace(/[^a-z0-9]/g, '_') // Reemplazar caracteres especiales con _
+    .replace(/_+/g, '_') // Evitar múltiples guiones bajos consecutivos
+    .replace(/^_|_$/g, ''); // Quitar guiones bajos al inicio/fin
+  
+  return `excel_${normalized}`;
+}

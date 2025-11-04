@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import TabNavigation from './TabNavigation';
 import DataTable from './DataTable';
-import TableViewControls from './TableViewControls';
 import type { ExcelRow } from '@/types';
 
 interface TableViewProps {
@@ -14,32 +12,8 @@ interface TableViewProps {
 }
 
 export default function TableView({ sections, periodLabel, version, uploadedAt }: TableViewProps) {
-  const [activeTab, setActiveTab] = useState<'Labranza' | 'Sevilla' | 'Consolidados'>('Labranza');
-  const [tableVisibleMonths, setTableVisibleMonths] = useState<string[]>([]);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-
-  // Manejar cambio de vista de tabla
-  const handleTableViewChange = (mode: 'all' | 'quarter' | 'comparison', data: { quarter?: string; month1?: string; month2?: string }) => {
-    const MONTHS = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-
-    if (mode === 'all') {
-      setTableVisibleMonths(MONTHS);
-    } else if (mode === 'quarter' && data.quarter) {
-      const quarters = {
-        'Q1': ['Enero', 'Febrero', 'Marzo'],
-        'Q2': ['Abril', 'Mayo', 'Junio'],
-        'Q3': ['Julio', 'Agosto', 'Septiembre'],
-        'Q4': ['Octubre', 'Noviembre', 'Diciembre']
-      };
-      setTableVisibleMonths(quarters[data.quarter as keyof typeof quarters] || []);
-    } else if (mode === 'comparison' && data.month1 && data.month2) {
-      setTableVisibleMonths([data.month1, data.month2]);
-    }
-  };
 
   const generatePDF = async () => {
     if (!contentRef.current || isGeneratingPdf) return;
@@ -346,18 +320,28 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
     }
   };
 
-  // Obtener datos de la sección activa
-  const activeSection = sections.find(s => s.name === activeTab);
+  // Obtener datos de la sección "Consolidados" únicamente
+  const consolidadosSection = sections.find(s => s.name === 'Consolidados');
 
   return (
     <div className="flex-1 overflow-auto p-6 md:p-8" ref={contentRef}>
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <p className="text-sm text-gray-600">
-            Período: <strong>{periodLabel}</strong>
-          </p>
+          <div className="flex items-center gap-2">
+            <div className="bg-purple-100 p-2 rounded-lg">
+              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Consolidado</h2>
+              <p className="text-sm text-gray-600">
+                Período: <strong>{periodLabel}</strong>
+              </p>
+            </div>
+          </div>
           {version && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
               Versión {version}
             </span>
           )}
@@ -385,17 +369,9 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
         </div>
       </div>
 
-      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* Controles de filtrado de tabla */}
-      <div className="mb-6">
-        <TableViewControls onViewChange={handleTableViewChange} />
-      </div>
-
       <DataTable 
-        data={activeSection?.data || []} 
-        sectionName={activeTab}
-        visibleMonths={tableVisibleMonths}
+        data={consolidadosSection?.data || []} 
+        sectionName="Consolidado"
       />
     </div>
   );

@@ -1,13 +1,27 @@
-import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
+import { NextRequest, NextResponse } from 'next/server';
+import { connectToDatabase, getUserCollectionName } from '@/lib/mongodb';
 
 // Obtener rango de años disponibles desde la BD
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const userName = searchParams.get('userName');
+
+    // IMPORTANTE: ahora necesitamos userName para saber qué colección consultar
+    if (!userName) {
+      return NextResponse.json(
+        { error: 'Se requiere el nombre del usuario (userName)' },
+        { status: 400 }
+      );
+    }
+
     const { db } = await connectToDatabase();
-    const collection = db.collection('excel_uploads');
     
-    // Obtener todos los períodos únicos
+    // Usar colección específica del usuario
+    const collectionName = getUserCollectionName(userName);
+    const collection = db.collection(collectionName);
+    
+    // Obtener todos los períodos únicos de este usuario
     const periods = await collection
       .find({}, { projection: { period: 1 } })
       .toArray();

@@ -67,6 +67,16 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
     return normalized.includes('total') || normalized.includes('utilidad');
   };
 
+  // Verificar si el ítem está en MAYÚSCULAS (para background amarillo)
+  const isUpperCaseItem = (item: string): boolean => {
+    if (!item || item.trim() === '') return false;
+    // Verificar que al menos tenga 3 caracteres alfabéticos en mayúsculas
+    const alphaChars = item.replace(/[^A-Za-z]/g, '');
+    if (alphaChars.length < 3) return false;
+    // Verificar que todas las letras sean mayúsculas
+    return alphaChars === alphaChars.toUpperCase();
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
@@ -123,17 +133,20 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
             {data.map((row, index) => {
               const itemName = row.Item || '';
               const isTotalRow = isTotal(itemName);
+              const isUpperCase = isUpperCaseItem(itemName);
               
               return (
                 <tr
                   key={index}
                   className={`
                     ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                    ${isTotalRow ? 'bg-yellow-50 font-bold' : ''}
+                    ${isTotalRow || isUpperCase ? 'bg-yellow-100 font-bold' : ''}
                     hover:bg-blue-50 transition-colors
                   `}
                 >
-                  <td className="border border-gray-300 px-4 py-2 text-left text-gray-900 font-medium sticky left-0 bg-inherit z-10">
+                  <td className={`border border-gray-300 px-4 py-2 text-left text-gray-900 font-medium sticky left-0 z-10 ${
+                    isTotalRow || isUpperCase ? 'bg-yellow-100' : 'bg-inherit'
+                  }`}>
                     {itemName}
                   </td>
                   {displayMonths.map((month) => {

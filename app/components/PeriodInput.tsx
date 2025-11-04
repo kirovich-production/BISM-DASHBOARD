@@ -7,6 +7,7 @@ interface PeriodInputProps {
   onPeriodChange: (period: string, periodLabel: string) => void;
   onUserChange: (userId: string, userName: string) => void;
   selectedUserId?: string | null;
+  selectedUserName?: string;
 }
 
 const MONTHS = [
@@ -14,7 +15,7 @@ const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
-export default function PeriodInput({ onPeriodChange, onUserChange, selectedUserId }: PeriodInputProps) {
+export default function PeriodInput({ onPeriodChange, onUserChange, selectedUserId, selectedUserName }: PeriodInputProps) {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
@@ -28,7 +29,14 @@ export default function PeriodInput({ onPeriodChange, onUserChange, selectedUser
   useEffect(() => {
     const fetchYears = async () => {
       try {
-        const response = await fetch('/api/periods/years');
+        // Solo cargar años si hay un usuario seleccionado
+        if (!selectedUserName) {
+          setYears([currentYear]);
+          setLoadingYears(false);
+          return;
+        }
+
+        const response = await fetch(`/api/periods/years?userName=${encodeURIComponent(selectedUserName)}`);
         const result = await response.json();
         
         if (result.success && result.years) {
@@ -44,7 +52,7 @@ export default function PeriodInput({ onPeriodChange, onUserChange, selectedUser
     };
 
     fetchYears();
-  }, [currentYear]);
+  }, [currentYear, selectedUserName]);
 
   const handleMonthChange = (month: number) => {
     setSelectedMonth(month);

@@ -4,8 +4,8 @@ import { useState } from 'react';
 import GlobalUserSelector from './GlobalUserSelector';
 
 interface DashboardSidebarProps {
-  activeView: 'dashboard' | 'charts' | 'ebitda' | 'tables' | 'upload';
-  onViewChange: (view: 'dashboard' | 'charts' | 'ebitda' | 'tables' | 'upload') => void;
+  activeView: 'dashboard' | 'sevilla' | 'labranza' | 'consolidado' | 'upload';
+  onViewChange: (view: 'dashboard' | 'sevilla' | 'labranza' | 'consolidado' | 'upload') => void;
   selectedUserId?: string | null;
   selectedUserName?: string;
   onUserChange: (userId: string, userName: string) => void;
@@ -30,36 +30,8 @@ export default function DashboardSidebar({ activeView, onViewChange, selectedUse
       ),
     },
     {
-      id: 'charts' as const,
-      label: 'Gráficos Ventas',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-          />
-        </svg>
-      ),
-    },
-    {
-      id: 'ebitda' as const,
-      label: 'EBITDA',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-          />
-        </svg>
-      ),
-    },
-    {
-      id: 'tables' as const,
-      label: 'Tablas',
+      id: 'sevilla' as const,
+      label: 'Sevilla',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -67,6 +39,34 @@ export default function DashboardSidebar({ activeView, onViewChange, selectedUse
             strokeLinejoin="round"
             strokeWidth={2}
             d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+          />
+        </svg>
+      ),
+    },
+    {
+      id: 'labranza' as const,
+      label: 'Labranza',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+          />
+        </svg>
+      ),
+    },
+    {
+      id: 'consolidado' as const,
+      label: 'Consolidado',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
           />
         </svg>
       ),
