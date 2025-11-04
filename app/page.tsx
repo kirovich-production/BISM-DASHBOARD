@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PeriodInput from './components/PeriodInput';
 import DashboardView from './components/DashboardView';
 import DashboardSidebar from './components/DashboardSidebar';
@@ -27,6 +27,11 @@ export default function Home() {
   const [selectedUserName, setSelectedUserName] = useState<string>('');
   const [uploadUserId, setUploadUserId] = useState<string>('');
   const [uploadUserName, setUploadUserName] = useState<string>('');
+  
+  // Refs para prevenir llamadas duplicadas
+  const fetchPeriodsInProgress = useRef(false);
+  const fetchDataInProgress = useRef(false);
+  const lastFetchedPeriod = useRef<string | null>(null);
   // const [sessionLoading, setSessionLoading] = useState(true); // TODO: Usar para spinner de carga
 
   // 🔄 Cargar sesión desde servidor (DB Sessions) al montar el componente
@@ -83,7 +88,15 @@ export default function Home() {
   }, [uploadedData]);
 
   const fetchPeriods = async () => {
+    // Prevenir llamadas duplicadas
+    if (fetchPeriodsInProgress.current) {
+      console.log('⏭️ [fetchPeriods] Ya hay un fetch en progreso, saltando...');
+      return;
+    }
+
     try {
+      fetchPeriodsInProgress.current = true;
+      
       let url = '/api/periods';
       if (selectedUserName) {
         url += `?userName=${encodeURIComponent(selectedUserName)}`;
@@ -121,10 +134,21 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error al cargar períodos:', error);
+    } finally {
+      fetchPeriodsInProgress.current = false;
     }
   };
 
   const fetchData = async (period?: string) => {
+    // Prevenir llamadas duplicadas al mismo período
+    const cacheKey = `${period}-${selectedUserName}`;
+    if (fetchDataInProgress.current || lastFetchedPeriod.current === cacheKey) {
+      console.log('⏭️ [fetchData] Ya hay un fetch en progreso o período ya cargado, saltando...');
+      return;
+    }
+
+    fetchDataInProgress.current = true;
+    lastFetchedPeriod.current = cacheKey;
     setLoadingData(true);
     try {
       let url = '/api/data';
@@ -154,6 +178,7 @@ export default function Home() {
       console.error('Error al cargar datos:', error);
     } finally {
       setLoadingData(false);
+      fetchDataInProgress.current = false;
     }
   };
 
