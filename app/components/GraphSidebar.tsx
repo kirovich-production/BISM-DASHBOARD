@@ -12,8 +12,6 @@ export default function GraphSidebar({ selectedPeriod, onPeriodChange, available
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  console.log('GraphSidebar render:', { selectedPeriod, availablePeriods, isCollapsed, isMobileOpen });
-
   // Detectar tamaño de pantalla y auto-colapsar en tablet
   useEffect(() => {
     const handleResize = () => {

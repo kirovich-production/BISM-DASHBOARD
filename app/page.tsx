@@ -18,7 +18,6 @@ export default function Home() {
   const [loadingData, setLoadingData] = useState(false);
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-  const [selectedVersion] = useState<number | null>(null);
   const [uploadPeriod, setUploadPeriod] = useState<string>('');
   const [uploadPeriodLabel, setUploadPeriodLabel] = useState<string>('');
   const [activeView, setActiveView] = useState<'dashboard' | 'charts' | 'ebitda' | 'tables' | 'upload'>('dashboard');
@@ -29,12 +28,12 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Cargar datos del período y versión seleccionados
+  // Cargar datos del período seleccionado
   useEffect(() => {
     if (selectedPeriod) {
-      fetchData(selectedPeriod, selectedVersion);
+      fetchData(selectedPeriod);
     }
-  }, [selectedPeriod, selectedVersion]);
+  }, [selectedPeriod]);
 
   // Recargar períodos después de un upload exitoso
   useEffect(() => {
@@ -62,7 +61,7 @@ export default function Home() {
     }
   };
 
-  const fetchData = async (period?: string, version?: number | null) => {
+  const fetchData = async (period?: string) => {
     setLoadingData(true);
     try {
       let url = '/api/data';
@@ -70,10 +69,6 @@ export default function Home() {
       
       if (period) {
         params.append('period', period);
-      }
-      
-      if (version !== null && version !== undefined) {
-        params.append('version', version.toString());
       }
       
       if (params.toString()) {
@@ -277,7 +272,7 @@ export default function Home() {
 
               <button
                 type="button"
-                onClick={() => selectedPeriod && fetchData(selectedPeriod, selectedVersion)}
+                onClick={() => selectedPeriod && fetchData(selectedPeriod)}
                 disabled={loadingData || !selectedPeriod}
                 className="bg-gray-600 text-white py-3 px-6 rounded-lg
                   font-semibold hover:bg-gray-700 transition-colors
