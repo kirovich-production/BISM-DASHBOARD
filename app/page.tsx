@@ -32,6 +32,11 @@ export default function Home() {
   const fetchPeriodsInProgress = useRef(false);
   const fetchDataInProgress = useRef(false);
   const lastFetchedPeriod = useRef<string | null>(null);
+  const lastFetchedUser = useRef<string>('');
+  const abortControllers = useRef<{
+    periods?: AbortController;
+    data?: AbortController;
+  }>({});
   // const [sessionLoading, setSessionLoading] = useState(true); // TODO: Usar para spinner de carga
 
   // 🔄 Cargar sesión desde servidor (DB Sessions) al montar el componente
@@ -63,9 +68,23 @@ export default function Home() {
     loadSession();
   }, []);
 
+  // Cleanup: Cancelar requests pendientes al desmontar
+  useEffect(() => {
+    const controllers = abortControllers.current;
+    return () => {
+      if (controllers.periods) {
+        controllers.periods.abort();
+      }
+      if (controllers.data) {
+        controllers.data.abort();
+      }
+    };
+  }, []);
+
   // Recargar períodos cuando cambia el usuario seleccionado
   useEffect(() => {
-    if (selectedUserName) {
+    if (selectedUserName && selectedUserName !== lastFetchedUser.current) {
+      lastFetchedUser.current = selectedUserName;
       fetchPeriods();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -88,6 +107,11 @@ export default function Home() {
   }, [uploadedData]);
 
   const fetchPeriods = async () => {
+    // Cancelar request anterior si existe
+    if (abortControllers.current.periods) {
+      abortControllers.current.periods.abort();
+    }
+
     // Prevenir llamadas duplicadas
     if (fetchPeriodsInProgress.current) {
       console.log('⏭️ [fetchPeriods] Ya hay un fetch en progreso, saltando...');
@@ -103,10 +127,16 @@ export default function Home() {
       } else {
         // Si no hay usuario seleccionado, no cargar períodos
         setPeriods([]);
+        fetchPeriodsInProgress.current = false;
         return;
       }
+
+      // Crear nuevo AbortController
+      abortControllers.current.periods = new AbortController();
       
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        signal: abortControllers.current.periods.signal
+      });
       const result = await response.json();
       
       if (result.success && result.periods) {
@@ -133,6 +163,11 @@ export default function Home() {
         setPeriods([]);
       }
     } catch (error) {
+      // Ignorar errores de abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('⏭️ [fetchPeriods] Request cancelado (nuevo fetch en progreso)');
+        return;
+      }
       console.error('Error al cargar períodos:', error);
     } finally {
       fetchPeriodsInProgress.current = false;
@@ -140,6 +175,11 @@ export default function Home() {
   };
 
   const fetchData = async (period?: string) => {
+    // Cancelar request anterior si existe
+    if (abortControllers.current.data) {
+      abortControllers.current.data.abort();
+    }
+
     // Prevenir llamadas duplicadas al mismo período
     const cacheKey = `${period}-${selectedUserName}`;
     if (fetchDataInProgress.current || lastFetchedPeriod.current === cacheKey) {
@@ -150,6 +190,7 @@ export default function Home() {
     fetchDataInProgress.current = true;
     lastFetchedPeriod.current = cacheKey;
     setLoadingData(true);
+    
     try {
       let url = '/api/data';
       const params = new URLSearchParams();
@@ -165,8 +206,13 @@ export default function Home() {
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
+
+      // Crear nuevo AbortController
+      abortControllers.current.data = new AbortController();
       
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        signal: abortControllers.current.data.signal
+      });
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -175,6 +221,11 @@ export default function Home() {
         setExcelData(null);
       }
     } catch (error) {
+      // Ignorar errores de abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('⏭️ [fetchData] Request cancelado (nuevo fetch en progreso)');
+        return;
+      }
       console.error('Error al cargar datos:', error);
     } finally {
       setLoadingData(false);
