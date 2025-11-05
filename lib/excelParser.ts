@@ -153,6 +153,29 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
     // SKIP filas vacías
     if (!firstCol || firstCol === '') continue;
     
+    // Detectar MARGEN BRUTO OPERACIONAL como total especial (antes de detectar categorías)
+    if (firstColUpper.includes('MARGEN BRUTO OPERACIONAL')) {
+      if (currentCategory) {
+        const totalRow: EERRRow = { Item: firstCol };
+        // 🔑 Usar columnMapping para obtener valores correctos
+        for (const header of headers) {
+          if (header === 'Item') continue;
+          const colIndex = columnMapping[header];
+          if (colIndex !== undefined && colIndex < row.length) {
+            totalRow[header] = row[colIndex] as string | number | undefined;
+          }
+        }
+        currentCategory.total = totalRow;
+        
+        console.log(`[${sheetName}] MARGEN BRUTO OPERACIONAL detectado como total de: ${currentCategory.name}`);
+        
+        // Guardar categoría con total
+        categories.push(currentCategory);
+        currentCategory = null;
+      }
+      continue;
+    }
+    
     // Detectar totales de categoría PRIMERO (antes de detectar nuevas categorías)
     if (firstColUpper.startsWith('TOTAL ')) {
       if (currentCategory) {
@@ -178,13 +201,13 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
     
     // Detectar inicio de categoría (HEADERS DE SECCIONES)
     if (firstColUpper.includes('INGRESOS OPERACIONALES') ||
-        firstColUpper.includes('MARGEN BRUTO OPERACIONAL') ||
-        firstColUpper.includes('MARGEN BRUTO') ||
         firstColUpper.includes('GASTOS DE REMUNERACION') ||
         firstColUpper.includes('GASTOS DE OPERACION') ||
+        firstColUpper.includes('GASTOS DE ADMINISTRACION') ||
         firstColUpper.includes('GASTOS GENERALES DE ADMINISTRACION') ||
-        firstColUpper.includes('GASTOS GENERALES') ||
-        firstColUpper.includes('OTROS GASTOS')) {
+        firstColUpper.includes('OTROS GASTOS') ||
+        firstColUpper.includes('OTROS EGRESOS FUERA DE EXPLOTACION') ||
+        (firstColUpper === 'EBIDTA' || firstColUpper === 'EBITDA')) {
       
       // Guardar categoría anterior si existe
       if (currentCategory && currentCategory.rows.length > 0) {
@@ -201,8 +224,8 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
       continue;
     }
 
-    // Detectar EBIDTA/EBITDA (resultado final)
-    if (firstColUpper.includes('EBIDTA') || firstColUpper.includes('EBITDA') || firstColUpper.includes('RESULTADO NETO')) {
+    // Detectar RESULTADO NETO (fila final sin categoría)
+    if (firstColUpper.includes('RESULTADO NETO')) {
       // Guardar categoría pendiente antes de resultado
       if (currentCategory && currentCategory.rows.length > 0) {
         categories.push(currentCategory);
@@ -220,21 +243,12 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
       }
       
       categories.push({
-        name: 'RESULTADO',
+        name: 'RESULTADO FINAL',
         rows: [resultRow]
       });
       
-      console.log(`[${sheetName}] Resultado final detectado: ${firstCol}`);
+      console.log(`[${sheetName}] RESULTADO NETO detectado como fila final`);
       continue;
-    }
-
-    // 🆕 Si es una fila de datos pero no hay categoría actual, crear categoría "INGRESOS"
-    if (!currentCategory && firstCol && firstCol !== '') {
-      currentCategory = {
-        name: 'INGRESOS OPERACIONALES',
-        rows: []
-      };
-      console.log(`[${sheetName}] 🆕 Categoría inicial creada automáticamente: INGRESOS OPERACIONALES`);
     }
 
     // Agregar fila a categoría actual (ITEMS REGULARES)
