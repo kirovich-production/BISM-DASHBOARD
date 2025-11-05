@@ -27,27 +27,45 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt }
     );
   }
 
-  // Detectar tipos de columnas disponibles
+  // Detectar tipos de columnas disponibles - MEJORADO para revisar TODOS los meses
   const getColumnTypes = (): { type: 'Monto' | '%' | 'Promedio', label: string }[] => {
-    const columnTypes: { type: 'Monto' | '%' | 'Promedio', label: string }[] = [];
+    const columnTypesSet = new Set<'Monto' | '%' | 'Promedio'>();
     
-    // Buscar en la primera categoría con datos
+    // Buscar en todas las categorías y todos los meses
     for (const category of data.categories) {
       if (category.rows.length > 0) {
         const firstRow = category.rows[0];
-        const firstMonth = data.months[0];
         
-        if (firstRow[`${firstMonth} Monto`] !== undefined) {
-          columnTypes.push({ type: 'Monto', label: 'Monto' });
+        // Revisar TODOS los meses para detectar tipos de columnas
+        for (const month of data.months) {
+          if (firstRow[`${month} Monto`] !== undefined) {
+            columnTypesSet.add('Monto');
+          }
+          if (firstRow[`${month} %`] !== undefined) {
+            columnTypesSet.add('%');
+          }
+          if (firstRow[`${month} Promedio`] !== undefined) {
+            columnTypesSet.add('Promedio');
+          }
         }
-        if (firstRow[`${firstMonth} %`] !== undefined) {
-          columnTypes.push({ type: '%', label: '%' });
-        }
-        if (firstRow[`${firstMonth} Promedio`] !== undefined) {
-          columnTypes.push({ type: 'Promedio', label: 'Promedio' });
-        }
-        break;
+        
+        // Si ya encontramos al menos un tipo, podemos salir
+        if (columnTypesSet.size > 0) break;
       }
+    }
+    
+    // Convertir Set a array con labels
+    const columnTypes: { type: 'Monto' | '%' | 'Promedio', label: string }[] = [];
+    
+    // Orden preferido: Monto, %, Promedio
+    if (columnTypesSet.has('Monto')) {
+      columnTypes.push({ type: 'Monto', label: 'Monto' });
+    }
+    if (columnTypesSet.has('%')) {
+      columnTypes.push({ type: '%', label: '%' });
+    }
+    if (columnTypesSet.has('Promedio')) {
+      columnTypes.push({ type: 'Promedio', label: 'Promedio' });
     }
     
     // Valores por defecto si no se detecta nada
@@ -55,6 +73,8 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt }
       columnTypes.push({ type: 'Monto', label: 'Monto' });
       columnTypes.push({ type: '%', label: '%' });
     }
+    
+    console.log(`[LabranzaTable] Tipos de columnas detectados:`, columnTypes.map(c => c.label).join(', '));
     
     return columnTypes;
   };

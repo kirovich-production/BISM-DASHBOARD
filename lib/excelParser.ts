@@ -93,8 +93,10 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
     const monthVal = String(headerRow[i] || '').trim();
     const subVal = String(subHeaderRow[i] || '').trim().toLowerCase();
     
+    // Solo actualizar currentMonth si hay un valor nuevo (para manejar celdas fusionadas)
     if (monthVal && monthVal !== '') {
       currentMonth = monthVal;
+      console.log(`[${sheetName}] 🔄 Nuevo mes detectado en columna ${i}: "${currentMonth}"`);
     }
     
     if (currentMonth) {
@@ -110,11 +112,17 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
       if (headerName) {
         headers.push(headerName);
         columnMapping[headerName] = i; // 🔑 GUARDAR EL ÍNDICE DE COLUMNA REAL
+        
+        // Log especial para CONSOLIDADO
+        if (currentMonth.toUpperCase().includes('CONSOLIDADO')) {
+          console.log(`[${sheetName}] 📍 CONSOLIDADO columna ${i}: "${headerName}" (subVal: "${subVal}")`);
+        }
       }
     }
   }
   
   console.log(`[${sheetName}] Headers generados (${headers.length}): ${headers.slice(0, 5).join(', ')}...`);
+  console.log(`[${sheetName}] Últimos 5 headers:`, headers.slice(-5).join(', '));
   console.log(`[${sheetName}] 🗺️ Mapeo de columnas (primeros 3):`, Object.entries(columnMapping).slice(0, 3));
   
   // ========================================
@@ -246,6 +254,13 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
         console.log(`[${sheetName}] 🔍 Primera fila de "${currentCategory.name}": ${firstCol}`);
         console.log(`[${sheetName}]    Valores de primeras 3 columnas:`, 
           headers.slice(1, 4).map(h => `${h}: ${rowData[h]}`).join(', '));
+        
+        // Log especial para CONSOLIDADO
+        const consolidadoHeaders = headers.filter(h => h.toUpperCase().includes('CONSOLIDADO'));
+        if (consolidadoHeaders.length > 0) {
+          console.log(`[${sheetName}] 📊 Valores CONSOLIDADO de "${firstCol}":`, 
+            consolidadoHeaders.map(h => `${h}: ${rowData[h]}`).join(', '));
+        }
       }
     }
   }
