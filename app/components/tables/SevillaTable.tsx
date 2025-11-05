@@ -27,9 +27,38 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
     );
   }
 
+  // Debug: Ver qué meses tenemos y qué keys tiene la primera fila
+  console.log('[SevillaTable] Meses en data.months:', data.months);
+  if (data.categories.length > 0 && data.categories[0].rows.length > 0) {
+    const firstRow = data.categories[0].rows[0];
+    console.log('[SevillaTable] Keys de la primera fila:', Object.keys(firstRow));
+    console.log('[SevillaTable] Primeros 5 valores:', Object.entries(firstRow).slice(0, 5));
+    
+    // 🔍 Log detallado de cada mes y sus valores
+    console.log('[SevillaTable] 🔍 Análisis detallado de montos por mes:');
+    data.months.forEach(month => {
+      const montoKey = `${month} Monto`;
+      const percentKey = `${month} %`;
+      console.log(`  ${month}:`);
+      console.log(`    - Key esperada para Monto: "${montoKey}"`);
+      console.log(`    - Valor en firstRow: ${firstRow[montoKey]}`);
+      console.log(`    - Key esperada para %: "${percentKey}"`);
+      console.log(`    - Valor en firstRow: ${firstRow[percentKey]}`);
+    });
+  }
+
   const formatNumber = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    
+    // Si es string, limpiar formato (remover $, comas, espacios)
+    let num: number;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[$,\s]/g, '').trim();
+      num = parseFloat(cleaned);
+    } else {
+      num = value;
+    }
+    
     if (isNaN(num)) return '-';
     return new Intl.NumberFormat('es-CL', {
       minimumFractionDigits: 0,
@@ -39,9 +68,19 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
 
   const formatPercentage = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    
+    // Si es string, limpiar formato (remover %, espacios)
+    let num: number;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[%\s]/g, '').trim();
+      num = parseFloat(cleaned);
+    } else {
+      num = value;
+    }
+    
     if (isNaN(num)) return '-';
-    return `${num.toFixed(1)}%`;
+    // Usar 2 decimales para mayor precisión
+    return `${num.toFixed(2)}%`;
   };
 
   return (

@@ -29,7 +29,16 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt }
 
   const formatNumber = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    
+    // Si es string, limpiar formato (remover $, comas, espacios)
+    let num: number;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[$,\s]/g, '').trim();
+      num = parseFloat(cleaned);
+    } else {
+      num = value;
+    }
+    
     if (isNaN(num)) return '-';
     return new Intl.NumberFormat('es-CL', {
       minimumFractionDigits: 0,
@@ -39,9 +48,19 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt }
 
   const formatPercentage = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    
+    // Si es string, limpiar formato (remover %, espacios)
+    let num: number;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[%\s]/g, '').trim();
+      num = parseFloat(cleaned);
+    } else {
+      num = value;
+    }
+    
     if (isNaN(num)) return '-';
-    return `${num.toFixed(1)}%`;
+    // Usar 2 decimales para mayor precisión
+    return `${num.toFixed(2)}%`;
   };
 
   return (

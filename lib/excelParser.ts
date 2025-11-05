@@ -94,8 +94,9 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
     const subVal = String(subHeaderRow[i] || '').trim().toLowerCase();
     
     // Solo actualizar currentMonth si hay un valor nuevo (para manejar celdas fusionadas)
+    // 🔧 NORMALIZAR A MAYÚSCULAS para que coincida con el array months
     if (monthVal && monthVal !== '') {
-      currentMonth = monthVal;
+      currentMonth = monthVal.toUpperCase();
       console.log(`[${sheetName}] 🔄 Nuevo mes detectado en columna ${i}: "${currentMonth}"`);
     }
     
