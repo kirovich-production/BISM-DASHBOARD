@@ -78,7 +78,7 @@ export interface ExcelRow {
 }
 
 export interface ExcelSection {
-  name: 'Labranza' | 'Sevilla' | 'Consolidados';
+  name: string; // Cualquier nombre de sección (Sevilla, Labranza, Consolidados, Santiago, etc.)
   data: ExcelRow[];
 }
 

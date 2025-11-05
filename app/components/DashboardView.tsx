@@ -3,12 +3,12 @@
 import RecentActivity from './RecentActivity';
 
 interface DashboardViewProps {
-  onNavigate: (view: 'dashboard' | 'sevilla' | 'labranza' | 'consolidado' | 'upload') => void;
+  onNavigate: (view: string) => void; // Ahora acepta cualquier sección dinámica
   selectedPeriod: string | null;
   periodsCount: number;
   selectedUserName?: string;
   hasData: boolean;
-  availableSections?: string[]; // ['sevilla', 'labranza', 'consolidado']
+  availableSections?: string[]; // Secciones disponibles desde Excel (ej: ['sevilla', 'labranza', 'consolidado'])
 }
 
 export default function DashboardView({ 
@@ -77,35 +77,45 @@ export default function DashboardView({
     );
   }
 
-  // Configuración dinámica de cards basada en las secciones disponibles
-  const allPossibleCards = [
-    {
-      id: 'sevilla',
-      title: 'EERR Sevilla',
-      description: 'Estado de resultados detallado de Sevilla',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      ),
-      color: 'from-indigo-500 to-indigo-600',
-      bgColor: 'bg-indigo-50',
-      iconColor: 'text-indigo-600',
-    },
-    {
-      id: 'labranza',
-      title: 'EERR Labranza',
-      description: 'Estado de resultados detallado de Labranza',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      ),
-      color: 'from-green-500 to-green-600',
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
-    },
-    {
+  // Generar cards dinámicamente desde availableSections
+  const generateSectionCards = () => {
+    const colors = [
+      { gradient: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-50', icon: 'text-indigo-600' },
+      { gradient: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50', icon: 'text-emerald-600' },
+      { gradient: 'from-amber-500 to-amber-600', bg: 'bg-amber-50', icon: 'text-amber-600' },
+      { gradient: 'from-rose-500 to-rose-600', bg: 'bg-rose-50', icon: 'text-rose-600' },
+      { gradient: 'from-cyan-500 to-cyan-600', bg: 'bg-cyan-50', icon: 'text-cyan-600' },
+    ];
+
+    return availableSections
+      .filter(section => !['consolidado', 'consolidados'].includes(section.toLowerCase()))
+      .map((section, index) => {
+        const colorScheme = colors[index % colors.length];
+        return {
+          id: section.toLowerCase(),
+          title: `EERR ${section.charAt(0).toUpperCase() + section.slice(1)}`,
+          description: `Estado de resultados detallado de ${section}`,
+          icon: (
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          ),
+          color: colorScheme.gradient,
+          bgColor: colorScheme.bg,
+          iconColor: colorScheme.icon,
+        };
+      });
+  };
+
+  // Card de consolidado (si existe)
+  const getConsolidadoCard = () => {
+    const hasConsolidado = availableSections.some(s => 
+      ['consolidado', 'consolidados'].includes(s.toLowerCase())
+    );
+    
+    if (!hasConsolidado) return null;
+
+    return {
       id: 'consolidado',
       title: 'Consolidado',
       description: 'Vista consolidada por secciones',
@@ -117,15 +127,10 @@ export default function DashboardView({
       color: 'from-purple-500 to-purple-600',
       bgColor: 'bg-purple-50',
       iconColor: 'text-purple-600',
-    },
-  ];
+    };
+  };
 
-  // Filtrar solo las cards que tienen datos disponibles
-  const availableCards = allPossibleCards.filter(card => 
-    availableSections.includes(card.id)
-  );
-
-  // Siempre agregar el card de "Cargar Datos"
+  // Card de carga de datos (siempre disponible)
   const uploadCard = {
     id: 'upload',
     title: 'Cargar Datos',
@@ -140,18 +145,16 @@ export default function DashboardView({
     iconColor: 'text-orange-600',
   };
 
-  const cards = [...availableCards, uploadCard];
+  // Construir array final de cards: secciones + consolidado (si existe) + upload
+  const sectionCards = generateSectionCards();
+  const consolidadoCard = getConsolidadoCard();
+  const cards = consolidadoCard 
+    ? [...sectionCards, consolidadoCard, uploadCard]
+    : [...sectionCards, uploadCard];
 
+  // Navegación dinámica basada en el id de la card
   const handleCardClick = (cardId: string) => {
-    if (cardId === 'sevilla') {
-      onNavigate('sevilla');
-    } else if (cardId === 'labranza') {
-      onNavigate('labranza');
-    } else if (cardId === 'consolidado') {
-      onNavigate('consolidado');
-    } else if (cardId === 'upload') {
-      onNavigate('upload');
-    }
+    onNavigate(cardId);
   };
 
   return (

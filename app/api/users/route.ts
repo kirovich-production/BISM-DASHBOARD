@@ -2,26 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/types';
 
-// GET - Obtener todos los usuarios
+// GET - Obtener todos los usuarios (cada usuario tiene su propia colección excel_{nombre})
 export async function GET() {
   try {
     const { db } = await connectToDatabase();
-    const collection = db.collection('excel_uploads');
 
-    // Obtener usuarios únicos de los documentos
-    const uniqueUserIds = await collection.distinct('userId');
+    // Obtener todas las colecciones que empiezan con "excel_"
+    const collections = await db.listCollections().toArray();
+    const excelCollections = collections
+      .map(c => c.name)
+      .filter(name => name.startsWith('excel_'))
+      .map(name => name.replace('excel_', ''));
 
     // Crear objetos User básicos
-    const users: User[] = uniqueUserIds
-      .filter(id => id) // Filtrar valores null/undefined
-      .map(id => ({
-        id: String(id),
-        name: String(id),
-        createdAt: new Date()
-      }));
+    const users: User[] = excelCollections.map(userName => ({
+      id: userName,
+      name: userName,
+      createdAt: new Date()
+    }));
 
     // Ordenar por nombre
     users.sort((a, b) => a.name.localeCompare(b.name));
+
+    console.log('[USERS API] Usuarios encontrados:', users.map(u => u.name));
 
     return NextResponse.json({
       success: true,

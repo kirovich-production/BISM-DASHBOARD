@@ -20,7 +20,7 @@ export default function Home() {
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [uploadPeriod, setUploadPeriod] = useState<string>('');
   const [uploadPeriodLabel, setUploadPeriodLabel] = useState<string>('');
-  const [activeView, setActiveView] = useState<'dashboard' | 'sevilla' | 'labranza' | 'consolidado' | 'upload'>('dashboard');
+  const [activeView, setActiveView] = useState<string>('dashboard');
   
   // Estados de usuario
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -385,6 +385,7 @@ export default function Home() {
         selectedUserId={selectedUserId}
         selectedUserName={selectedUserName}
         onUserChange={handleUserChange}
+        availableSections={excelData?.consolidado?.map(s => s.name.toLowerCase()) || []}
       />
 
       {/* Main Content Area */}
@@ -399,13 +400,7 @@ export default function Home() {
               selectedUserName={selectedUserName}
               hasData={excelData !== null}
               availableSections={
-                excelData 
-                  ? [
-                      ...(excelData.sevilla ? ['sevilla'] : []),
-                      ...(excelData.labranza ? ['labranza'] : []),
-                      ...(excelData.sections && excelData.sections.length > 0 ? ['consolidado'] : [])
-                    ]
-                  : []
+                excelData?.consolidado?.map(s => s.name.toLowerCase()) || []
               }
             />
           </div>
