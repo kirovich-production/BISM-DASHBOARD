@@ -386,6 +386,9 @@ export default function Home() {
         selectedUserName={selectedUserName}
         onUserChange={handleUserChange}
         availableSections={excelData?.consolidado?.map(s => s.name.toLowerCase()) || []}
+        periods={periods}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={setSelectedPeriod}
       />
 
       {/* Main Content Area */}
