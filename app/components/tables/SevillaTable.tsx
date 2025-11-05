@@ -81,13 +81,6 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
 
   const columnTypes = getColumnTypes();
 
-  // Filtrar meses para excluir CONSOLIDADO
-  const monthsWithoutConsolidado = data.months.filter(
-    month => !month.toUpperCase().includes('CONSOLIDADO')
-  );
-
-  console.log(`[SevillaTable] Meses a mostrar (sin CONSOLIDADO):`, monthsWithoutConsolidado.join(', '));
-
   const formatNumber = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
     const num = typeof value === 'string' ? parseFloat(value) : value;
@@ -138,7 +131,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider border-r border-indigo-500">
                   Concepto
                 </th>
-                {monthsWithoutConsolidado.map((month: string, monthIdx: number) => (
+                {data.months.map((month: string, monthIdx: number) => (
                   <th
                     key={monthIdx}
                     scope="col"
@@ -151,7 +144,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
               </tr>
               <tr>
                 <th scope="col" className="px-6 py-2 bg-indigo-700 border-r border-indigo-500"></th>
-                {monthsWithoutConsolidado.map((month: string, monthIdx: number) => (
+                {data.months.map((month: string, monthIdx: number) => (
                   <React.Fragment key={monthIdx}>
                     {columnTypes.map((colType: { type: 'Monto' | '%' | 'Promedio', label: string }, colIdx: number) => (
                       <th
@@ -189,7 +182,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                     <td className="px-6 py-3 text-sm text-gray-900 whitespace-nowrap border-r border-gray-200">
                       {row.Item}
                     </td>
-                    {monthsWithoutConsolidado.map((month: string, monthIdx: number) => (
+                    {data.months.map((month: string, monthIdx: number) => (
                       <React.Fragment key={monthIdx}>
                         {columnTypes.map((colType: { type: 'Monto' | '%' | 'Promedio', label: string }, colIdx: number) => {
                           const key = `${month} ${colType.type}`;
@@ -216,7 +209,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                     <td className="px-6 py-3 text-sm text-indigo-900 font-bold whitespace-nowrap border-r border-indigo-200">
                       {category.total.Item}
                     </td>
-                    {monthsWithoutConsolidado.map((month: string, monthIdx: number) => (
+                    {data.months.map((month: string, monthIdx: number) => (
                       <React.Fragment key={monthIdx}>
                         {columnTypes.map((colType: { type: 'Monto' | '%' | 'Promedio', label: string }, colIdx: number) => {
                           const key = `${month} ${colType.type}`;
