@@ -1,7 +1,5 @@
 'use client';
 
-import RecentActivity from './RecentActivity';
-
 interface DashboardViewProps {
   onNavigate: (view: string) => void; // Ahora acepta cualquier sección dinámica
   selectedPeriod: string | null;
@@ -157,14 +155,22 @@ export default function DashboardView({
     onNavigate(cardId);
   };
 
+  // Formatear nombre de usuario (capitalizar cada palabra)
+  const formatUserName = (name: string) => {
+    return name
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-6 md:space-y-8 max-w-7xl mx-auto">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-6 md:p-8 text-white">
+      <div className="bg-indigo-600 rounded-xl shadow-lg p-6 md:p-8 text-white">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">
-              Dashboard
+              Dashboard - {formatUserName(selectedUserName || '')}
             </h1>
             <p className="text-indigo-100 text-sm md:text-base">
               Resumen general de Balance Sheet
@@ -243,7 +249,7 @@ export default function DashboardView({
         <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">
           Acceso Rápido
         </h2>
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${cards.length >= 3 ? 'xl:grid-cols-4' : 'xl:grid-cols-' + cards.length} gap-4 md:gap-6`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${cards.length >= 3 ? 'lg:grid-cols-3 xl:grid-cols-4' : 'xl:grid-cols-' + cards.length} gap-4 md:gap-5 max-w-6xl`}>
           {cards.map((card) => (
             <button
               key={card.id}
@@ -274,9 +280,6 @@ export default function DashboardView({
           ))}
         </div>
       </div>
-
-      {/* Recent Activity */}
-      <RecentActivity userName={selectedUserName} />
     </div>
   );
 }

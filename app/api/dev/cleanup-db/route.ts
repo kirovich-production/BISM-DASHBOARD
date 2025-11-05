@@ -32,6 +32,7 @@ export async function GET() {
     const collectionsToDelete = [
       'sessions',
       'excel_agua_nieves',
+      'excel_agua_vivas',
       'excel_uploads'
     ];
 
