@@ -194,6 +194,12 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
 
     // Detectar EBIDTA/EBITDA (resultado final)
     if (firstColUpper.includes('EBIDTA') || firstColUpper.includes('EBITDA') || firstColUpper.includes('RESULTADO NETO')) {
+      // Guardar categoría pendiente antes de resultado
+      if (currentCategory && currentCategory.rows.length > 0) {
+        categories.push(currentCategory);
+        currentCategory = null;
+      }
+      
       const resultRow: EERRRow = { Item: firstCol };
       // 🔑 Usar columnMapping para obtener valores correctos
       for (const header of headers) {
@@ -211,6 +217,15 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
       
       console.log(`[${sheetName}] Resultado final detectado: ${firstCol}`);
       continue;
+    }
+
+    // 🆕 Si es una fila de datos pero no hay categoría actual, crear categoría "INGRESOS"
+    if (!currentCategory && firstCol && firstCol !== '') {
+      currentCategory = {
+        name: 'INGRESOS OPERACIONALES',
+        rows: []
+      };
+      console.log(`[${sheetName}] 🆕 Categoría inicial creada automáticamente: INGRESOS OPERACIONALES`);
     }
 
     // Agregar fila a categoría actual (ITEMS REGULARES)
