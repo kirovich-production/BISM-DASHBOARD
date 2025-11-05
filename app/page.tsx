@@ -7,6 +7,7 @@ import DashboardSidebar from './components/DashboardSidebar';
 import TableView from './components/TableView';
 import SevillaTable from './components/tables/SevillaTable';
 import LabranzaTable from './components/tables/LabranzaTable';
+import ConsolidadoChartsView from './components/ConsolidadoChartsView';
 import { UploadResponse, UploadedDocument, Period } from '@/types';
 
 export default function Home() {
@@ -627,8 +628,8 @@ export default function Home() {
               </div>
             </div>
           </div>
-        ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' ? (
-          /* Sevilla, Labranza and Consolidado Views */
+        ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' || activeView === 'graficos-consolidado' ? (
+          /* Sevilla, Labranza, Consolidado and Charts Views */
           excelData && selectedPeriod ? (
             <div className="bg-white h-full overflow-hidden flex flex-col">
               {/* Content */}
@@ -652,6 +653,11 @@ export default function Home() {
                   periodLabel={excelData.periodLabel}
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}
+                />
+              ) : activeView === 'graficos-consolidado' ? (
+                <ConsolidadoChartsView
+                  data={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
+                  periodLabel={excelData.periodLabel}
                 />
               ) : null}
             </div>
