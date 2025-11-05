@@ -240,9 +240,18 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
 
     setIsGeneratingPdf(true);
     try {
-      const content = contentRef.current;
-      
-      // HTML para el PDF
+      // 1. Obtener el canvas del gráfico Chart.js
+      const canvas = contentRef.current.querySelector('canvas');
+      if (!canvas) {
+        alert('No se pudo encontrar el gráfico. Asegúrate de tener ítems seleccionados.');
+        setIsGeneratingPdf(false);
+        return;
+      }
+
+      // 2. Convertir canvas a imagen base64 de alta calidad
+      const chartImage = canvas.toDataURL('image/png', 1.0);
+
+      // 3. Crear HTML optimizado para PDF con la imagen del gráfico
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -252,84 +261,138 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
               @page { size: A4 landscape; margin: 15mm; }
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { 
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                font-size: 9px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+                font-size: 10px;
                 color: #1f2937;
                 background: white;
-                padding: 10px;
+                padding: 15px;
               }
               .header {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
-                padding: 15px 20px;
-                border-radius: 8px;
-                margin-bottom: 15px;
+                padding: 20px 25px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
               }
-              .header h1 { font-size: 18px; margin-bottom: 4px; }
-              .header p { font-size: 11px; opacity: 0.9; }
+              .header h1 { 
+                font-size: 24px; 
+                margin-bottom: 6px; 
+                font-weight: 700;
+              }
+              .header p { 
+                font-size: 13px; 
+                opacity: 0.95;
+                font-weight: 500;
+              }
               .chart-container {
                 background: white;
-                border: 1px solid #e5e7eb;
+                border: 2px solid #e5e7eb;
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+              }
+              .chart-container img {
+                width: 100%;
+                height: auto;
+                display: block;
                 border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 15px;
+              }
+              .chart-info {
+                background: #f0f9ff;
+                border-left: 4px solid #3b82f6;
+                padding: 12px 15px;
+                margin-top: 15px;
+                border-radius: 6px;
+              }
+              .chart-info p {
+                font-size: 10px;
+                color: #1e40af;
+                margin-bottom: 4px;
+              }
+              .chart-info strong {
+                color: #1e3a8a;
               }
               .notes-section {
-                background: #f9fafb;
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 15px;
+                background: #fefce8;
+                border: 2px solid #fde047;
+                border-radius: 12px;
+                padding: 18px;
+                margin-top: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
               }
               .notes-section h3 {
-                font-size: 12px;
-                color: #4f46e5;
-                margin-bottom: 8px;
-                font-weight: 600;
+                font-size: 14px;
+                color: #854d0e;
+                margin-bottom: 10px;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                gap: 8px;
               }
               .notes-content {
-                font-size: 9px;
-                color: #374151;
-                line-height: 1.5;
+                font-size: 10px;
+                color: #713f12;
+                line-height: 1.6;
                 white-space: pre-wrap;
+                background: white;
+                padding: 12px;
+                border-radius: 6px;
+                border: 1px solid #fde047;
               }
               .metadata {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px solid #e5e7eb;
-                font-size: 8px;
+                margin-top: 15px;
+                padding-top: 12px;
+                border-top: 2px solid #e5e7eb;
+                font-size: 9px;
                 color: #6b7280;
               }
-              canvas { max-width: 100%; height: auto; }
+              .metadata span {
+                font-weight: 500;
+              }
             </style>
           </head>
           <body>
             <div class="header">
-              <h1>Gráficos de Consolidado</h1>
-              <p>Período: ${periodLabel}</p>
+              <h1>📊 Gráficos de Consolidado</h1>
+              <p>Período: ${periodLabel} | Tipo de dato: ${dataType === 'monto' ? 'Monto (CLP)' : 'Porcentaje (%)'}</p>
             </div>
-            ${content.innerHTML}
+            
+            <div class="chart-container">
+              <img src="${chartImage}" alt="Gráfico de Consolidado" />
+              <div class="chart-info">
+                <p><strong>Rango de meses:</strong> ${MONTHS[monthRange.start]} - ${MONTHS[monthRange.end]}</p>
+                <p><strong>Ítems visualizados (${selectedItems.length}):</strong> ${selectedItems.join(', ')}</p>
+              </div>
+            </div>
+            
             ${notes ? `
               <div class="notes-section">
                 <h3>📝 Notas y Observaciones</h3>
                 <div class="notes-content">${notes}</div>
               </div>
             ` : ''}
+            
             <div class="metadata">
-              <span>Generado: ${new Date().toLocaleString('es-CL')}</span>
-              <span>Ítems: ${selectedItems.join(', ')}</span>
+              <span>🕒 Generado: ${new Date().toLocaleString('es-CL', { 
+                dateStyle: 'full', 
+                timeStyle: 'short' 
+              })}</span>
+              <span>📄 BISM Dashboard - Gráficos de Consolidado</span>
             </div>
           </body>
         </html>
       `;
 
-      // Intentar con Browserless API
+      // 4. Intentar con Browserless API
       const apiToken = process.env.NEXT_PUBLIC_BROWSERLESS_API_TOKEN;
       
       if (apiToken) {
+        console.log('🚀 Generando PDF con Browserless.io...');
         const response = await fetch(`https://chrome.browserless.io/pdf?token=${apiToken}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -339,24 +402,37 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
               format: 'A4',
               landscape: true,
               printBackground: true,
-              margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' }
+              margin: { 
+                top: '15mm', 
+                right: '15mm', 
+                bottom: '15mm', 
+                left: '15mm' 
+              },
+              scale: 0.95,
+              preferCSSPageSize: false
             }
           })
         });
 
-        if (!response.ok) throw new Error('Error en Browserless API');
+        if (!response.ok) {
+          console.error('❌ Error en Browserless API:', response.status);
+          throw new Error('Error en Browserless API');
+        }
 
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `graficos-consolidado-${periodLabel}-${new Date().getTime()}.pdf`;
+        a.download = `graficos-consolidado-${periodLabel.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+        
+        console.log('✅ PDF generado exitosamente con Browserless.io');
       } else {
         // Fallback: abrir en nueva ventana para imprimir
+        console.log('⚠️ Usando fallback (ventana de impresión)');
         const printWindow = window.open('', '_blank');
         if (printWindow) {
           printWindow.document.write(htmlContent);
@@ -367,7 +443,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         }
       }
     } catch (error) {
-      console.error('Error generando PDF:', error);
+      console.error('❌ Error generando PDF:', error);
       alert('Error al generar el PDF. Por favor intenta de nuevo.');
     } finally {
       setIsGeneratingPdf(false);
@@ -433,7 +509,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         </div>
       </div>
 
-      <div ref={contentRef}>
       {/* Controles */}
       <div className="bg-white rounded-xl shadow-md p-6 mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Controles de Visualización</h3>
@@ -542,7 +617,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
       </div>
 
       {/* Gráfica */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+      <div className="bg-white rounded-xl shadow-md p-6 mb-6" ref={contentRef}>
         <div style={{ height: '500px' }}>
           {selectedItems.length > 0 ? (
             <Bar data={chartData} options={chartOptions} />
@@ -591,7 +666,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         <p className="mt-2 text-xs text-gray-500">
           Agrega comentarios, insights o conclusiones basadas en el gráfico para compartir con tu equipo.
         </p>
-      </div>
       </div>
     </div>
   );
