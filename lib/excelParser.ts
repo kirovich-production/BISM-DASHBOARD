@@ -138,7 +138,7 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
   // PASO 4: MOSTRAR PREVIEW DE DATOS
   // ========================================
   console.log(`[${sheetName}] Preview de filas (desde fila ${dataStartRowIndex}):`);
-  for (let i = dataStartRowIndex; i < Math.min(dataStartRowIndex + 35, rawData.length); i++) {
+  for (let i = dataStartRowIndex; i < Math.min(dataStartRowIndex + 60, rawData.length); i++) {
     const firstCol = String(rawData[i][0] || '').trim();
     const firstColUpper = firstCol.toUpperCase();
     
@@ -195,6 +195,33 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
       continue;
     }
     
+    // Detectar EBIDTA como fila de valores especial (no categoría con items)
+    if (firstColUpper === 'EBIDTA' || firstColUpper === 'EBITDA') {
+      // Guardar categoría pendiente si existe
+      if (currentCategory && currentCategory.rows.length > 0) {
+        categories.push(currentCategory);
+        currentCategory = null;
+      }
+      
+      // Crear categoría especial solo con la fila EBIDTA (sin items)
+      const ebitdaRow: EERRRow = { Item: firstCol };
+      for (const header of headers) {
+        if (header === 'Item') continue;
+        const colIndex = columnMapping[header];
+        if (colIndex !== undefined && colIndex < row.length) {
+          ebitdaRow[header] = row[colIndex] as string | number | undefined;
+        }
+      }
+      
+      categories.push({
+        name: firstCol, // "EBIDTA" o "EBITDA"
+        rows: [ebitdaRow]
+      });
+      
+      console.log(`[${sheetName}] EBIDTA detectado como fila de valores (no categoría con items)`);
+      continue;
+    }
+    
     // Detectar totales de categoría PRIMERO (antes de detectar nuevas categorías)
     if (firstColUpper.startsWith('TOTAL ')) {
       if (currentCategory) {
@@ -219,14 +246,16 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
     }
     
     // Detectar inicio de categoría (HEADERS DE SECCIONES)
-    if (firstColUpper.includes('INGRESOS OPERACIONALES') ||
-        firstColUpper.includes('GASTOS DE REMUNERACION') ||
-        firstColUpper.includes('GASTOS DE OPERACION') ||
-        firstColUpper.includes('GASTOS DE ADMINISTRACION') ||
-        firstColUpper.includes('GASTOS GENERALES DE ADMINISTRACION') ||
-        firstColUpper.includes('OTROS GASTOS') ||
-        firstColUpper.includes('OTROS EGRESOS FUERA DE EXPLOTACION') ||
-        (firstColUpper === 'EBIDTA' || firstColUpper === 'EBITDA')) {
+    // Normalizar espacios múltiples para comparación (ej: "GASTOS  DE" → "GASTOS DE")
+    const normalizedFirstCol = firstColUpper.replace(/\s+/g, ' ').trim();
+    
+    if (normalizedFirstCol.includes('INGRESOS OPERACIONALES') ||
+        normalizedFirstCol.includes('GASTOS DE REMUNERACION') ||
+        normalizedFirstCol.includes('GASTOS DE OPERACION') ||
+        normalizedFirstCol.includes('GASTOS DE ADMINISTRACION') ||
+        normalizedFirstCol.includes('GASTOS GENERALES DE ADMINISTRACION') ||
+        normalizedFirstCol.includes('OTROS GASTOS') ||
+        normalizedFirstCol.includes('OTROS EGRESOS FUERA DE EXPLOTACION')) {
       
       // Guardar categoría anterior si existe
       if (currentCategory && currentCategory.rows.length > 0) {
@@ -262,7 +291,7 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
       }
       
       categories.push({
-        name: 'RESULTADO FINAL',
+        name: firstCol, // Usar nombre original del Excel: "RESULTADO NETO"
         rows: [resultRow]
       });
       
