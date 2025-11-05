@@ -106,24 +106,26 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               table {
                 width: 100% !important;
                 max-width: 100% !important;
-                font-size: 8px !important;
+                font-size: 7px !important;
                 border-collapse: collapse !important;
-                table-layout: auto !important;
+                table-layout: fixed !important;
               }
               
               th, td {
-                padding: 4px 3px !important;
+                padding: 3px 2px !important;
                 border: 1px solid #d1d5db !important;
                 text-align: center !important;
                 white-space: nowrap !important;
-                overflow: visible !important;
-                font-size: 8px !important;
+                overflow: hidden !important;
+                font-size: 7px !important;
+                text-overflow: ellipsis !important;
               }
               
               th {
                 background-color: #4f46e5 !important;
                 color: white !important;
                 font-weight: 600 !important;
+                font-size: 7px !important;
               }
               
               /* Primera columna pegada a la izquierda - SIEMPRE VISIBLE */
@@ -132,14 +134,14 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
                 text-align: left !important;
                 background: white !important;
                 position: relative !important;
-                min-width: 150px !important;
-                max-width: 200px !important;
-                width: 170px !important;
-                font-size: 9px !important;
-                padding: 5px 8px !important;
+                min-width: 120px !important;
+                max-width: 140px !important;
+                width: 130px !important;
+                font-size: 7.5px !important;
+                padding: 3px 5px !important;
                 word-wrap: break-word !important;
                 white-space: normal !important;
-                line-height: 1.3 !important;
+                line-height: 1.2 !important;
                 font-weight: 600 !important;
                 border-right: 2px solid #4f46e5 !important;
               }
@@ -150,15 +152,63 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
                 color: white !important;
               }
               
+              /* Columnas de datos - distribuir uniformemente */
+              th:not(:first-child),
+              td:not(:first-child) {
+                width: auto !important;
+                min-width: 35px !important;
+                max-width: 50px !important;
+              }
+              
               /* Totales en negrita */
               tr:has(strong) td {
                 font-weight: 700 !important;
                 background-color: #f3f4f6 !important;
               }
               
+              /* Filas con background amarillo */
+              .bg-yellow-100 {
+                background-color: #fef3c7 !important;
+              }
+              
+              /* Columnas ANUAL con fondo morado */
+              .bg-purple-50 {
+                background-color: #faf5ff !important;
+              }
+              
+              .bg-indigo-700 {
+                background-color: #4338ca !important;
+              }
+              
+              .bg-indigo-600 {
+                background-color: #4f46e5 !important;
+              }
+              
+              .bg-indigo-500 {
+                background-color: #6366f1 !important;
+              }
+              
               /* Ocultar controles y navegación */
               .fixed, button, nav {
                 display: none !important;
+              }
+              
+              /* Controlar tamaño de SVGs e íconos */
+              svg {
+                max-width: 20px !important;
+                max-height: 20px !important;
+                width: 20px !important;
+                height: 20px !important;
+              }
+              
+              /* Contenedor de ícono */
+              .bg-purple-100 {
+                padding: 4px !important;
+                width: 28px !important;
+                height: 28px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
               }
               
               /* Eliminar sticky en PDF - ya está capturado en la posición correcta */
@@ -168,32 +218,53 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
               }
               
               /* Encabezados compactos */
+              h1 {
+                font-size: 11px !important;
+                margin: 3px 0 !important;
+                padding: 0 !important;
+              }
+              
               h2, h3 {
-                font-size: 12px !important;
-                margin: 5px 0 !important;
+                font-size: 10px !important;
+                margin: 3px 0 !important;
                 padding: 0 !important;
               }
               
               p {
-                font-size: 9px !important;
-                margin: 3px 0 !important;
+                font-size: 7px !important;
+                margin: 2px 0 !important;
               }
               
               /* Span pequeño */
               span {
-                font-size: 8px !important;
+                font-size: 7px !important;
               }
               
               /* Border del contenedor */
               .border-b {
                 border-bottom: 2px solid #e5e7eb !important;
-                margin-bottom: 12px !important;
-                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
+                padding-bottom: 6px !important;
               }
               
               /* Espacio entre tabs */
               .mb-6 {
-                margin-bottom: 12px !important;
+                margin-bottom: 8px !important;
+              }
+              
+              /* Reducir padding de contenedores */
+              .px-4 {
+                padding-left: 6px !important;
+                padding-right: 6px !important;
+              }
+              
+              .py-2, .py-3 {
+                padding-top: 2px !important;
+                padding-bottom: 2px !important;
+              }
+              
+              .rounded-lg {
+                border-radius: 4px !important;
               }
             </style>
           </head>
