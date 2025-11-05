@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import PeriodInput from './components/PeriodInput';
 import DashboardView from './components/DashboardView';
 import DashboardSidebar from './components/DashboardSidebar';
-import TableView from './components/TableView';
 import SevillaTable from './components/tables/SevillaTable';
 import LabranzaTable from './components/tables/LabranzaTable';
+import ConsolidadoTable from './components/tables/ConsolidadoTable';
 import { UploadResponse, UploadedDocument, Period } from '@/types';
 
 export default function Home() {
@@ -644,8 +644,8 @@ export default function Home() {
                   uploadedAt={excelData.uploadedAt}
                 />
               ) : activeView === 'consolidado' ? (
-                <TableView
-                  sections={excelData.sections || []}
+                <ConsolidadoTable
+                  data={excelData.sevilla || excelData.labranza || null}
                   periodLabel={excelData.periodLabel}
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}
