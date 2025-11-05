@@ -20,7 +20,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
           </svg>
           <h3 className="mt-2 text-sm font-semibold text-gray-900">No hay datos disponibles</h3>
           <p className="mt-1 text-sm text-gray-500">
-            No se encontraron datos de EERR SEVILLA para el período seleccionado.
+            No se encontraron datos de Sucursal Sevilla para el período seleccionado.
           </p>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-indigo-900">EERR Sevilla</h1>
+            <h1 className="text-2xl font-bold text-indigo-900">Sucursal Sevilla</h1>
             <p className="text-sm text-gray-600 mt-1">
               Período: {periodLabel}
               {version && ` • Versión ${version}`}
