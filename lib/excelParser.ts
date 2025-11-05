@@ -390,9 +390,13 @@ export function parseConsolidado(workbook: XLSX.WorkBook): ExcelSection[] | null
           headers.push(`${currentMonth} Monto`);
         } else if (subVal === '%' || subVal.includes('%')) {
           headers.push(`${currentMonth} %`);
+        } else if (subVal.includes('promedio')) {
+          headers.push(`${currentMonth} Promedio`);
         }
       }
     }
+    
+    console.log(`[parseConsolidado] 📋 Headers construidos (${headers.length}):`, headers.slice(0, 5).join(', '), '...', headers.slice(-5).join(', '));
   }
 
   // Parsear datos de cada sección

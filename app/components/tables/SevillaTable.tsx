@@ -27,60 +27,6 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
     );
   }
 
-  // Detectar tipos de columnas disponibles - MEJORADO para revisar TODOS los meses
-  const getColumnTypes = (): { type: 'Monto' | '%' | 'Promedio', label: string }[] => {
-    const columnTypesSet = new Set<'Monto' | '%' | 'Promedio'>();
-    
-    // Buscar en todas las categorías y todos los meses
-    for (const category of data.categories) {
-      if (category.rows.length > 0) {
-        const firstRow = category.rows[0];
-        
-        // Revisar TODOS los meses para detectar tipos de columnas
-        for (const month of data.months) {
-          if (firstRow[`${month} Monto`] !== undefined) {
-            columnTypesSet.add('Monto');
-          }
-          if (firstRow[`${month} %`] !== undefined) {
-            columnTypesSet.add('%');
-          }
-          if (firstRow[`${month} Promedio`] !== undefined) {
-            columnTypesSet.add('Promedio');
-          }
-        }
-        
-        // Si ya encontramos al menos un tipo, podemos salir
-        if (columnTypesSet.size > 0) break;
-      }
-    }
-    
-    // Convertir Set a array con labels
-    const columnTypes: { type: 'Monto' | '%' | 'Promedio', label: string }[] = [];
-    
-    // Orden preferido: Monto, %, Promedio
-    if (columnTypesSet.has('Monto')) {
-      columnTypes.push({ type: 'Monto', label: 'Monto' });
-    }
-    if (columnTypesSet.has('%')) {
-      columnTypes.push({ type: '%', label: '%' });
-    }
-    if (columnTypesSet.has('Promedio')) {
-      columnTypes.push({ type: 'Promedio', label: 'Promedio' });
-    }
-    
-    // Valores por defecto si no se detecta nada
-    if (columnTypes.length === 0) {
-      columnTypes.push({ type: 'Monto', label: 'Monto' });
-      columnTypes.push({ type: '%', label: '%' });
-    }
-    
-    console.log(`[SevillaTable] Tipos de columnas detectados:`, columnTypes.map(c => c.label).join(', '));
-    
-    return columnTypes;
-  };
-
-  const columnTypes = getColumnTypes();
-
   const formatNumber = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
     const num = typeof value === 'string' ? parseFloat(value) : value;
@@ -96,13 +42,6 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return '-';
     return `${num.toFixed(1)}%`;
-  };
-
-  const formatValue = (value: string | number | undefined, type: 'Monto' | '%' | 'Promedio'): string => {
-    if (type === '%') {
-      return formatPercentage(value);
-    }
-    return formatNumber(value);
   };
 
   return (
@@ -131,32 +70,47 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider border-r border-indigo-500">
                   Concepto
                 </th>
-                {data.months.map((month: string, monthIdx: number) => (
+                {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
                   <th
                     key={monthIdx}
                     scope="col"
-                    colSpan={columnTypes.length}
+                    colSpan={2}
                     className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider border-r border-indigo-500"
                   >
                     {month}
                   </th>
                 ))}
+                {/* CONSOLIDADO al final */}
+                <th
+                  scope="col"
+                  colSpan={3}
+                  className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider border-r border-indigo-500 bg-indigo-700"
+                >
+                  CONSOLIDADO
+                </th>
               </tr>
               <tr>
                 <th scope="col" className="px-6 py-2 bg-indigo-700 border-r border-indigo-500"></th>
-                {data.months.map((month: string, monthIdx: number) => (
+                {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
                   <React.Fragment key={monthIdx}>
-                    {columnTypes.map((colType: { type: 'Monto' | '%' | 'Promedio', label: string }, colIdx: number) => (
-                      <th
-                        key={colIdx}
-                        scope="col"
-                        className="px-3 py-2 text-center text-xs font-medium text-white bg-indigo-700 border-r border-indigo-600"
-                      >
-                        {colType.label}
-                      </th>
-                    ))}
+                    <th className="px-3 py-2 text-center text-xs font-medium text-white bg-indigo-700 border-r border-indigo-600">
+                      Monto
+                    </th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-white bg-indigo-700 border-r border-indigo-600">
+                      %
+                    </th>
                   </React.Fragment>
                 ))}
+                {/* Sub-headers CONSOLIDADO */}
+                <th className="px-3 py-2 text-center text-xs font-medium text-white bg-indigo-800 border-r border-indigo-600">
+                  Monto
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-white bg-indigo-800 border-r border-indigo-600">
+                  %
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-white bg-indigo-800 border-r border-indigo-600">
+                  Promedio
+                </th>
               </tr>
             </thead>
 
@@ -166,7 +120,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                 // FILA DE CATEGORÍA (título con estilo especial)
                 <tr key={`cat-${categoryIndex}`} className="bg-gradient-to-r from-indigo-100 to-indigo-50 border-t-2 border-indigo-300">
                   <td
-                    colSpan={1 + data.months.length * columnTypes.length}
+                    colSpan={1 + (data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).length * 2) + 3}
                     className="px-6 py-3 text-sm font-bold text-indigo-900 uppercase tracking-wide"
                   >
                     {category.name}
@@ -182,21 +136,27 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                     <td className="px-6 py-3 text-sm text-gray-900 whitespace-nowrap border-r border-gray-200">
                       {row.Item}
                     </td>
-                    {data.months.map((month: string, monthIdx: number) => (
+                    {/* Meses normales (solo Monto y %) */}
+                    {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
                       <React.Fragment key={monthIdx}>
-                        {columnTypes.map((colType: { type: 'Monto' | '%' | 'Promedio', label: string }, colIdx: number) => {
-                          const key = `${month} ${colType.type}`;
-                          return (
-                            <td
-                              key={colIdx}
-                              className="px-3 py-3 text-sm text-gray-700 text-right whitespace-nowrap border-r border-gray-100"
-                            >
-                              {formatValue(row[key], colType.type)}
-                            </td>
-                          );
-                        })}
+                        <td className="px-3 py-3 text-sm text-gray-700 text-right whitespace-nowrap border-r border-gray-100">
+                          {formatNumber(row[`${month} Monto`])}
+                        </td>
+                        <td className="px-3 py-3 text-sm text-gray-700 text-right whitespace-nowrap border-r border-gray-100">
+                          {formatPercentage(row[`${month} %`])}
+                        </td>
                       </React.Fragment>
                     ))}
+                    {/* CONSOLIDADO (Monto, %, Promedio) */}
+                    <td className="px-3 py-3 text-sm text-gray-900 font-semibold text-right whitespace-nowrap border-r border-gray-100 bg-indigo-50">
+                      {formatNumber(row['CONSOLIDADO Monto'])}
+                    </td>
+                    <td className="px-3 py-3 text-sm text-gray-900 font-semibold text-right whitespace-nowrap border-r border-gray-100 bg-indigo-50">
+                      {formatPercentage(row['CONSOLIDADO %'])}
+                    </td>
+                    <td className="px-3 py-3 text-sm text-gray-900 font-semibold text-right whitespace-nowrap border-r border-gray-100 bg-indigo-50">
+                      {formatNumber(row['CONSOLIDADO Promedio'])}
+                    </td>
                   </tr>
                 )),
 
@@ -209,21 +169,27 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                     <td className="px-6 py-3 text-sm text-indigo-900 font-bold whitespace-nowrap border-r border-indigo-200">
                       {category.total.Item}
                     </td>
-                    {data.months.map((month: string, monthIdx: number) => (
+                    {/* Meses normales (solo Monto y %) */}
+                    {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
                       <React.Fragment key={monthIdx}>
-                        {columnTypes.map((colType: { type: 'Monto' | '%' | 'Promedio', label: string }, colIdx: number) => {
-                          const key = `${month} ${colType.type}`;
-                          return (
-                            <td
-                              key={colIdx}
-                              className="px-3 py-3 text-sm text-indigo-900 font-bold text-right whitespace-nowrap border-r border-indigo-100"
-                            >
-                              {formatValue(category.total![key], colType.type)}
-                            </td>
-                          );
-                        })}
+                        <td className="px-3 py-3 text-sm text-indigo-900 font-bold text-right whitespace-nowrap border-r border-indigo-100">
+                          {formatNumber(category.total![`${month} Monto`])}
+                        </td>
+                        <td className="px-3 py-3 text-sm text-indigo-900 font-bold text-right whitespace-nowrap border-r border-indigo-100">
+                          {formatPercentage(category.total![`${month} %`])}
+                        </td>
                       </React.Fragment>
                     ))}
+                    {/* CONSOLIDADO (Monto, %, Promedio) */}
+                    <td className="px-3 py-3 text-sm text-indigo-900 font-bold text-right whitespace-nowrap border-r border-indigo-100 bg-indigo-100">
+                      {formatNumber(category.total!['CONSOLIDADO Monto'])}
+                    </td>
+                    <td className="px-3 py-3 text-sm text-indigo-900 font-bold text-right whitespace-nowrap border-r border-indigo-100 bg-indigo-100">
+                      {formatPercentage(category.total!['CONSOLIDADO %'])}
+                    </td>
+                    <td className="px-3 py-3 text-sm text-indigo-900 font-bold text-right whitespace-nowrap border-r border-indigo-100 bg-indigo-100">
+                      {formatNumber(category.total!['CONSOLIDADO Promedio'])}
+                    </td>
                   </tr>
                 ] : [])
               ])}

@@ -98,7 +98,7 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
               ))}
               <th
                 colSpan={3}
-                className="border border-gray-300 px-2 py-3 text-center font-semibold"
+                className="border border-gray-300 px-2 py-3 text-center font-semibold bg-indigo-700"
               >
                 ANUAL
               </th>
@@ -118,13 +118,13 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
                   </th>
                 </Fragment>
               ))}
-              <th className="border border-gray-300 px-2 py-2 text-center text-xs">
+              <th className="border border-gray-300 px-2 py-2 text-center text-xs bg-indigo-600">
                 Monto
               </th>
-              <th className="border border-gray-300 px-2 py-2 text-center text-xs">
+              <th className="border border-gray-300 px-2 py-2 text-center text-xs bg-indigo-600">
                 %
               </th>
-              <th className="border border-gray-300 px-2 py-2 text-center text-xs">
+              <th className="border border-gray-300 px-2 py-2 text-center text-xs bg-indigo-600">
                 Promedio
               </th>
             </tr>
@@ -165,13 +165,13 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
                       </Fragment>
                     );
                   })}
-                  <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium">
+                  <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium bg-purple-50">
                     {formatNumber(row['ANUAL Monto'])}
                   </td>
-                  <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium">
+                  <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium bg-purple-50">
                     {formatPercentage(row['ANUAL %'])}
                   </td>
-                  <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium">
+                  <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium bg-purple-50">
                     {formatNumber(row['ANUAL Promedio'])}
                   </td>
                 </tr>
