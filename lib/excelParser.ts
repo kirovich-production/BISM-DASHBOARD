@@ -49,11 +49,11 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
     if (rowText.includes('ENERO') && rowText.includes('FEBRERO')) {
       monthsRowIndex = i;
       subHeaderRowIndex = i + 1;
-      dataStartRowIndex = i + 2;
+      dataStartRowIndex = i + 1; // ✅ CORREGIDO: Los datos (incluyendo headers de categorías) empiezan justo después de meses
       console.log(`[parseEERR] 📅 Estructura detectada:`);
       console.log(`   - Fila de meses: ${monthsRowIndex}`);
       console.log(`   - Fila de sub-headers: ${subHeaderRowIndex}`);
-      console.log(`   - Datos inician en: ${dataStartRowIndex}`);
+      console.log(`   - Datos inician en: ${dataStartRowIndex} (incluye headers de categorías)`);
       break;
     }
   }
@@ -61,6 +61,14 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
   if (monthsRowIndex === -1) {
     console.error(`[parseEERR] ❌ No se detectó la fila de meses`);
     return null;
+  }
+
+  // DEBUG: Mostrar primeras 10 filas después de meses
+  console.log(`[parseEERR] 🔍 DEBUG - Primeras filas después de la fila de meses:`);
+  for (let i = monthsRowIndex; i < Math.min(monthsRowIndex + 10, rawData.length); i++) {
+    const row = rawData[i];
+    const firstCol = row && row[0] ? String(row[0]).trim() : '';
+    console.log(`   Fila ${i}: "${firstCol}"`);
   }
 
   // ========================================
@@ -130,10 +138,21 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
   // PASO 4: MOSTRAR PREVIEW DE DATOS
   // ========================================
   console.log(`[${sheetName}] Preview de filas (desde fila ${dataStartRowIndex}):`);
-  for (let i = dataStartRowIndex; i < Math.min(dataStartRowIndex + 10, rawData.length); i++) {
+  for (let i = dataStartRowIndex; i < Math.min(dataStartRowIndex + 35, rawData.length); i++) {
     const firstCol = String(rawData[i][0] || '').trim();
+    const firstColUpper = firstCol.toUpperCase();
+    
+    // Marcar filas importantes
+    let marker = '   ';
+    if (firstColUpper.includes('INGRESOS OPERACIONALES')) marker = '🟢 HEADER → ';
+    if (firstColUpper.includes('GASTOS DE ADMINISTRACION')) marker = '🔵 HEADER → ';
+    if (firstColUpper.includes('GASTOS GENERALES DE ADMINISTRACION')) marker = '🟣 HEADER → ';
+    if (firstColUpper.includes('MARGEN BRUTO OPERACIONAL')) marker = '🟡 TOTAL → ';
+    if (firstColUpper === 'VENTAS' || firstCol === 'Ventas') marker = '📊 ITEM → ';
+    if (firstColUpper.includes('EBIDTA') || firstColUpper.includes('EBITDA')) marker = '💚 HEADER → ';
+    
     if (firstCol) {
-      console.log(`   Fila ${i}: "${firstCol}"`);
+      console.log(`${marker}Fila ${i}: "${firstCol}"`);
     }
   }
 
