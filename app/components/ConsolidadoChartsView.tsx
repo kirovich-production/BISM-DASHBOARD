@@ -297,6 +297,12 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         console.log(`  Range: ${minVal.toLocaleString()} - ${maxVal.toLocaleString()}`);
       });
 
+      // Calcular el máximo para establecer escala fija
+      const allValues = chartDatasets.flatMap(dataset => dataset.data).filter(val => val > 0);
+      const maxValue = allValues.length > 0 ? Math.max(...allValues) : 100;
+      const yAxisMax = Math.ceil(maxValue * 1.1); // 10% más alto que el máximo
+      console.log(`📊 Eje Y configurado: 0 - ${yAxisMax.toLocaleString()}`);
+
       // Crear HTML con Chart.js incluido para que Browserless lo renderice
       const fullHtml = `
         <!DOCTYPE html>
@@ -561,6 +567,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                     scales: {
                       y: {
                         beginAtZero: true,
+                        max: ${yAxisMax},
                         ticks: {
                           callback: function(value) {
                             const numValue = typeof value === 'string' ? parseFloat(value) : value;
