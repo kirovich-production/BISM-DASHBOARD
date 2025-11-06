@@ -35,10 +35,10 @@ interface TrimestralAnalysisViewProps {
 
 // Definición de trimestres
 const QUARTERS = {
-  Q1: { label: 'Q1 (Ene-Mar)', months: ['Enero', 'Febrero', 'Marzo'] },
-  Q2: { label: 'Q2 (Abr-Jun)', months: ['Abril', 'Mayo', 'Junio'] },
-  Q3: { label: 'Q3 (Jul-Sep)', months: ['Julio', 'Agosto', 'Septiembre'] },
-  Q4: { label: 'Q4 (Oct-Dic)', months: ['Octubre', 'Noviembre', 'Diciembre'] }
+  Q1: { label: 'Q1 (Ene-Mar)', shortLabel: 'Q1', months: ['Enero', 'Febrero', 'Marzo'] },
+  Q2: { label: 'Q2 (Abr-Jun)', shortLabel: 'Q2', months: ['Abril', 'Mayo', 'Junio'] },
+  Q3: { label: 'Q3 (Jul-Sep)', shortLabel: 'Q3', months: ['Julio', 'Agosto', 'Septiembre'] },
+  Q4: { label: 'Q4 (Oct-Dic)', shortLabel: 'Q4', months: ['Octubre', 'Noviembre', 'Diciembre'] }
 } as const;
 
 type QuarterKey = keyof typeof QUARTERS;
@@ -355,8 +355,8 @@ export default function TrimestralAnalysisView({ data, periodLabel }: Trimestral
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">📊 Análisis Trimestral Comparativo</h1>
-              <p className="text-sm text-gray-600">Período: {periodLabel} - Análisis por Q1, Q2, Q3, Q4</p>
+              <h1 className="text-2xl font-bold text-gray-900">Análisis Trimestral Comparativo</h1>
+              <p className="text-sm text-gray-800">Período: {periodLabel} - Análisis por Q1, Q2, Q3, Q4</p>
             </div>
           </div>
         </div>
@@ -364,85 +364,137 @@ export default function TrimestralAnalysisView({ data, periodLabel }: Trimestral
 
       {/* Controles de Selección */}
       <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">🎯 Configuración del Análisis</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Configuración del Análisis</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Selector Trimestre 1 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Trimestre Base
-            </label>
+            
             <select
               value={selectedQuarter1}
               onChange={(e) => setSelectedQuarter1(e.target.value as QuarterKey)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900 font-medium transition-all duration-200 hover:border-gray-400"
             >
               {Object.entries(QUARTERS).map(([key, quarter]) => (
-                <option key={key} value={key}>{quarter.label}</option>
+                <option key={key} value={key} className="py-2">
+                  {quarter.label}
+                </option>
               ))}
             </select>
+            <p className="text-xs text-gray-700 mt-1">Trimestre de referencia</p>
           </div>
 
           {/* Selector Trimestre 2 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Trimestre Comparación
-            </label>
+            
             <select
               value={selectedQuarter2}
               onChange={(e) => setSelectedQuarter2(e.target.value as QuarterKey)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900 font-medium transition-all duration-200 hover:border-gray-400"
             >
               {Object.entries(QUARTERS).map(([key, quarter]) => (
-                <option key={key} value={key}>{quarter.label}</option>
+                <option key={key} value={key} className="py-2">
+                  {quarter.label}
+                </option>
               ))}
             </select>
+            <p className="text-xs text-gray-700 mt-1">Trimestre a comparar</p>
           </div>
 
           {/* Tipo de Análisis */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de Visualización
-            </label>
+            
             <select
               value={analysisType}
               onChange={(e) => setAnalysisType(e.target.value as 'comparison' | 'evolution')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900 font-medium transition-all duration-200 hover:border-gray-400"
             >
-              <option value="comparison">Comparación Trimestral</option>
-              <option value="evolution">Evolución Mensual</option>
+              <option value="comparison" className="py-2">Comparación Trimestral</option>
+              <option value="evolution" className="py-2">Evolución Mensual</option>
             </select>
+            <p className="text-xs text-gray-700 mt-1">Modo de visualización</p>
           </div>
 
           {/* Info Card */}
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-3">
-            <div className="text-xs text-purple-800">
-              <p className="font-semibold">📈 Análisis Activo</p>
-              <p className="text-purple-600">{QUARTERS[selectedQuarter1].label} vs {QUARTERS[selectedQuarter2].label}</p>
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-lg p-4">
+            <div className="text-center">
+              <div className="text-lg mb-1">
+                {analysisType === 'comparison' }
+              </div>
+              <p className="font-bold text-purple-900 text-sm mb-1">
+                {analysisType === 'comparison' ? 'Comparando' : 'Evolución'}
+              </p>
+              <p className="text-xs text-purple-800 font-medium">
+                {QUARTERS[selectedQuarter1].shortLabel} vs {QUARTERS[selectedQuarter2].shortLabel}
+              </p>
+              <div className="mt-2 pt-2 border-t border-purple-200">
+                <p className="text-xs text-purple-700">
+                  {selectedItems.length} ítems seleccionados
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Selector de Ítems */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Ítems a Analizar ({selectedItems.length} seleccionados)
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-32 overflow-y-auto">
-            {availableItems.map(item => (
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-medium text-gray-900">
+              🏷️ Ítems a Analizar
+            </label>
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full">
+                {selectedItems.length} seleccionados
+              </span>
+              {selectedItems.length > 0 && (
+                <button
+                  onClick={() => setSelectedItems([])}
+                  className="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full hover:bg-red-200 transition-colors"
+                >
+                  Limpiar todo
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedItems(availableItems.slice(0, 5))}
+                className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full hover:bg-blue-200 transition-colors"
+              >
+                Seleccionar top 5
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+            {availableItems.map((item, index) => (
               <button
                 key={item}
                 onClick={() => toggleItem(item)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all border-2 text-left ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all border-2 text-left relative group ${
                   selectedItems.includes(item)
-                    ? 'border-purple-500 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    ? 'border-purple-500 bg-purple-50 text-purple-900 shadow-md'
+                    : 'border-gray-200 bg-white text-gray-900 hover:border-purple-300 hover:bg-purple-25 hover:shadow-sm'
                 }`}
+                title={item}
               >
-                <span className="truncate">{item}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 font-bold">
+                    #{index + 1}
+                  </span>
+                  <span className="truncate flex-1">{item}</span>
+                  {selectedItems.includes(item) && (
+                    <span className="text-purple-600 text-xs">✓</span>
+                  )}
+                </div>
               </button>
             ))}
           </div>
+          
+          {selectedItems.length === 0 && (
+            <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+              <p className="text-sm text-gray-700">
+                💡 Selecciona uno o más ítems para comenzar el análisis trimestral
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -462,7 +514,7 @@ export default function TrimestralAnalysisView({ data, periodLabel }: Trimestral
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 <h3 className="mt-4 text-lg font-semibold text-gray-900">Selecciona ítems para analizar</h3>
-                <p className="mt-2 text-sm text-gray-500">Elige los elementos que deseas comparar entre trimestres</p>
+                <p className="mt-2 text-sm text-gray-700">Elige los elementos que deseas comparar entre trimestres</p>
               </div>
             </div>
           )}
@@ -476,24 +528,22 @@ export default function TrimestralAnalysisView({ data, periodLabel }: Trimestral
             <div key={metric.item} className="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500">
               <h4 className="font-semibold text-gray-900 mb-4">{metric.item}</h4>
               
-              <div className="space-y-3">
+                <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{QUARTERS[selectedQuarter1].label}</span>
+                  <span className="text-sm text-gray-800 font-medium">{QUARTERS[selectedQuarter1].label}</span>
                   <span className="font-medium text-blue-600">
                     ${metric.q1.total.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </span>
                 </div>
                 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{QUARTERS[selectedQuarter2].label}</span>
+                  <span className="text-sm text-gray-800 font-medium">{QUARTERS[selectedQuarter2].label}</span>
                   <span className="font-medium text-green-600">
                     ${metric.q2.total.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </span>
-                </div>
-                
-                <div className="border-t pt-3 mt-3">
+                </div>                <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">Variación</span>
+                    <span className="text-sm font-medium text-gray-900">Variación</span>
                     <span className={`font-bold ${
                       metric.variation >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
@@ -502,7 +552,7 @@ export default function TrimestralAnalysisView({ data, periodLabel }: Trimestral
                   </div>
                   
                   <div className="flex justify-between items-center mt-2">
-                    <span className="text-sm font-medium text-gray-700">Mejor Trimestre</span>
+                    <span className="text-sm font-medium text-gray-900">Mejor Trimestre</span>
                     <span className={`px-2 py-1 rounded text-xs font-bold ${
                       metric.winner === selectedQuarter1 
                         ? 'bg-blue-100 text-blue-800' 
@@ -527,7 +577,7 @@ export default function TrimestralAnalysisView({ data, periodLabel }: Trimestral
           <label className="text-sm font-semibold text-gray-900">
             Notas del Análisis Trimestral
           </label>
-          <span className="text-xs text-gray-500 ml-auto">
+          <span className="text-xs text-gray-700 ml-auto">
             {notes.length} / 5,000 caracteres
           </span>
         </div>
@@ -539,7 +589,7 @@ export default function TrimestralAnalysisView({ data, periodLabel }: Trimestral
             }
           }}
           placeholder="Agrega tus observaciones sobre el análisis trimestral, patrones estacionales, tendencias identificadas..."
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none transition-all duration-200 text-gray-900 placeholder-gray-400"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none transition-all duration-200 text-gray-900 placeholder-gray-600"
           rows={4}
         />
       </div>

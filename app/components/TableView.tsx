@@ -15,11 +15,128 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Función auxiliar para generar contenido HTML de cada página (sin estructura completa)
+  const generatePageContent = (
+    data: ExcelRow[],
+    visibleMonths: string[],
+    pageTitle: string,
+    includeAnual: boolean = false,
+    year?: number
+  ): string => {
+    console.log('🔍 Generando página:', pageTitle);
+    console.log('📊 Datos recibidos:', data?.length || 0, 'filas');
+    console.log('📅 Meses visibles:', visibleMonths);
+    // Crear tabla HTML manualmente
+    const formatValue = (value: unknown, isPercentage: boolean = false): string => {
+      if (value === null || value === undefined || value === '') return '-';
+      if (typeof value === 'number') {
+        if (isPercentage) {
+          return new Intl.NumberFormat('es-CL', {
+            style: 'percent',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }).format(value / 100);
+        }
+        return new Intl.NumberFormat('es-CL').format(value);
+      }
+      return String(value);
+    };
+
+    // Crear headers de dos niveles como en la tabla original
+    // Primera fila de headers (nombres de meses) - Color principal
+    const headerRow1Cells = ['<th rowspan="2" style="background-color: #1e40af !important; color: #ffffff !important; border: 1px solid #ffffff !important; border-right: 2px solid #ffffff !important; text-align: center; font-weight: 600; font-size: 9px; padding: 8px 4px; vertical-align: middle;">Item</th>'];
+    
+    visibleMonths.forEach((month, index) => {
+      const borderStyle = index < visibleMonths.length - 1 || includeAnual ? 'border-right: 2px solid #ffffff !important;' : '';
+      headerRow1Cells.push(`<th colspan="2" style="background-color: #1e40af !important; color: #ffffff !important; border: 1px solid #ffffff !important; ${borderStyle} text-align: center; font-weight: 600; font-size: 9px; padding: 8px 4px;">${month}</th>`);
+    });
+    
+    if (includeAnual) {
+      headerRow1Cells.push(`<th colspan="3" style="background-color: #1e40af !important; color: #ffffff !important; border: 1px solid #ffffff !important; text-align: center; font-weight: 600; font-size: 9px; padding: 8px 4px;">ANUAL</th>`);
+    }
+    
+    const headerRow1 = headerRow1Cells.join('');
+    
+    // Segunda fila de headers (Monto y %) - Color más claro
+    const headerRow2Cells = [];
+    visibleMonths.forEach((month, monthIndex) => {
+      const isLastMonth = monthIndex === visibleMonths.length - 1 && !includeAnual;
+      headerRow2Cells.push(`<th style="background-color: #3b82f6 !important; color: #ffffff !important; border: 1px solid #ffffff !important; text-align: center; font-weight: 600; font-size: 9px; padding: 8px 4px;">Monto</th>`);
+      headerRow2Cells.push(`<th style="background-color: #3b82f6 !important; color: #ffffff !important; border: 1px solid #ffffff !important; ${isLastMonth ? '' : 'border-right: 2px solid #ffffff !important;'} text-align: center; font-weight: 600; font-size: 9px; padding: 8px 4px;">%</th>`);
+    });
+    
+    if (includeAnual) {
+      headerRow2Cells.push(`<th style="background-color: #3b82f6 !important; color: #ffffff !important; border: 1px solid #ffffff !important; text-align: center; font-weight: 600; font-size: 9px; padding: 8px 4px;">Monto</th>`);
+      headerRow2Cells.push(`<th style="background-color: #3b82f6 !important; color: #ffffff !important; border: 1px solid #ffffff !important; text-align: center; font-weight: 600; font-size: 9px; padding: 8px 4px;">%</th>`);
+      headerRow2Cells.push(`<th style="background-color: #3b82f6 !important; color: #ffffff !important; border: 1px solid #ffffff !important; text-align: center; font-weight: 600; font-size: 9px; padding: 8px 4px;">Promedio</th>`);
+    }
+    
+    const headerRow2 = headerRow2Cells.join('');
+
+    // Crear filas de datos
+    const tableRows = data.map((row, index) => {
+      const isEven = index % 2 === 1;
+      const cells = [`<td class="item-column" style="background-color: ${isEven ? '#f1f5f9' : '#f8fafc'} !important; border: 1px solid #d1d5db !important; font-weight: 500;">${formatValue(row.Item)}</td>`];
+      
+      // Agregar celdas de meses (Monto y %)
+      visibleMonths.forEach(month => {
+        const monthMonto = `${month} Monto`;
+        const monthPercent = `${month} %`;
+        const montoValue = (row as Record<string, unknown>)[monthMonto];
+        const percentValue = (row as Record<string, unknown>)[monthPercent];
+        
+        cells.push(`<td class="number-cell" style="background-color: ${isEven ? '#f1f5f9' : '#ffffff'} !important; border: 1px solid #d1d5db !important;">${formatValue(montoValue)}</td>`);
+        cells.push(`<td class="number-cell" style="background-color: ${isEven ? '#f1f5f9' : '#ffffff'} !important; border: 1px solid #d1d5db !important;">${formatValue(percentValue, true)}</td>`);
+      });
+      
+      // Agregar columna Anual si se requiere (Monto, % y Promedio)
+      if (includeAnual) {
+        const anualMonto = (row as Record<string, unknown>)['ANUAL Monto'];
+        const anualPercent = (row as Record<string, unknown>)['ANUAL %'];
+        const anualPromedio = (row as Record<string, unknown>)['ANUAL Promedio'];
+        
+        cells.push(`<td class="number-cell" style="background-color: ${isEven ? '#f1f5f9' : '#ffffff'} !important; border: 1px solid #d1d5db !important;">${formatValue(anualMonto)}</td>`);
+        cells.push(`<td class="number-cell" style="background-color: ${isEven ? '#f1f5f9' : '#ffffff'} !important; border: 1px solid #d1d5db !important;">${formatValue(anualPercent, true)}</td>`);
+        cells.push(`<td class="number-cell" style="background-color: ${isEven ? '#f1f5f9' : '#ffffff'} !important; border: 1px solid #d1d5db !important;">${formatValue(anualPromedio)}</td>`);
+      }
+      
+      return `<tr>${cells.join('')}</tr>`;
+    }).join('');
+
+
+
+
+
+    return `
+      <div style="margin-bottom: 30px;">
+        <div style="text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb;">
+          <h1 style="font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 15px;">
+            Reporte Consolidado - ${year || new Date().getFullYear()}
+          </h1>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+          <thead>
+            <tr>${headerRow1}</tr>
+            <tr>${headerRow2}</tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+        
+        
+      </div>
+    `;
+  };
+
+
+
   const generatePDF = async () => {
     if (!contentRef.current || isGeneratingPdf) return;
 
     setIsGeneratingPdf(true);
-    console.log('🎯 Iniciando generación de PDF de tablas...');
+    console.log('🎯 Iniciando generación de PDF multi-página (Consolidado)...');
 
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'fixed bottom-20 right-6 bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999] flex items-center gap-3';
@@ -28,365 +145,116 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span>Generando PDF profesional...</span>
+      <span>Generando PDF</span>
     `;
     document.body.appendChild(loadingDiv);
 
     try {
-      console.log('📄 Método 1: Intentando con Browserless.io (producción)...');
+      console.log('📄 Generando PDF multi-página con Browserless.io...');
       
-      // CRÍTICO: Preparar tabla para captura
-      // 1. Forzar scroll a la izquierda para capturar columna sticky
-      const scrollContainers = contentRef.current.querySelectorAll('.overflow-x-auto');
-      const originalScrollPositions: number[] = [];
-      scrollContainers.forEach((container, index) => {
-        originalScrollPositions[index] = container.scrollLeft;
-        container.scrollLeft = 0; // Forzar scroll al inicio
-      });
-
-      // 2. Remover temporalmente sticky de la columna Ítem para PDF
-      const stickyElements = contentRef.current.querySelectorAll('.sticky');
-      stickyElements.forEach(el => {
-        (el as HTMLElement).style.position = 'relative';
-      });
-
-      // 3. Esperar un momento para que se renderice
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const clonedContent = contentRef.current.cloneNode(true) as HTMLElement;
-
-      // 4. Restaurar sticky para la vista web
-      stickyElements.forEach(el => {
-        (el as HTMLElement).style.position = 'sticky';
-      });
-      scrollContainers.forEach((container, index) => {
-        container.scrollLeft = originalScrollPositions[index];
-      });
-
-      const fullHtml = `
-        <!DOCTYPE html>
-        <html lang="es">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Tablas Financieras - ${periodLabel}</title>
-            <style>
-              @page {
-                size: A4 landscape;
-                margin: 0;
-              }
-              
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              
-              html {
-                width: 297mm;
-                height: 210mm;
-              }
-              
-              body {
-                font-family: system-ui, -apple-system, sans-serif;
-                background: white;
-                padding: 12px;
-                width: 297mm;
-                max-width: 297mm;
-                min-height: 210mm;
-              }
-              
-              /* Contenedor principal */
-              .flex-1 {
-                width: 100% !important;
-                max-width: 100% !important;
-              }
-              
-              /* Tablas responsive */
-              table {
-                width: 100% !important;
-                max-width: 100% !important;
-                font-size: 7px !important;
-                border-collapse: collapse !important;
-                table-layout: fixed !important;
-              }
-              
-              th, td {
-                padding: 3px 2px !important;
-                border: 1px solid #d1d5db !important;
-                text-align: center !important;
-                white-space: nowrap !important;
-                overflow: hidden !important;
-                font-size: 7px !important;
-                text-overflow: ellipsis !important;
-              }
-              
-              th {
-                background-color: #4f46e5 !important;
-                color: white !important;
-                font-weight: 600 !important;
-                font-size: 7px !important;
-              }
-              
-              /* Primera columna pegada a la izquierda - SIEMPRE VISIBLE */
-              th:first-child,
-              td:first-child {
-                text-align: left !important;
-                background: white !important;
-                position: relative !important;
-                min-width: 120px !important;
-                max-width: 140px !important;
-                width: 130px !important;
-                font-size: 7.5px !important;
-                padding: 3px 5px !important;
-                word-wrap: break-word !important;
-                white-space: normal !important;
-                line-height: 1.2 !important;
-                font-weight: 600 !important;
-                border-right: 2px solid #4f46e5 !important;
-              }
-              
-              /* Header de primera columna */
-              th:first-child {
-                background-color: #4f46e5 !important;
-                color: white !important;
-              }
-              
-              /* Columnas de datos - distribuir uniformemente */
-              th:not(:first-child),
-              td:not(:first-child) {
-                width: auto !important;
-                min-width: 35px !important;
-                max-width: 50px !important;
-              }
-              
-              /* Totales en negrita */
-              tr:has(strong) td {
-                font-weight: 700 !important;
-                background-color: #f3f4f6 !important;
-              }
-              
-              /* Filas con background amarillo */
-              .bg-yellow-100 {
-                background-color: #fef3c7 !important;
-              }
-              
-              /* Columnas ANUAL con fondo morado */
-              .bg-purple-50 {
-                background-color: #faf5ff !important;
-              }
-              
-              .bg-indigo-700 {
-                background-color: #4338ca !important;
-              }
-              
-              .bg-indigo-600 {
-                background-color: #4f46e5 !important;
-              }
-              
-              .bg-indigo-500 {
-                background-color: #6366f1 !important;
-              }
-              
-              /* Ocultar controles y navegación */
-              .fixed, button, nav {
-                display: none !important;
-              }
-              
-              /* Controlar tamaño de SVGs e íconos */
-              svg {
-                max-width: 20px !important;
-                max-height: 20px !important;
-                width: 20px !important;
-                height: 20px !important;
-              }
-              
-              /* Contenedor de ícono */
-              .bg-purple-100 {
-                padding: 4px !important;
-                width: 28px !important;
-                height: 28px !important;
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-              }
-              
-              /* Eliminar sticky en PDF - ya está capturado en la posición correcta */
-              .sticky {
-                position: relative !important;
-                left: auto !important;
-              }
-              
-              /* Encabezados compactos */
-              h1 {
-                font-size: 11px !important;
-                margin: 3px 0 !important;
-                padding: 0 !important;
-              }
-              
-              h2, h3 {
-                font-size: 10px !important;
-                margin: 3px 0 !important;
-                padding: 0 !important;
-              }
-              
-              p {
-                font-size: 7px !important;
-                margin: 2px 0 !important;
-              }
-              
-              /* Span pequeño */
-              span {
-                font-size: 7px !important;
-              }
-              
-              /* Border del contenedor */
-              .border-b {
-                border-bottom: 2px solid #e5e7eb !important;
-                margin-bottom: 8px !important;
-                padding-bottom: 6px !important;
-              }
-              
-              /* Espacio entre tabs */
-              .mb-6 {
-                margin-bottom: 8px !important;
-              }
-              
-              /* Reducir padding de contenedores */
-              .px-4 {
-                padding-left: 6px !important;
-                padding-right: 6px !important;
-              }
-              
-              .py-2, .py-3 {
-                padding-top: 2px !important;
-                padding-bottom: 2px !important;
-              }
-              
-              .rounded-lg {
-                border-radius: 4px !important;
-              }
-            </style>
-          </head>
-          <body>
-            ${clonedContent.outerHTML}
-          </body>
-        </html>
-      `;
-
-      const response = await fetch('/api/generate-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          html: fullHtml,
-          title: `tablas-financieras-${periodLabel.replace(/\s+/g, '-')}`,
-        }),
-      });
-
-      if (response.ok && response.headers.get('Content-Type')?.includes('application/pdf')) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `tablas-financieras-${periodLabel.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
-        link.click();
-        window.URL.revokeObjectURL(url);
-
-        document.body.removeChild(loadingDiv);
-
-        const successDiv = document.createElement('div');
-        successDiv.className = 'fixed bottom-20 right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999]';
-        successDiv.innerHTML = '✓ PDF generado con Browserless.io (calidad profesional)';
-        document.body.appendChild(successDiv);
-        setTimeout(() => {
-          if (document.body.contains(successDiv)) {
-            document.body.removeChild(successDiv);
-          }
-        }, 3000);
-
-        console.log('✅ PDF generado con Browserless.io exitosamente');
-        setIsGeneratingPdf(false);
-        return;
+      // Obtener datos de consolidado
+      const consolidadosSection = sections.find(s => s.name === 'Consolidados');
+      if (!consolidadosSection?.data) {
+        throw new Error('No hay datos de consolidado para PDF');
       }
 
-      console.warn('⚠️ Browserless no disponible, usando fallback dom-to-image...');
-      throw new Error('Browserless not available, using fallback');
 
-    } catch {
-      console.log('🔄 Usando método de fallback (dom-to-image)...');
+
+
+
+      // Generar contenido HTML para cada página (sin estructura completa)
+      const page1Content = generatePageContent(
+        consolidadosSection.data,
+        ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
+        'Página 1 de 2 - Enero a Junio',
+        false, // no incluir Anual
+        new Date().getFullYear()
+      );
+
+      const page2Content = generatePageContent(
+        consolidadosSection.data,
+        ['Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+        'Página 2 de 2 - Julio a Diciembre + Anual',
+        true, // incluir columna Anual
+        new Date().getFullYear()
+      );
+
+      // Generar PDF multi-página usando la nueva API route
+      console.log('📄 Generando PDF multi-página...');
+      const response = await fetch('/api/generate-pdf-multipage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pages: [page1Content, page2Content]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Error generando PDF: ${response.status} - ${errorData.error}`);
+      }
+
+      // Obtener el PDF como ArrayBuffer
+      const pdfBuffer = await response.arrayBuffer();
+
+      // Descargar el PDF combinado
+      const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
       
-      try {
-        // FALLBACK: Usar dom-to-image-more
-        // @ts-expect-error - dom-to-image-more no tiene tipos oficiales
-        const domtoimage = (await import('dom-to-image-more')).default;
-        const jsPDF = (await import('jspdf')).default;
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Consolidado_${periodLabel}_MultiPagina.pdf`;
+      link.click();
+      
+      window.URL.revokeObjectURL(url);
 
-        const dataUrl = await domtoimage.toPng(contentRef.current, {
-          quality: 1.0,
+      console.log('✅ PDFs multi-página generados exitosamente');
+
+    } catch (error) {
+      console.error('❌ Error generando PDF con Browserless.io:', error);
+      
+      // Método de respaldo con jsPDF
+      console.log('🔄 Intentando método de respaldo con jsPDF...');
+      try {
+        const jsPDF = (await import('jspdf')).default;
+        const html2canvas = (await import('html2canvas')).default;
+
+        const canvas = await html2canvas(contentRef.current, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
           width: contentRef.current.scrollWidth,
-          height: contentRef.current.scrollHeight,
-          style: {
-            transform: 'scale(1)',
-            transformOrigin: 'top left',
-          },
+          height: contentRef.current.scrollHeight
         });
 
+        const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({
           orientation: 'landscape',
           unit: 'mm',
-          format: 'a4',
+          format: 'a4'
         });
 
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = contentRef.current.scrollWidth;
-        const imgHeight = contentRef.current.scrollHeight;
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
         
-        // Calcular escala para ajustar al ancho de la página
-        const scale = pdfWidth / (imgWidth * 0.264583); // Convertir px a mm
-        const scaledWidth = pdfWidth;
-        const scaledHeight = (imgHeight * 0.264583) * scale;
+        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+        const scaledWidth = imgWidth * ratio;
+        const scaledHeight = imgHeight * ratio;
 
-        pdf.addImage(
-          dataUrl,
-          'PNG',
-          0,
-          0,
-          scaledWidth,
-          scaledHeight > pdfHeight ? pdfHeight : scaledHeight
-        );
-        pdf.save(`tablas-financieras-${periodLabel.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
+        pdf.addImage(imgData, 'PNG', 0, 0, scaledWidth, scaledHeight);
+        pdf.save(`Consolidado_${periodLabel}_Respaldo.pdf`);
 
-        document.body.removeChild(loadingDiv);
+        console.log('✅ PDF de respaldo generado exitosamente');
 
-        const successDiv = document.createElement('div');
-        successDiv.className = 'fixed bottom-20 right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999]';
-        successDiv.innerHTML = '✓ PDF generado (método alternativo)';
-        document.body.appendChild(successDiv);
-        setTimeout(() => {
-          if (document.body.contains(successDiv)) {
-            document.body.removeChild(successDiv);
-          }
-        }, 3000);
-
-        console.log('✅ PDF generado con dom-to-image exitosamente');
       } catch (fallbackError) {
-        console.error('❌ Error en fallback:', fallbackError);
-        document.body.removeChild(loadingDiv);
-
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'fixed bottom-20 right-6 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999]';
-        errorDiv.innerHTML = '✗ Error al generar PDF';
-        document.body.appendChild(errorDiv);
-        setTimeout(() => {
-          if (document.body.contains(errorDiv)) {
-            document.body.removeChild(errorDiv);
-          }
-        }, 3000);
+        console.error('❌ Error con método de respaldo:', fallbackError);
+        alert('Error generando PDF. Por favor, inténtalo de nuevo.');
       }
     } finally {
+      document.body.removeChild(loadingDiv);
       setIsGeneratingPdf(false);
     }
   };
@@ -440,10 +308,29 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
         </div>
       </div>
 
-      <DataTable 
-        data={consolidadosSection?.data || []} 
-        sectionName="Consolidado"
-      />
+      {/* Tabla */}
+      {consolidadosSection?.data ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <DataTable 
+            data={consolidadosSection.data}
+            sectionName="Consolidados"
+          />
+        </div>
+      ) : (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <h3 className="text-sm font-medium text-yellow-800">Sin datos de consolidado</h3>
+              <p className="text-sm text-yellow-700">
+                No se encontraron datos para la sección de Consolidados en este período.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
