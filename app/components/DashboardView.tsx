@@ -36,40 +36,6 @@ export default function DashboardView({
             BISM
           </h1>
           <p className="text-xl text-gray-600 mb-2">Dashboard</p>
-          
-          <div className="mt-8 space-y-4">
-            {!selectedUserName ? (
-              <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6 max-w-md mx-auto">
-                <div className="flex items-center gap-3 mb-3">
-                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <h3 className="text-lg font-bold text-amber-900">Selecciona un Usuario</h3>
-                </div>
-                <p className="text-sm text-amber-700">
-                  Por favor selecciona un usuario en la parte superior para comenzar.
-                </p>
-              </div>
-            ) : (
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 max-w-md mx-auto">
-                <div className="flex items-center gap-3 mb-3">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <h3 className="text-lg font-bold text-blue-900">No hay datos</h3>
-                </div>
-                <p className="text-sm text-blue-700 mb-4">
-                  Usuario: <span className="font-bold">{selectedUserName}</span>
-                </p>
-                <button
-                  onClick={() => onNavigate('upload')}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg"
-                >
-                  Cargar Datos
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     );

@@ -283,10 +283,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         };
       }).filter(d => d !== null);
 
-      // Calcular el valor máximo para establecer la escala del eje Y
-      const allValues = chartDatasets.flatMap(dataset => dataset.data).filter(val => val > 0);
-      const maxValue = allValues.length > 0 ? Math.max(...allValues) : 100;
-      const yAxisMax = Math.ceil(maxValue * 1.15); // 15% más alto que el máximo
+      // Usar la misma configuración de escala que la vista web (sin max fijo)
 
       // Crear HTML con Chart.js incluido para que Browserless lo renderice
       const fullHtml = `
@@ -297,7 +294,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Gráficos de Consolidado - ${periodLabel}</title>
             <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
             <style>
               @page {
                 size: A4 landscape;
@@ -355,11 +351,13 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 border-radius: 12px;
                 padding: 20px;
                 margin-bottom: 30px;
-                height: 520px;
+                height: 480px;
+                box-sizing: content-box;
               }
               
               #myChart {
-                max-height: 460px !important;
+                width: 100% !important;
+                height: 480px !important;
               }
               
               .chart-info {
@@ -453,24 +451,57 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             <script>
               // Esperar a que Chart.js se cargue
               window.addEventListener('load', function() {
-                // Registrar el plugin datalabels
-                Chart.register(ChartDataLabels);
                 
-                const ctx = document.getElementById('myChart').getContext('2d');
+                const canvas = document.getElementById('myChart');
+                const container = document.querySelector('.chart-container');
+                const ctx = canvas.getContext('2d');
                 
-                // Debug: verificar los datos
+                // Debug: verificar dimensiones antes de crear el Chart
+                console.log('=== CANVAS DIMENSIONS DEBUG ===');
+                console.log('Container dimensions:', {
+                  width: container.clientWidth,
+                  height: container.clientHeight,
+                  offsetWidth: container.offsetWidth,
+                  offsetHeight: container.offsetHeight
+                });
+                console.log('Canvas before Chart creation:', {
+                  width: canvas.width,
+                  height: canvas.height,
+                  styleWidth: canvas.style.width,
+                  styleHeight: canvas.style.height,
+                  clientWidth: canvas.clientWidth,
+                  clientHeight: canvas.clientHeight
+                });
+                console.log('Device pixel ratio:', window.devicePixelRatio || 1);
+                
+                // Asegurar que el canvas tenga las dimensiones correctas
+                const ratio = window.devicePixelRatio || 1;
+                const displayWidth = container.clientWidth - 40; // Restar padding del container
+                const displayHeight = 480; // Altura fija como en la vista web
+                
+                canvas.width = displayWidth * ratio;
+                canvas.height = displayHeight * ratio;
+                canvas.style.width = displayWidth + 'px';
+                canvas.style.height = displayHeight + 'px';
+                
+                console.log('Canvas after size adjustment:', {
+                  width: canvas.width,
+                  height: canvas.height,
+                  styleWidth: canvas.style.width,
+                  styleHeight: canvas.style.height
+                });
+                
+                // Preparar datos del gráfico
                 const chartData = {
                   labels: ${JSON.stringify(selectedMonths)},
                   datasets: ${JSON.stringify(chartDatasets)}
                 };
-                console.log('Chart Data:', chartData);
                 
                 // Verificar que los valores son números válidos
                 chartData.datasets.forEach((dataset, idx) => {
-                  console.log(\`Dataset \${idx} (\${dataset.label}):\`, dataset.data);
                   const maxVal = Math.max(...dataset.data.filter(v => v > 0));
                   const minVal = Math.min(...dataset.data.filter(v => v > 0));
-                  console.log(\`Range: \${minVal} - \${maxVal}\`);
+                  console.log(\`Dataset \${idx} (\${dataset.label}) - Range: \${minVal} - \${maxVal}\`);
                 });
                 new Chart(ctx, {
                   type: 'bar',
@@ -478,16 +509,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                   options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    aspectRatio: 2.5,
-                    layout: {
-                      padding: {
-                        top: 40
-                      }
-                    },
-                    interaction: {
-                      intersect: false,
-                      mode: 'index'
-                    },
+                    devicePixelRatio: ratio,
                     plugins: {
                       legend: {
                         position: 'top',
@@ -515,54 +537,26 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                           bottom: 20
                         },
                         color: '#111827'
-                      },
-                      datalabels: {
-                        display: true,
-                        anchor: 'end',
-                        align: 'top',
-                        color: '#1f2937',
-                        font: {
-                          weight: 'bold',
-                          size: 9,
-                          family: 'system-ui, -apple-system, sans-serif'
-                        },
-                        formatter: function(value, context) {
-                          if (!value || value === 0) return '';
-                          ${dataType === 'monto' ? `
-                            return new Intl.NumberFormat('es-CL', {
-                              style: 'currency',
-                              currency: 'CLP',
-                              notation: 'compact',
-                              compactDisplay: 'short'
-                            }).format(value);
-                          ` : `
-                            return value.toFixed(1) + '%';
-                          `}
-                        }
                       }
                     },
                     scales: {
                       y: {
-                        type: 'linear',
                         beginAtZero: true,
-                        min: 0,
-                        max: ${yAxisMax},
                         ticks: {
-                          maxTicksLimit: 6,
                           callback: function(value) {
+                            const numValue = typeof value === 'string' ? parseFloat(value) : value;
                             ${dataType === 'monto' ? `
                               return new Intl.NumberFormat('es-CL', {
                                 notation: 'compact',
                                 compactDisplay: 'short'
-                              }).format(value);
+                              }).format(numValue);
                             ` : `
-                              return value + '%';
+                              return numValue + '%';
                             `}
                           },
                           font: {
                             size: 11,
-                            weight: 500,
-                            family: 'system-ui, -apple-system, sans-serif'
+                            weight: 500
                           },
                           color: '#374151'
                         },
@@ -574,8 +568,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                         ticks: {
                           font: {
                             size: 11,
-                            weight: 500,
-                            family: 'system-ui, -apple-system, sans-serif'
+                            weight: 500
                           },
                           color: '#374151'
                         },
