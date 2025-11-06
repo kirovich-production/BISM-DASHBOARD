@@ -104,6 +104,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             .replace(/[$%\s]/g, '')     // eliminar símbolos y espacios
             .replace(/,/g, '');         // quitar comas (separador de miles)
           const num = parseFloat(cleaned);
+          console.log('Parsed number:', num);
           return isNaN(num) ? 0 : num;
         }
         return 0;
@@ -243,441 +244,105 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
     );
   };
 
-  // Función para generar PDF
+  // Función para generar PDF - NUEVO APPROACH: Captura directa del canvas web
   const generatePDF = async () => {
     if (selectedItems.length === 0) {
       alert('Selecciona al menos un ítem para generar el PDF.');
       return;
     }
 
+    if (!contentRef.current) {
+      alert('Error: No se encontró el contenedor del gráfico.');
+      return;
+    }
+
     setIsGeneratingPdf(true);
-    console.log('🎯 Iniciando generación de PDF Consolidado...');
+    console.log('🎯 Iniciando generación de PDF Consolidado (captura directa)...');
 
     try {
-      // Preparar datos del gráfico para renderizar con Chart.js en Browserless
-      const selectedMonths = MONTHS.slice(monthRange.start, monthRange.end + 1);
-      const suffix = dataType === 'monto' ? ' Monto' : ' %';
+      // Esperar un momento para que el gráfico se renderice completamente
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Usar html2canvas + jsPDF directamente (método que funciona)
+      const { default: jsPDF } = await import('jspdf');
+      const { default: html2canvas } = await import('html2canvas');
       
-      const chartDatasets = selectedItems.map((itemName, index) => {
-        const itemData = data.find(row => row.Item === itemName);
-        if (!itemData) return null;
-
-        const values = selectedMonths.map(month => {
-          const key = `${month}${suffix}`;
-          const value = itemData[key];
-          
-          if (typeof value === 'number') return value;
-          if (typeof value === 'string') {
-            const cleaned = value
-              .replace(/[$%\s]/g, '')     // eliminar símbolos y espacios
-              .replace(/,/g, '');         // quitar comas (separador de miles)
-            const num = parseFloat(cleaned);
-            return isNaN(num) ? 0 : num;
-          }
-          return 0;
-        });
-
-        const color = getItemColor(itemName, index);
-        return {
-          label: itemName,
-          data: values,
-          backgroundColor: color,
-          borderColor: color,
-          borderWidth: 1,
-        };
-      }).filter(d => d !== null);
-
-      // Debug: verificar los datos antes de enviar al PDF
-      console.log('🔍 DEBUG ANTES DE PDF:');
-      console.log('chartDatasets:', chartDatasets);
-      chartDatasets.forEach((dataset, idx) => {
-        console.log(`Dataset ${idx} (${dataset.label}):`, dataset.data);
-        const maxVal = Math.max(...dataset.data.filter(v => v > 0));
-        const minVal = Math.min(...dataset.data.filter(v => v > 0));
-        console.log(`  Range: ${minVal.toLocaleString()} - ${maxVal.toLocaleString()}`);
+      // Capturar toda la vista del consolidado
+      const canvas = await html2canvas(contentRef.current, {
+        scale: 2, // Alta resolución
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        width: contentRef.current.scrollWidth,
+        height: contentRef.current.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+      });
+      
+      console.log('📊 Canvas capturado:', {
+        width: canvas.width,
+        height: canvas.height,
+        size: `${(canvas.width * canvas.height * 4 / 1024 / 1024).toFixed(1)}MB`
       });
 
-      // Calcular el máximo para establecer escala fija
-      const allValues = chartDatasets.flatMap(dataset => dataset.data).filter(val => val > 0);
-      const maxValue = allValues.length > 0 ? Math.max(...allValues) : 100;
-      const yAxisMax = Math.ceil(maxValue * 1.1); // 10% más alto que el máximo
-      console.log(`📊 Eje Y configurado: 0 - ${yAxisMax.toLocaleString()}`);
-
-      // Crear HTML con Chart.js incluido para que Browserless lo renderice
-      const fullHtml = `
-        <!DOCTYPE html>
-        <html lang="es">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Gráficos de Consolidado - ${periodLabel}</title>
-            <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-            <style>
-              @page {
-                size: A4 landscape;
-                margin: 0;
-              }
-              
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              
-              html {
-                width: 297mm;
-                height: 210mm;
-              }
-              
-              body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-                font-size: 10px;
-                color: #1f2937;
-                background: white;
-                padding: 15px;
-                width: 297mm;
-                max-width: 297mm;
-                min-height: 210mm;
-              }
-              
-              .header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 20px 25px;
-                border-radius: 10px;
-                margin-bottom: 20px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-              }
-              
-              .header h1 {
-                font-size: 24px;
-                margin-bottom: 6px;
-                font-weight: 700;
-                color: white !important;
-              }
-              
-              .header p {
-                font-size: 13px;
-                opacity: 0.95;
-                font-weight: 500;
-                color: white !important;
-              }
-              
-              .chart-container {
-                background: white;
-                border: 2px solid #e5e7eb;
-                border-radius: 12px;
-                padding: 20px;
-                margin-bottom: 30px;
-                height: 480px;
-                box-sizing: content-box;
-              }
-              
-              #myChart {
-                width: 100% !important;
-                height: 480px !important;
-              }
-              
-              .chart-info {
-                background: #f0f9ff;
-                border-left: 4px solid #3b82f6;
-                padding: 12px 15px;
-                margin-top: 25px;
-                margin-bottom: 15px;
-                border-radius: 6px;
-              }
-              
-              .chart-info p {
-                font-size: 10px;
-                color: #1e40af !important;
-                margin-bottom: 4px;
-                font-weight: 600 !important;
-              }
-              
-              .chart-info strong {
-                color: #1e3a8a !important;
-              }
-              
-              .notes-section {
-                background: #fefce8;
-                border: 2px solid #fde047;
-                border-radius: 12px;
-                padding: 18px;
-                margin-top: 35px;
-                page-break-before: always;
-              }
-              
-              .notes-section h3 {
-                font-size: 14px;
-                color: #854d0e !important;
-                margin-bottom: 10px;
-                font-weight: 700;
-              }
-              
-              .notes-content {
-                font-size: 10px;
-                color: #000000 !important;
-                line-height: 1.6;
-                white-space: pre-wrap;
-                background: white;
-                padding: 12px;
-                border-radius: 6px;
-                border: 1px solid #fde047;
-              }
-              
-              .metadata {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-top: 15px;
-                padding-top: 12px;
-                border-top: 2px solid #e5e7eb;
-                font-size: 9px;
-                color: #6b7280 !important;
-              }
-              
-              .metadata span {
-                font-weight: 500;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>📊 Gráficos de Consolidado</h1>
-              <p>Período: ${periodLabel} | Tipo de dato: ${dataType === 'monto' ? 'Monto (CLP)' : 'Porcentaje (%)'}</p>
-            </div>
-            
-            <div class="chart-container">
-              <canvas id="myChart"></canvas>
-            </div>
-            
-            ${notes ? `
-              <div class="notes-section">
-                <h3>📝 Notas y Observaciones</h3>
-                <div class="notes-content">${notes.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-              </div>
-            ` : ''}
-            
-            <div class="metadata">
-              <span>🕒 Generado: ${new Date().toLocaleString('es-CL', { 
-                dateStyle: 'full', 
-                timeStyle: 'short' 
-              })}</span>
-              <span>📄 BISM Dashboard - Gráficos de Consolidado</span>
-            </div>
-            
-            <script>
-              // Esperar a que Chart.js se cargue
-              window.addEventListener('load', function() {
-                
-                const canvas = document.getElementById('myChart');
-                const container = document.querySelector('.chart-container');
-                const ctx = canvas.getContext('2d');
-                
-                // Debug: verificar dimensiones antes de crear el Chart
-                console.log('=== CANVAS DIMENSIONS DEBUG ===');
-                console.log('Container dimensions:', {
-                  width: container.clientWidth,
-                  height: container.clientHeight,
-                  offsetWidth: container.offsetWidth,
-                  offsetHeight: container.offsetHeight
-                });
-                console.log('Canvas before Chart creation:', {
-                  width: canvas.width,
-                  height: canvas.height,
-                  styleWidth: canvas.style.width,
-                  styleHeight: canvas.style.height,
-                  clientWidth: canvas.clientWidth,
-                  clientHeight: canvas.clientHeight
-                });
-                console.log('Device pixel ratio:', window.devicePixelRatio || 1);
-                
-                // Asegurar que el canvas tenga las dimensiones correctas
-                const ratio = window.devicePixelRatio || 1;
-                const displayWidth = container.clientWidth - 40; // Restar padding del container
-                const displayHeight = 480; // Altura fija como en la vista web
-                
-                canvas.width = displayWidth * ratio;
-                canvas.height = displayHeight * ratio;
-                canvas.style.width = displayWidth + 'px';
-                canvas.style.height = displayHeight + 'px';
-                
-                console.log('Canvas after size adjustment:', {
-                  width: canvas.width,
-                  height: canvas.height,
-                  styleWidth: canvas.style.width,
-                  styleHeight: canvas.style.height
-                });
-                
-                // Preparar datos del gráfico
-                const chartData = {
-                  labels: ${JSON.stringify(selectedMonths)},
-                  datasets: ${JSON.stringify(chartDatasets)}
-                };
-                
-                // Verificar que los valores son números válidos
-                console.log('=== DATOS DEBUG ===');
-                console.log('Raw chartData:', chartData);
-                chartData.datasets.forEach((dataset, idx) => {
-                  console.log(\`Dataset \${idx} (\${dataset.label}):\`);
-                  console.log('  Raw data array:', dataset.data);
-                  const validValues = dataset.data.filter(v => v > 0);
-                  const maxVal = Math.max(...validValues);
-                  const minVal = Math.min(...validValues);
-                  console.log(\`  Valid values: \`, validValues);
-                  console.log(\`  Range: \${minVal} - \${maxVal}\`);
-                  console.log(\`  Total sum: \${dataset.data.reduce((a, b) => a + b, 0)}\`);
-                });
-                new Chart(ctx, {
-                  type: 'bar',
-                  data: chartData,
-                  options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    devicePixelRatio: ratio,
-                    plugins: {
-                      legend: {
-                        position: 'top',
-                        labels: {
-                          usePointStyle: true,
-                          padding: 15,
-                          font: {
-                            size: 12,
-                            weight: 500,
-                            family: 'system-ui, -apple-system, sans-serif'
-                          },
-                          color: '#1f2937'
-                        }
-                      },
-                      title: {
-                        display: true,
-                        text: 'Comparación Mensual - ${periodLabel}',
-                        font: {
-                          size: 18,
-                          weight: 'bold',
-                          family: 'system-ui, -apple-system, sans-serif'
-                        },
-                        padding: {
-                          top: 10,
-                          bottom: 20
-                        },
-                        color: '#111827'
-                      }
-                    },
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        max: ${yAxisMax},
-                        ticks: {
-                          callback: function(value) {
-                            const numValue = typeof value === 'string' ? parseFloat(value) : value;
-                            ${dataType === 'monto' ? `
-                              return new Intl.NumberFormat('es-CL', {
-                                notation: 'compact',
-                                compactDisplay: 'short'
-                              }).format(numValue);
-                            ` : `
-                              return numValue + '%';
-                            `}
-                          },
-                          font: {
-                            size: 11,
-                            weight: 500
-                          },
-                          color: '#374151'
-                        },
-                        grid: {
-                          color: 'rgba(0, 0, 0, 0.1)'
-                        }
-                      },
-                      x: {
-                        ticks: {
-                          font: {
-                            size: 11,
-                            weight: 500
-                          },
-                          color: '#374151'
-                        },
-                        grid: {
-                          display: false
-                        }
-                      }
-                    }
-                  }
-                });
-              });
-            </script>
-          </body>
-        </html>
-      `;
-
-      // Usar el endpoint /api/generate-pdf (igual que Sevilla/Labranza)
-      console.log('📄 Generando PDF con Browserless API via servidor...');
+      const imgData = canvas.toDataURL('image/png', 0.95);
       
-      const response = await fetch('/api/generate-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          html: fullHtml,
-          title: `graficos-consolidado-${periodLabel}`,
-        }),
+      // Crear PDF en formato landscape A4
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
       });
-
-      if (!response.ok) {
-        // Si el servidor falla (503), usar fallback del cliente
-        const errorData = await response.json().catch(() => ({}));
-        
-        if (response.status === 503 || errorData.useClientFallback) {
-          console.log('⚠️ Servidor no disponible, usando fallback del cliente...');
-          
-          // Fallback: html2canvas + jsPDF
-          const { default: jsPDF } = await import('jspdf');
-          const { default: html2canvas } = await import('html2canvas');
-          
-          if (!contentRef.current) {
-            throw new Error('No se encontró el contenedor del gráfico');
-          }
-          
-          const canvas = await html2canvas(contentRef.current, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: '#ffffff',
-          });
-          
-          const imgData = canvas.toDataURL('image/png');
-          const pdf = new jsPDF({
-            orientation: 'landscape',
-            unit: 'mm',
-            format: 'a4',
-          });
-          
-          const imgWidth = 297;
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-          pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-          pdf.save(`graficos-consolidado-${periodLabel}-${Date.now()}.pdf`);
-          
-          setIsGeneratingPdf(false);
-          console.log('✅ PDF generado con método alternativo');
-          return;
-        }
-        
-        throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const pdfWidth = 297; // A4 landscape width
+      const pdfHeight = 210; // A4 landscape height
+      
+      // Calcular dimensiones manteniendo proporción
+      const imgAspectRatio = canvas.height / canvas.width;
+      let imgWidth = pdfWidth - 20; // Margen de 10mm a cada lado
+      let imgHeight = imgWidth * imgAspectRatio;
+      
+      // Si es muy alto, ajustar por altura
+      if (imgHeight > pdfHeight - 20) {
+        imgHeight = pdfHeight - 20; // Margen de 10mm arriba y abajo
+        imgWidth = imgHeight / imgAspectRatio;
       }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `graficos-consolidado-${periodLabel}-${Date.now()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      console.log('✅ PDF generado exitosamente');
+      
+      // Centrar la imagen
+      const xPos = (pdfWidth - imgWidth) / 2;
+      const yPos = (pdfHeight - imgHeight) / 2;
+      
+      pdf.addImage(imgData, 'PNG', xPos, yPos, imgWidth, imgHeight);
+      
+      // Si hay notas, añadir segunda página
+      if (notes && notes.trim()) {
+        pdf.addPage();
+        
+        // Título de la segunda página
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('📝 Notas y Observaciones', 20, 30);
+        
+        // Contenido de las notas
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        const lines = pdf.splitTextToSize(notes, pdfWidth - 40);
+        pdf.text(lines, 20, 50);
+        
+        // Metadatos en el pie
+        pdf.setFontSize(8);
+        pdf.setTextColor(128, 128, 128);
+        const now = new Date().toLocaleString('es-CL', { 
+          dateStyle: 'full', 
+          timeStyle: 'short' 
+        });
+        pdf.text(`Generado: ${now}`, 20, pdfHeight - 10);
+        pdf.text('BISM Dashboard - Gráficos de Consolidado', pdfWidth - 80, pdfHeight - 10);
+      }
+      
+      pdf.save(`graficos-consolidado-${periodLabel}-${Date.now()}.pdf`);
+      console.log('✅ PDF generado exitosamente con captura directa');
+      
     } catch (error) {
       console.error('❌ Error generando PDF:', error);
       alert('Error al generar el PDF. Por favor intenta de nuevo.');
