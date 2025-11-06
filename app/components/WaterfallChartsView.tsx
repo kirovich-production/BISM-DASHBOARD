@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,7 +12,7 @@ import {
   Legend,
   ChartOptions,
 } from 'chart.js';
-import { Chart } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 import jsPDF from 'jspdf';
 
 ChartJS.register(
@@ -61,6 +61,22 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
   const chartRef = useRef<ChartJS<'line'>>(null);
   const [notes, setNotes] = useState('');
   const [showPercentages, setShowPercentages] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Cargando gráfico...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Función para parsear valores monetarios (mejorada)
   const parseValue = (value: string | number | undefined): number => {
@@ -509,9 +525,8 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
 
       {/* Chart Container */}
       <div className="relative h-[600px] mb-6">
-        <Chart
+        <Line
           ref={chartRef}
-          type='line'
           data={chartData}
           options={options}
         />

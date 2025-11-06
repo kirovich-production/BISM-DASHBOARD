@@ -9,8 +9,8 @@ import SevillaTable from './components/tables/SevillaTable';
 import LabranzaTable from './components/tables/LabranzaTable';
 import ConsolidadoChartsView from './components/ConsolidadoChartsView';
 import MesAnualChartsView from './components/MesAnualChartsView';
-import WaterfallChartsView from './components/WaterfallChartsView';
-import EbidtaComboView from './components/EbidtaComboView';
+import DynamicComparativoEbitda from './components/dynamic/DynamicComparativoEbitda';
+import DynamicEbidtaCombo from './components/dynamic/DynamicEbidtaCombo';
 import { UploadResponse, UploadedDocument, Period } from '@/types';
 
 export default function Home() {
@@ -668,7 +668,7 @@ export default function Home() {
                   periodLabel={excelData.periodLabel}
                 />
               ) : activeView === 'waterfall-charts' ? (
-                <WaterfallChartsView
+                <DynamicComparativoEbitda
                   consolidadoData={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
                   sevillaData={excelData.sevilla && Array.isArray(excelData.sevilla) ? null : (excelData.sevilla || null)}
                   labranzaData={excelData.labranza && Array.isArray(excelData.labranza) ? null : (excelData.labranza || null)}
@@ -676,7 +676,7 @@ export default function Home() {
                   selectedPeriod={excelData.periodLabel}
                 />
               ) : activeView === 'ebitda-combo' ? (
-                <EbidtaComboView
+                <DynamicEbidtaCombo
                   data={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
                   selectedUserName={selectedUserName}
                   selectedPeriod={excelData.periodLabel}

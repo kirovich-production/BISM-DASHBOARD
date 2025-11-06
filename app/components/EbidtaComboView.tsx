@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,7 +11,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  ChartOptions,
+  ChartOptions
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import jsPDF from 'jspdf';
@@ -48,6 +48,22 @@ interface EbidtaComboViewProps {
 export default function EbidtaComboView({ data, selectedUserName, selectedPeriod }: EbidtaComboViewProps) {
   const chartRef = useRef<ChartJS>(null);
   const [notes, setNotes] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Cargando gráfico combo...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Función para parsear valores monetarios mejorada
   const parseValue = (value: string | number | undefined): number => {
