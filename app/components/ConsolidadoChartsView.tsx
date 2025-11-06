@@ -449,18 +449,22 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         tempDiv.style.left = '-9999px';
         tempDiv.style.top = '0';
         tempDiv.style.width = '1200px'; // Ancho fijo para renderizado consistente
-        tempDiv.innerHTML = htmlContent;
+        tempDiv.style.padding = '20px';
+        tempDiv.style.backgroundColor = '#ffffff';
+        tempDiv.innerHTML = htmlContent.replace(/<\/?html>/g, '').replace(/<\/?head>/g, '').replace(/<\/?body>/g, '').replace(/<style>[\s\S]*?<\/style>/g, '');
         document.body.appendChild(tempDiv);
         
         // Esperar un momento para que se renderice
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Capturar como imagen
-        const canvasImg = await html2canvas(tempDiv.querySelector('body')!, {
+        const canvasImg = await html2canvas(tempDiv, {
           scale: 2, // Alta calidad
           useCORS: true,
           logging: false,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          windowWidth: 1200,
+          windowHeight: tempDiv.scrollHeight
         });
         
         // Remover div temporal
