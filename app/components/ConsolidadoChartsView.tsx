@@ -244,108 +244,329 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
     );
   };
 
-  // Función para generar PDF - NUEVO APPROACH: Captura directa del canvas web
+  // Función para generar PDF - ENFOQUE HÍBRIDO: Browserless con imagen del gráfico incrustada
   const generatePDF = async () => {
     if (selectedItems.length === 0) {
       alert('Selecciona al menos un ítem para generar el PDF.');
       return;
     }
 
-    if (!contentRef.current) {
-      alert('Error: No se encontró el contenedor del gráfico.');
-      return;
-    }
-
     setIsGeneratingPdf(true);
-    console.log('🎯 Iniciando generación de PDF Consolidado (captura directa)...');
+    console.log('🎯 Iniciando generación de PDF Consolidado (enfoque híbrido)...');
 
     try {
-      // Esperar un momento para que el gráfico se renderice completamente
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Usar html2canvas + jsPDF directamente (método que funciona)
-      const { default: jsPDF } = await import('jspdf');
+      // PASO 1: Capturar solo el gráfico como imagen
       const { default: html2canvas } = await import('html2canvas');
+      const chartContainer = contentRef.current?.querySelector('.bg-white.rounded-xl.shadow-md.p-6.mb-6 > div');
       
-      // Capturar toda la vista del consolidado
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 2, // Alta resolución
+      if (!chartContainer) {
+        throw new Error('No se encontró el contenedor del gráfico');
+      }
+
+      // Capturar el gráfico con alta resolución
+      const chartCanvas = await html2canvas(chartContainer as HTMLElement, {
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        width: contentRef.current.scrollWidth,
-        height: contentRef.current.scrollHeight,
-        scrollX: 0,
-        scrollY: 0,
+        width: (chartContainer as HTMLElement).scrollWidth,
+        height: (chartContainer as HTMLElement).scrollHeight,
       });
       
-      console.log('📊 Canvas capturado:', {
-        width: canvas.width,
-        height: canvas.height,
-        size: `${(canvas.width * canvas.height * 4 / 1024 / 1024).toFixed(1)}MB`
+      const chartImageData = chartCanvas.toDataURL('image/png', 0.95);
+      console.log('📊 Gráfico capturado como imagen');
+
+      // PASO 2: Generar HTML completo con la imagen del gráfico incrustada
+      const currentDate = new Date().toLocaleString('es-CL', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
       });
 
-      const imgData = canvas.toDataURL('image/png', 0.95);
-      
-      // Crear PDF en formato landscape A4
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4',
+      const html = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Gráficos de Consolidado - ${periodLabel}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              background: #ffffff;
+              color: #1f2937;
+              line-height: 1.5;
+              padding: 30px;
+            }
+            .header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 40px;
+              padding-bottom: 20px;
+              border-bottom: 3px solid #6366f1;
+            }
+            .header-left {
+              display: flex;
+              align-items: center;
+              gap: 15px;
+            }
+            .icon-container {
+              background: linear-gradient(135deg, #6366f1, #8b5cf6);
+              padding: 12px;
+              border-radius: 12px;
+              box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            }
+            .icon {
+              width: 24px;
+              height: 24px;
+              color: white;
+            }
+            .title {
+              font-size: 32px;
+              font-weight: 800;
+              color: #111827;
+              margin-bottom: 4px;
+            }
+            .subtitle {
+              font-size: 16px;
+              color: #6b7280;
+              font-weight: 500;
+            }
+            .date-info {
+              text-align: right;
+              color: #6b7280;
+              font-size: 14px;
+            }
+            .chart-container {
+              background: white;
+              border-radius: 16px;
+              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+              padding: 30px;
+              margin-bottom: 40px;
+              border: 1px solid #e5e7eb;
+            }
+            .chart-image {
+              width: 100%;
+              height: auto;
+              border-radius: 8px;
+              display: block;
+            }
+            .selected-items {
+              margin-bottom: 25px;
+              padding: 20px;
+              background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+              border-radius: 12px;
+              border-left: 4px solid #6366f1;
+            }
+            .selected-items h3 {
+              font-size: 18px;
+              font-weight: 700;
+              color: #374151;
+              margin-bottom: 12px;
+            }
+            .items-list {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 8px;
+            }
+            .item-tag {
+              background: white;
+              color: #374151;
+              padding: 6px 12px;
+              border-radius: 20px;
+              font-size: 13px;
+              font-weight: 600;
+              border: 2px solid #6366f1;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .notes-section {
+              background: white;
+              border-radius: 16px;
+              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+              padding: 30px;
+              border: 1px solid #e5e7eb;
+              ${notes && notes.trim() ? '' : 'display: none;'}
+            }
+            .notes-header {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              margin-bottom: 20px;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #f3f4f6;
+            }
+            .notes-icon {
+              width: 20px;
+              height: 20px;
+              color: #6366f1;
+            }
+            .notes-title {
+              font-size: 20px;
+              font-weight: 700;
+              color: #111827;
+            }
+            .notes-content {
+              background: #f9fafb;
+              padding: 20px;
+              border-radius: 12px;
+              border: 1px solid #e5e7eb;
+              font-size: 14px;
+              line-height: 1.7;
+              color: #374151;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 12px;
+              color: #9ca3af;
+            }
+            @media print {
+              body { padding: 20px; }
+              .chart-container { break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <!-- Header -->
+          <div class="header">
+            <div class="header-left">
+              <div class="icon-container">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                </svg>
+              </div>
+              <div>
+                <h1 class="title">Gráficos de Consolidado</h1>
+                <p class="subtitle">Período: ${periodLabel}</p>
+              </div>
+            </div>
+            <div class="date-info">
+              <p><strong>Generado:</strong> ${currentDate}</p>
+              <p>BISM Dashboard</p>
+            </div>
+          </div>
+
+          <!-- Selected Items Info -->
+          <div class="selected-items">
+            <h3>📊 Ítems Visualizados (${selectedItems.length})</h3>
+            <div class="items-list">
+              ${selectedItems.map(item => `<span class="item-tag">${item}</span>`).join('')}
+            </div>
+          </div>
+
+          <!-- Chart Container -->
+          <div class="chart-container">
+            <img src="${chartImageData}" alt="Gráfico de Consolidado" class="chart-image" />
+          </div>
+
+          <!-- Notes Section -->
+          ${notes && notes.trim() ? `
+          <div class="notes-section">
+            <div class="notes-header">
+              <svg class="notes-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <h2 class="notes-title">Notas y Observaciones</h2>
+            </div>
+            <div class="notes-content">${notes.replace(/\n/g, '\n')}</div>
+          </div>
+          ` : ''}
+
+          <!-- Footer -->
+          <div class="footer">
+            <span>Documento generado automáticamente por BISM Dashboard</span>
+            <span>Datos correspondientes al período ${periodLabel}</span>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // PASO 3: Enviar a Browserless para generar PDF
+      console.log('🚀 Enviando HTML a Browserless...');
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          html,
+          title: `graficos-consolidado-${periodLabel}`,
+        }),
       });
-      
-      const pdfWidth = 297; // A4 landscape width
-      const pdfHeight = 210; // A4 landscape height
-      
-      // Calcular dimensiones manteniendo proporción
-      const imgAspectRatio = canvas.height / canvas.width;
-      let imgWidth = pdfWidth - 20; // Margen de 10mm a cada lado
-      let imgHeight = imgWidth * imgAspectRatio;
-      
-      // Si es muy alto, ajustar por altura
-      if (imgHeight > pdfHeight - 20) {
-        imgHeight = pdfHeight - 20; // Margen de 10mm arriba y abajo
-        imgWidth = imgHeight / imgAspectRatio;
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.useClientFallback) {
+          console.log('⚠️ Browserless falló, usando fallback local...');
+          throw new Error('Browserless no disponible, usando método local');
+        }
+        throw new Error(`Error del servidor: ${response.statusText}`);
       }
-      
-      // Centrar la imagen
-      const xPos = (pdfWidth - imgWidth) / 2;
-      const yPos = (pdfHeight - imgHeight) / 2;
-      
-      pdf.addImage(imgData, 'PNG', xPos, yPos, imgWidth, imgHeight);
-      
-      // Si hay notas, añadir segunda página
-      if (notes && notes.trim()) {
-        pdf.addPage();
-        
-        // Título de la segunda página
-        pdf.setFontSize(16);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('📝 Notas y Observaciones', 20, 30);
-        
-        // Contenido de las notas
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'normal');
-        const lines = pdf.splitTextToSize(notes, pdfWidth - 40);
-        pdf.text(lines, 20, 50);
-        
-        // Metadatos en el pie
-        pdf.setFontSize(8);
-        pdf.setTextColor(128, 128, 128);
-        const now = new Date().toLocaleString('es-CL', { 
-          dateStyle: 'full', 
-          timeStyle: 'short' 
-        });
-        pdf.text(`Generado: ${now}`, 20, pdfHeight - 10);
-        pdf.text('BISM Dashboard - Gráficos de Consolidado', pdfWidth - 80, pdfHeight - 10);
-      }
-      
-      pdf.save(`graficos-consolidado-${periodLabel}-${Date.now()}.pdf`);
-      console.log('✅ PDF generado exitosamente con captura directa');
+
+      // Descargar el PDF generado
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `graficos-consolidado-${periodLabel}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      console.log('✅ PDF generado exitosamente con Browserless');
       
     } catch (error) {
       console.error('❌ Error generando PDF:', error);
-      alert('Error al generar el PDF. Por favor intenta de nuevo.');
+      
+      // FALLBACK: Si falla Browserless, usar método local
+      console.log('🔄 Intentando método de respaldo local...');
+      try {
+        const { default: jsPDF } = await import('jspdf');
+        
+        // Crear PDF básico como respaldo
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4',
+        });
+        
+        // Agregar título
+        pdf.setFontSize(20);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Gráficos de Consolidado', 20, 30);
+        
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Período: ${periodLabel}`, 20, 45);
+        
+        // Agregar información de error
+        pdf.setFontSize(12);
+        pdf.text('Error al generar PDF completo. Intenta de nuevo o contacta soporte.', 20, 65);
+        
+        if (notes && notes.trim()) {
+          pdf.text('Notas:', 20, 85);
+          const lines = pdf.splitTextToSize(notes, 250);
+          pdf.text(lines, 20, 95);
+        }
+        
+        pdf.save(`graficos-consolidado-${periodLabel}-${Date.now()}-backup.pdf`);
+        console.log('✅ PDF de respaldo generado');
+      } catch (fallbackError) {
+        console.error('❌ Error en método de respaldo:', fallbackError);
+        alert('Error al generar el PDF. Por favor intenta de nuevo.');
+      }
     } finally {
       setIsGeneratingPdf(false);
     }
