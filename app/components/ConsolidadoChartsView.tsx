@@ -283,6 +283,11 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         };
       }).filter(d => d !== null);
 
+      // Calcular el valor máximo para establecer la escala del eje Y
+      const allValues = chartDatasets.flatMap(dataset => dataset.data).filter(val => val > 0);
+      const maxValue = allValues.length > 0 ? Math.max(...allValues) : 100;
+      const yAxisMax = Math.ceil(maxValue * 1.15); // 15% más alto que el máximo
+
       // Crear HTML con Chart.js incluido para que Browserless lo renderice
       const fullHtml = `
         <!DOCTYPE html>
@@ -538,21 +543,12 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                     },
                     scales: {
                       y: {
+                        type: 'linear',
                         beginAtZero: true,
-                        grace: '10%',
-                        afterDataLimits: function(axis) {
-                          // Asegurar que hay suficiente espacio vertical
-                          const range = axis.max - axis.min;
-                          if (range > 0 && range < axis.max * 0.1) {
-                            // Si el rango es muy pequeño comparado con los valores, ajustar
-                            axis.max = axis.max * 1.2;
-                            if (axis.min > 0) {
-                              axis.min = Math.max(0, axis.min * 0.8);
-                            }
-                          }
-                        },
+                        min: 0,
+                        max: ${yAxisMax},
                         ticks: {
-                          maxTicksLimit: 8,
+                          maxTicksLimit: 6,
                           callback: function(value) {
                             ${dataType === 'monto' ? `
                               return new Intl.NumberFormat('es-CL', {
