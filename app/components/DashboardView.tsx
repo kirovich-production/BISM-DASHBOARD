@@ -163,6 +163,29 @@ export default function DashboardView({
     };
   };
 
+  // Card de Análisis Trimestral (si hay datos consolidados)
+  const getTrimestralAnalysisCard = () => {
+    const hasConsolidado = availableSections.some(s => 
+      ['consolidado', 'consolidados'].includes(s.toLowerCase())
+    );
+    
+    if (!hasConsolidado) return null;
+
+    return {
+      id: 'analisis-trimestral',
+      title: 'Análisis Trimestral',
+      description: 'Comparación por trimestres Q1, Q2, Q3, Q4',
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      ),
+      color: 'from-purple-500 to-violet-600',
+      bgColor: 'bg-purple-50',
+      iconColor: 'text-purple-600',
+    };
+  };
+
   // Card de carga de datos (siempre disponible)
   const uploadCard = {
     id: 'upload',
@@ -178,12 +201,13 @@ export default function DashboardView({
     iconColor: 'text-orange-600',
   };
 
-  // Construir array final de cards: secciones + consolidado + mes-anual + comparativo-ebitda + combo (si existen) + upload
+  // Construir array final de cards: secciones + consolidado + mes-anual + comparativo-ebitda + combo + trimestral (si existen) + upload
   const sectionCards = generateSectionCards();
   const consolidadoCard = getConsolidadoCard();
   const mesAnualCard = getMesAnualCard();
   const waterfallCard = getWaterfallCard();
   const ebidtaComboCard = getEbidtaComboCard();
+  const trimestralCard = getTrimestralAnalysisCard();
   
   const cards = [];
   cards.push(...sectionCards);
@@ -191,6 +215,7 @@ export default function DashboardView({
   if (mesAnualCard) cards.push(mesAnualCard);
   if (waterfallCard) cards.push(waterfallCard);
   if (ebidtaComboCard) cards.push(ebidtaComboCard);
+  if (trimestralCard) cards.push(trimestralCard);
   cards.push(uploadCard);
 
   // Navegación dinámica basada en el id de la card

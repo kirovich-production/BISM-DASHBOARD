@@ -7,7 +7,7 @@ import DashboardSidebar from './components/DashboardSidebar';
 import TableView from './components/TableView';
 import SevillaTable from './components/tables/SevillaTable';
 import LabranzaTable from './components/tables/LabranzaTable';
-import ConsolidadoChartsView from './components/ConsolidadoChartsView';
+import TrimestralAnalysisView from './components/TrimestralAnalysisView';
 import MesAnualChartsView from './components/MesAnualChartsView';
 import DynamicComparativoEbitda from './components/dynamic/DynamicComparativoEbitda';
 import DynamicEbidtaCombo from './components/dynamic/DynamicEbidtaCombo';
@@ -631,7 +631,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' || activeView === 'graficos-consolidado' || activeView === 'mes-anual' || activeView === 'waterfall-charts' || activeView === 'ebitda-combo' ? (
+        ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' || activeView === 'analisis-trimestral' || activeView === 'mes-anual' || activeView === 'waterfall-charts' || activeView === 'ebitda-combo' ? (
           /* Sevilla, Labranza, Consolidado, Charts and Mes-Anual Views */
           excelData && selectedPeriod ? (
             <div className="bg-white h-full overflow-hidden flex flex-col">
@@ -657,8 +657,8 @@ export default function Home() {
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}
                 />
-              ) : activeView === 'graficos-consolidado' ? (
-                <ConsolidadoChartsView
+              ) : activeView === 'analisis-trimestral' ? (
+                <TrimestralAnalysisView
                   data={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
                   periodLabel={excelData.periodLabel}
                 />
