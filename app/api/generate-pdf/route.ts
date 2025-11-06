@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🚀 Generando PDF con Browserless.io...');
+    console.log('🚀 Generando PDF con Browserless.io (Alta Calidad)...');
 
-    // Llamar a Browserless.io API (nueva URL)
+    // Llamar a Browserless.io API con configuración de alta calidad
     const browserlessUrl = `https://production-sfo.browserless.io/pdf?token=${BROWSERLESS_TOKEN}`;
     
     const response = await fetch(browserlessUrl, {
@@ -35,18 +35,42 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         html,
         options: {
+          // Configuraciones básicas mejoradas
           printBackground: true,
           format: 'A4',
           landscape: true,
+          
+          // Márgenes optimizados
           margin: {
-            top: '0.3in',
-            bottom: '0.3in',
-            left: '0.25in',
-            right: '0.25in',
+            top: '0.2in',
+            bottom: '0.2in', 
+            left: '0.2in',
+            right: '0.2in',
           },
-          preferCSSPageSize: false,
+          
+          // Configuraciones de alta calidad (solo las permitidas por Browserless)
+          preferCSSPageSize: true,
           displayHeaderFooter: false,
-          scale: 0.9,
+          scale: 1.0,  // Sin escalado para mejor calidad
+          
+          // Resolución y renderizado mejoradas
+          width: 1920,   // Ancho de viewport alto para mejor resolución
+          height: 1080,  // Alto de viewport alto para mejor resolución
+          
+          // Configuraciones de renderizado básicas
+          omitBackground: false,
+          timeout: 30000,  // 30 segundos timeout
+          
+          // Configuraciones de PDF específicas
+          tagged: false,  // No usar PDF con tags para mejor rendimiento
+        },
+        
+        // Configurar viewport con alta resolución (si está permitido)
+        viewport: {
+          width: 1920,
+          height: 1080,
+          isMobile: false,
+          hasTouch: false,
         },
       }),
     });

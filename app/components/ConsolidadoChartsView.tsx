@@ -263,17 +263,36 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         throw new Error('No se encontró el contenedor del gráfico');
       }
 
-      // Capturar el gráfico con alta resolución
+      // Capturar el gráfico con máxima resolución y calidad
       const chartCanvas = await html2canvas(chartContainer as HTMLElement, {
-        scale: 2,
+        scale: 4,  // Escala 4x para máxima resolución (compatible con Browserless 2x)
         useCORS: true,
+        allowTaint: false,
         logging: false,
         backgroundColor: '#ffffff',
         width: (chartContainer as HTMLElement).scrollWidth,
         height: (chartContainer as HTMLElement).scrollHeight,
+        windowWidth: 1920,  // Ancho de ventana alto
+        windowHeight: 1080, // Alto de ventana alto
+        scrollX: 0,
+        scrollY: 0,
+        foreignObjectRendering: false,  // Renderizado más preciso
+        imageTimeout: 15000,  // Timeout para imágenes
+        removeContainer: true,
+        onclone: function(clonedDoc: Document) {
+          // Optimizar el documento clonado para mejor renderizado
+          const clonedBody = clonedDoc.body;
+          if (clonedBody) {
+            // Usar setProperty para propiedades CSS no estándar en TypeScript
+            clonedBody.style.setProperty('-webkit-font-smoothing', 'antialiased');
+            clonedBody.style.setProperty('-moz-osx-font-smoothing', 'grayscale');
+            clonedBody.style.textRendering = 'optimizeQuality';
+          }
+        },
       });
       
-      const chartImageData = chartCanvas.toDataURL('image/png', 0.95);
+      // Generar imagen PNG sin compresión para máxima calidad
+      const chartImageData = chartCanvas.toDataURL('image/png', 1.0);
       console.log('📊 Gráfico capturado como imagen');
 
       // PASO 2: Generar HTML completo con la imagen del gráfico incrustada
@@ -300,6 +319,16 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
               color: #1f2937;
               line-height: 1.5;
               padding: 30px;
+              /* Mejoras para renderizado de alta calidad */
+              -webkit-font-smoothing: antialiased;
+              -moz-osx-font-smoothing: grayscale;
+              text-rendering: optimizeQuality;
+              font-feature-settings: "liga" 1, "calt" 1;
+              image-rendering: -webkit-optimize-contrast;
+              image-rendering: crisp-edges;
+              /* Forzar alta resolución */
+              transform: scale(1);
+              transform-origin: top left;
             }
             .header {
               display: flex;
@@ -354,6 +383,18 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
               height: auto;
               border-radius: 8px;
               display: block;
+              /* Configuraciones de alta calidad para imágenes */
+              image-rendering: -webkit-optimize-contrast;
+              image-rendering: -moz-crisp-edges;
+              image-rendering: crisp-edges;
+              image-rendering: pixelated;
+              /* Prevenir compresión adicional del navegador */
+              image-orientation: none;
+              object-fit: contain;
+              object-position: center;
+              /* Suavizado mejorado */
+              backface-visibility: hidden;
+              transform: translateZ(0);
             }
             .selected-items {
               margin-bottom: 25px;
@@ -453,14 +494,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             <div class="date-info">
               <p><strong>Generado:</strong> ${currentDate}</p>
               <p>BISM Dashboard</p>
-            </div>
-          </div>
-
-          <!-- Selected Items Info -->
-          <div class="selected-items">
-            <h3>📊 Ítems Visualizados (${selectedItems.length})</h3>
-            <div class="items-list">
-              ${selectedItems.map(item => `<span class="item-tag">${item}</span>`).join('')}
             </div>
           </div>
 
