@@ -292,6 +292,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Gráficos de Consolidado - ${periodLabel}</title>
             <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
             <style>
               @page {
                 size: A4 landscape;
@@ -348,19 +349,20 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 border: 2px solid #e5e7eb;
                 border-radius: 12px;
                 padding: 20px;
-                margin-bottom: 20px;
+                margin-bottom: 30px;
                 height: 520px;
               }
               
               #myChart {
-                max-height: 480px !important;
+                max-height: 460px !important;
               }
               
               .chart-info {
                 background: #f0f9ff;
                 border-left: 4px solid #3b82f6;
                 padding: 12px 15px;
-                margin-top: 15px;
+                margin-top: 25px;
+                margin-bottom: 15px;
                 border-radius: 6px;
               }
               
@@ -380,7 +382,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 border: 2px solid #fde047;
                 border-radius: 12px;
                 padding: 18px;
-                margin-top: 20px;
+                margin-top: 35px;
               }
               
               .notes-section h3 {
@@ -392,7 +394,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
               
               .notes-content {
                 font-size: 10px;
-                color: #713f12 !important;
+                color: #000000 !important;
                 line-height: 1.6;
                 white-space: pre-wrap;
                 background: white;
@@ -449,6 +451,9 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             <script>
               // Esperar a que Chart.js se cargue
               window.addEventListener('load', function() {
+                // Registrar el plugin datalabels
+                Chart.register(ChartDataLabels);
+                
                 const ctx = document.getElementById('myChart').getContext('2d');
                 new Chart(ctx, {
                   type: 'bar',
@@ -459,6 +464,11 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                   options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                      padding: {
+                        top: 40
+                      }
+                    },
                     plugins: {
                       legend: {
                         position: 'top',
@@ -486,11 +496,36 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                           bottom: 20
                         },
                         color: '#111827'
+                      },
+                      datalabels: {
+                        display: true,
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#1f2937',
+                        font: {
+                          weight: 'bold',
+                          size: 9,
+                          family: 'system-ui, -apple-system, sans-serif'
+                        },
+                        formatter: function(value, context) {
+                          if (!value || value === 0) return '';
+                          ${dataType === 'monto' ? `
+                            return new Intl.NumberFormat('es-CL', {
+                              style: 'currency',
+                              currency: 'CLP',
+                              notation: 'compact',
+                              compactDisplay: 'short'
+                            }).format(value);
+                          ` : `
+                            return value.toFixed(1) + '%';
+                          `}
+                        }
                       }
                     },
                     scales: {
                       y: {
                         beginAtZero: true,
+                        grace: '5%',
                         ticks: {
                           callback: function(value) {
                             ${dataType === 'monto' ? `
