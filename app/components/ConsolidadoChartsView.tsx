@@ -428,10 +428,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             
             <div class="chart-container">
               <canvas id="myChart"></canvas>
-              <div class="chart-info">
-                <p><strong>Rango de meses:</strong> ${MONTHS[monthRange.start]} - ${MONTHS[monthRange.end]}</p>
-                <p><strong>Ítems visualizados (${selectedItems.length}):</strong> ${selectedItems.join(', ')}</p>
-              </div>
             </div>
             
             ${notes ? `
