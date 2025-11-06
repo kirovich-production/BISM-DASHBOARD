@@ -94,6 +94,29 @@ export default function DashboardView({
     };
   };
 
+  // Card de comparación Mes-Anual (si hay datos consolidados)
+  const getMesAnualCard = () => {
+    const hasConsolidado = availableSections.some(s => 
+      ['consolidado', 'consolidados'].includes(s.toLowerCase())
+    );
+    
+    if (!hasConsolidado) return null;
+
+    return {
+      id: 'mes-anual',
+      title: 'Comparación Mes-Anual',
+      description: 'Análisis comparativo mensual vs anual',
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+        </svg>
+      ),
+      color: 'from-teal-500 to-teal-600',
+      bgColor: 'bg-teal-50',
+      iconColor: 'text-teal-600',
+    };
+  };
+
   // Card de carga de datos (siempre disponible)
   const uploadCard = {
     id: 'upload',
@@ -109,12 +132,16 @@ export default function DashboardView({
     iconColor: 'text-orange-600',
   };
 
-  // Construir array final de cards: secciones + consolidado (si existe) + upload
+  // Construir array final de cards: secciones + consolidado + mes-anual (si existen) + upload
   const sectionCards = generateSectionCards();
   const consolidadoCard = getConsolidadoCard();
-  const cards = consolidadoCard 
-    ? [...sectionCards, consolidadoCard, uploadCard]
-    : [...sectionCards, uploadCard];
+  const mesAnualCard = getMesAnualCard();
+  
+  const cards = [];
+  cards.push(...sectionCards);
+  if (consolidadoCard) cards.push(consolidadoCard);
+  if (mesAnualCard) cards.push(mesAnualCard);
+  cards.push(uploadCard);
 
   // Navegación dinámica basada en el id de la card
   const handleCardClick = (cardId: string) => {
