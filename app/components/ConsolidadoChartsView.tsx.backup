@@ -255,10 +255,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         return;
       }
 
-      // 2. Esperar a que Chart.js termine de renderizar completamente
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 3. Convertir canvas a imagen base64 de alta calidad
+      // 2. Convertir canvas a imagen base64 de alta calidad
       const chartImage = canvas.toDataURL('image/png', 1.0);
 
       // 3. Crear HTML optimizado para PDF con la imagen del gráfico
