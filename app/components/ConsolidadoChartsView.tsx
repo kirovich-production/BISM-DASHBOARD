@@ -136,7 +136,8 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
           font: {
             size: 12,
             weight: 500
-          }
+          },
+          color: '#1f2937' // Texto oscuro para mejor visibilidad en PDF
         }
       },
       title: {
@@ -149,7 +150,8 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         padding: {
           top: 10,
           bottom: 20
-        }
+        },
+        color: '#111827' // Texto muy oscuro para el título
       },
       tooltip: {
         callbacks: {
@@ -177,7 +179,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             return label;
           }
         },
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
         padding: 12,
         titleFont: {
           size: 14,
@@ -185,7 +187,9 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         },
         bodyFont: {
           size: 13
-        }
+        },
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff'
       }
     },
     scales: {
@@ -204,11 +208,13 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             }
           },
           font: {
-            size: 11
-          }
+            size: 11,
+            weight: 500
+          },
+          color: '#374151' // Texto oscuro para eje Y
         },
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)'
+          color: 'rgba(0, 0, 0, 0.1)' // Grid más visible
         }
       },
       x: {
@@ -216,7 +222,8 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
           font: {
             size: 11,
             weight: 500
-          }
+          },
+          color: '#374151' // Texto oscuro para eje X
         },
         grid: {
           display: false
