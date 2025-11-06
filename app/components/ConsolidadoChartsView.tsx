@@ -100,7 +100,9 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         
         if (typeof value === 'number') return value;
         if (typeof value === 'string') {
-          const cleaned = value.replace(/[$,%\s]/g, '');
+          const cleaned = value
+            .replace(/[$%\s]/g, '')     // eliminar símbolos y espacios
+            .replace(/,/g, '');         // quitar comas (separador de miles)
           const num = parseFloat(cleaned);
           return isNaN(num) ? 0 : num;
         }
@@ -266,7 +268,9 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
           
           if (typeof value === 'number') return value;
           if (typeof value === 'string') {
-            const cleaned = value.replace(/[$,%\s]/g, '');
+            const cleaned = value
+              .replace(/[$%\s]/g, '')     // eliminar símbolos y espacios
+              .replace(/,/g, '');         // quitar comas (separador de miles)
             const num = parseFloat(cleaned);
             return isNaN(num) ? 0 : num;
           }
@@ -283,7 +287,15 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         };
       }).filter(d => d !== null);
 
-      // Usar la misma configuración de escala que la vista web (sin max fijo)
+      // Debug: verificar los datos antes de enviar al PDF
+      console.log('🔍 DEBUG ANTES DE PDF:');
+      console.log('chartDatasets:', chartDatasets);
+      chartDatasets.forEach((dataset, idx) => {
+        console.log(`Dataset ${idx} (${dataset.label}):`, dataset.data);
+        const maxVal = Math.max(...dataset.data.filter(v => v > 0));
+        const minVal = Math.min(...dataset.data.filter(v => v > 0));
+        console.log(`  Range: ${minVal.toLocaleString()} - ${maxVal.toLocaleString()}`);
+      });
 
       // Crear HTML con Chart.js incluido para que Browserless lo renderice
       const fullHtml = `
@@ -498,10 +510,17 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 };
                 
                 // Verificar que los valores son números válidos
+                console.log('=== DATOS DEBUG ===');
+                console.log('Raw chartData:', chartData);
                 chartData.datasets.forEach((dataset, idx) => {
-                  const maxVal = Math.max(...dataset.data.filter(v => v > 0));
-                  const minVal = Math.min(...dataset.data.filter(v => v > 0));
-                  console.log(\`Dataset \${idx} (\${dataset.label}) - Range: \${minVal} - \${maxVal}\`);
+                  console.log(\`Dataset \${idx} (\${dataset.label}):\`);
+                  console.log('  Raw data array:', dataset.data);
+                  const validValues = dataset.data.filter(v => v > 0);
+                  const maxVal = Math.max(...validValues);
+                  const minVal = Math.min(...validValues);
+                  console.log(\`  Valid values: \`, validValues);
+                  console.log(\`  Range: \${minVal} - \${maxVal}\`);
+                  console.log(\`  Total sum: \${dataset.data.reduce((a, b) => a + b, 0)}\`);
                 });
                 new Chart(ctx, {
                   type: 'bar',
