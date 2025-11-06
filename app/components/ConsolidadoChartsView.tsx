@@ -243,40 +243,83 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
 
   // Función para generar PDF
   const generatePDF = async () => {
-    if (!contentRef.current) return;
+    if (selectedItems.length === 0) {
+      alert('Selecciona al menos un ítem para generar el PDF.');
+      return;
+    }
 
     setIsGeneratingPdf(true);
+    console.log('🎯 Iniciando generación de PDF Consolidado...');
+
     try {
-      // 1. Obtener el canvas del gráfico Chart.js
-      const canvas = contentRef.current.querySelector('canvas');
-      if (!canvas) {
-        alert('No se pudo encontrar el gráfico. Asegúrate de tener ítems seleccionados.');
-        setIsGeneratingPdf(false);
-        return;
-      }
+      // Preparar datos del gráfico para renderizar con Chart.js en Browserless
+      const selectedMonths = MONTHS.slice(monthRange.start, monthRange.end + 1);
+      const suffix = dataType === 'monto' ? ' Monto' : ' %';
+      
+      const chartDatasets = selectedItems.map((itemName, index) => {
+        const itemData = data.find(row => row.Item === itemName);
+        if (!itemData) return null;
 
-      // 2. Esperar a que Chart.js termine de renderizar completamente
-      await new Promise(resolve => setTimeout(resolve, 500));
+        const values = selectedMonths.map(month => {
+          const key = `${month}${suffix}`;
+          const value = itemData[key];
+          
+          if (typeof value === 'number') return value;
+          if (typeof value === 'string') {
+            const cleaned = value.replace(/[$,%\s]/g, '');
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? 0 : num;
+          }
+          return 0;
+        });
 
-      // 3. Convertir canvas a imagen base64 de alta calidad
-      const chartImage = canvas.toDataURL('image/png', 1.0);
+        const color = getItemColor(itemName, index);
+        return {
+          label: itemName,
+          data: values,
+          backgroundColor: color,
+          borderColor: color,
+          borderWidth: 1,
+        };
+      }).filter(d => d !== null);
 
-      // 3. Crear HTML optimizado para PDF con la imagen del gráfico
-      const htmlContent = `
+      // Crear HTML con Chart.js incluido para que Browserless lo renderice
+      const fullHtml = `
         <!DOCTYPE html>
-        <html>
+        <html lang="es">
           <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Gráficos de Consolidado - ${periodLabel}</title>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
             <style>
-              @page { size: A4 landscape; margin: 15mm; }
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { 
+              @page {
+                size: A4 landscape;
+                margin: 0;
+              }
+              
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              
+              html {
+                width: 297mm;
+                height: 210mm;
+              }
+              
+              body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
                 font-size: 10px;
                 color: #1f2937;
                 background: white;
                 padding: 15px;
+                width: 297mm;
+                max-width: 297mm;
+                min-height: 210mm;
               }
+              
               .header {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
@@ -285,32 +328,34 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 margin-bottom: 20px;
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
               }
-              .header h1 { 
-                font-size: 24px; 
-                margin-bottom: 6px; 
+              
+              .header h1 {
+                font-size: 24px;
+                margin-bottom: 6px;
                 font-weight: 700;
+                color: white !important;
               }
-              .header p { 
-                font-size: 13px; 
+              
+              .header p {
+                font-size: 13px;
                 opacity: 0.95;
                 font-weight: 500;
+                color: white !important;
               }
+              
               .chart-container {
                 background: white;
                 border: 2px solid #e5e7eb;
                 border-radius: 12px;
                 padding: 20px;
                 margin-bottom: 20px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-                page-break-inside: avoid;
-                break-inside: avoid;
+                height: 520px;
               }
-              .chart-container img {
-                width: 100%;
-                height: auto;
-                display: block;
-                border-radius: 8px;
+              
+              #myChart {
+                max-height: 480px !important;
               }
+              
               .chart-info {
                 background: #f0f9ff;
                 border-left: 4px solid #3b82f6;
@@ -318,45 +363,44 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 margin-top: 15px;
                 border-radius: 6px;
               }
+              
               .chart-info p {
                 font-size: 10px;
-                color: #1e40af;
+                color: #1e40af !important;
                 margin-bottom: 4px;
+                font-weight: 600 !important;
               }
+              
               .chart-info strong {
-                color: #1e3a8a;
+                color: #1e3a8a !important;
               }
+              
               .notes-section {
                 background: #fefce8;
                 border: 2px solid #fde047;
                 border-radius: 12px;
                 padding: 18px;
                 margin-top: 20px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-                page-break-inside: avoid;
-                break-inside: avoid;
               }
+              
               .notes-section h3 {
                 font-size: 14px;
-                color: #854d0e;
+                color: #854d0e !important;
                 margin-bottom: 10px;
                 font-weight: 700;
-                display: flex;
-                align-items: center;
-                gap: 8px;
               }
+              
               .notes-content {
                 font-size: 10px;
-                color: #713f12;
+                color: #713f12 !important;
                 line-height: 1.6;
                 white-space: pre-wrap;
                 background: white;
                 padding: 12px;
                 border-radius: 6px;
                 border: 1px solid #fde047;
-                page-break-inside: avoid;
-                break-inside: avoid;
               }
+              
               .metadata {
                 display: flex;
                 justify-content: space-between;
@@ -365,8 +409,9 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 padding-top: 12px;
                 border-top: 2px solid #e5e7eb;
                 font-size: 9px;
-                color: #6b7280;
+                color: #6b7280 !important;
               }
+              
               .metadata span {
                 font-weight: 500;
               }
@@ -379,7 +424,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             </div>
             
             <div class="chart-container">
-              <img src="${chartImage}" alt="Gráfico de Consolidado" />
+              <canvas id="myChart"></canvas>
               <div class="chart-info">
                 <p><strong>Rango de meses:</strong> ${MONTHS[monthRange.start]} - ${MONTHS[monthRange.end]}</p>
                 <p><strong>Ítems visualizados (${selectedItems.length}):</strong> ${selectedItems.join(', ')}</p>
@@ -389,7 +434,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             ${notes ? `
               <div class="notes-section">
                 <h3>📝 Notas y Observaciones</h3>
-                <div class="notes-content">${notes}</div>
+                <div class="notes-content">${notes.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
               </div>
             ` : ''}
             
@@ -400,101 +445,163 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
               })}</span>
               <span>📄 BISM Dashboard - Gráficos de Consolidado</span>
             </div>
+            
+            <script>
+              // Esperar a que Chart.js se cargue
+              window.addEventListener('load', function() {
+                const ctx = document.getElementById('myChart').getContext('2d');
+                new Chart(ctx, {
+                  type: 'bar',
+                  data: {
+                    labels: ${JSON.stringify(selectedMonths)},
+                    datasets: ${JSON.stringify(chartDatasets)}
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top',
+                        labels: {
+                          usePointStyle: true,
+                          padding: 15,
+                          font: {
+                            size: 12,
+                            weight: 500,
+                            family: 'system-ui, -apple-system, sans-serif'
+                          },
+                          color: '#1f2937'
+                        }
+                      },
+                      title: {
+                        display: true,
+                        text: 'Comparación Mensual - ${periodLabel}',
+                        font: {
+                          size: 18,
+                          weight: 'bold',
+                          family: 'system-ui, -apple-system, sans-serif'
+                        },
+                        padding: {
+                          top: 10,
+                          bottom: 20
+                        },
+                        color: '#111827'
+                      }
+                    },
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          callback: function(value) {
+                            ${dataType === 'monto' ? `
+                              return new Intl.NumberFormat('es-CL', {
+                                notation: 'compact',
+                                compactDisplay: 'short'
+                              }).format(value);
+                            ` : `
+                              return value + '%';
+                            `}
+                          },
+                          font: {
+                            size: 11,
+                            weight: 500,
+                            family: 'system-ui, -apple-system, sans-serif'
+                          },
+                          color: '#374151'
+                        },
+                        grid: {
+                          color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                      },
+                      x: {
+                        ticks: {
+                          font: {
+                            size: 11,
+                            weight: 500,
+                            family: 'system-ui, -apple-system, sans-serif'
+                          },
+                          color: '#374151'
+                        },
+                        grid: {
+                          display: false
+                        }
+                      }
+                    }
+                  }
+                });
+              });
+            </script>
           </body>
         </html>
       `;
 
-      // 4. Intentar con Browserless API
-      const apiToken = process.env.NEXT_PUBLIC_BROWSERLESS_API_TOKEN;
+      // Usar el endpoint /api/generate-pdf (igual que Sevilla/Labranza)
+      console.log('📄 Generando PDF con Browserless API via servidor...');
       
-      if (apiToken) {
-        console.log('🚀 Generando PDF con Browserless.io...');
-        const response = await fetch(`https://chrome.browserless.io/pdf?token=${apiToken}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            html: htmlContent,
-            options: {
-              format: 'A4',
-              landscape: true,
-              printBackground: true,
-              margin: { 
-                top: '15mm', 
-                right: '15mm', 
-                bottom: '15mm', 
-                left: '15mm' 
-              },
-              scale: 0.95,
-              preferCSSPageSize: false
-            }
-          })
-        });
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          html: fullHtml,
+          title: `graficos-consolidado-${periodLabel}`,
+        }),
+      });
 
-        if (!response.ok) {
-          console.error('❌ Error en Browserless API:', response.status);
-          throw new Error('Error en Browserless API');
+      if (!response.ok) {
+        // Si el servidor falla (503), usar fallback del cliente
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (response.status === 503 || errorData.useClientFallback) {
+          console.log('⚠️ Servidor no disponible, usando fallback del cliente...');
+          
+          // Fallback: html2canvas + jsPDF
+          const { default: jsPDF } = await import('jspdf');
+          const { default: html2canvas } = await import('html2canvas');
+          
+          if (!contentRef.current) {
+            throw new Error('No se encontró el contenedor del gráfico');
+          }
+          
+          const canvas = await html2canvas(contentRef.current, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff',
+          });
+          
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4',
+          });
+          
+          const imgWidth = 297;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+          pdf.save(`graficos-consolidado-${periodLabel}-${Date.now()}.pdf`);
+          
+          setIsGeneratingPdf(false);
+          console.log('✅ PDF generado con método alternativo');
+          return;
         }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `graficos-consolidado-${periodLabel.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
         
-        console.log('✅ PDF generado exitosamente con Browserless.io');
-      } else {
-        // Fallback: Generar PDF del lado del cliente con html2canvas + jsPDF
-        console.log('⚠️ Browserless no disponible, usando fallback con html2canvas + jsPDF');
-        
-        const html2canvas = (await import('html2canvas')).default;
-        const jsPDF = (await import('jspdf')).default;
-        
-        // Crear un contenedor temporal con el HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.style.position = 'absolute';
-        tempDiv.style.left = '-9999px';
-        tempDiv.style.top = '0';
-        tempDiv.style.width = '1200px'; // Ancho fijo para renderizado consistente
-        tempDiv.style.padding = '20px';
-        tempDiv.style.backgroundColor = '#ffffff';
-        tempDiv.innerHTML = htmlContent.replace(/<\/?html>/g, '').replace(/<\/?head>/g, '').replace(/<\/?body>/g, '').replace(/<style>[\s\S]*?<\/style>/g, '');
-        document.body.appendChild(tempDiv);
-        
-        // Esperar un momento para que se renderice
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Capturar como imagen
-        const canvasImg = await html2canvas(tempDiv, {
-          scale: 2, // Alta calidad
-          useCORS: true,
-          logging: false,
-          backgroundColor: '#ffffff',
-          windowWidth: 1200,
-          windowHeight: tempDiv.scrollHeight
-        });
-        
-        // Remover div temporal
-        document.body.removeChild(tempDiv);
-        
-        // Crear PDF
-        const pdf = new jsPDF({
-          orientation: 'landscape',
-          unit: 'mm',
-          format: 'a4'
-        });
-        
-        const imgWidth = 297; // A4 landscape width en mm
-        const imgHeight = (canvasImg.height * imgWidth) / canvasImg.width;
-        
-        pdf.addImage(canvasImg.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
-        pdf.save(`graficos-consolidado-${periodLabel.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
-        
-        console.log('✅ PDF generado con fallback (html2canvas + jsPDF)');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `graficos-consolidado-${periodLabel}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      console.log('✅ PDF generado exitosamente');
     } catch (error) {
       console.error('❌ Error generando PDF:', error);
       alert('Error al generar el PDF. Por favor intenta de nuevo.');
