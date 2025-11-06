@@ -292,6 +292,8 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 padding: 20px;
                 margin-bottom: 20px;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                page-break-inside: avoid;
+                break-inside: avoid;
               }
               .chart-container img {
                 width: 100%;
@@ -321,6 +323,8 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 padding: 18px;
                 margin-top: 20px;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                page-break-inside: avoid;
+                break-inside: avoid;
               }
               .notes-section h3 {
                 font-size: 14px;
@@ -340,6 +344,8 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 padding: 12px;
                 border-radius: 6px;
                 border: 1px solid #fde047;
+                page-break-inside: avoid;
+                break-inside: avoid;
               }
               .metadata {
                 display: flex;
@@ -431,16 +437,49 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         
         console.log('✅ PDF generado exitosamente con Browserless.io');
       } else {
-        // Fallback: abrir en nueva ventana para imprimir
-        console.log('⚠️ Usando fallback (ventana de impresión)');
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-          printWindow.document.write(htmlContent);
-          printWindow.document.close();
-          setTimeout(() => {
-            printWindow.print();
-          }, 500);
-        }
+        // Fallback: Generar PDF del lado del cliente con html2canvas + jsPDF
+        console.log('⚠️ Browserless no disponible, usando fallback con html2canvas + jsPDF');
+        
+        const html2canvas = (await import('html2canvas')).default;
+        const jsPDF = (await import('jspdf')).default;
+        
+        // Crear un contenedor temporal con el HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '0';
+        tempDiv.style.width = '1200px'; // Ancho fijo para renderizado consistente
+        tempDiv.innerHTML = htmlContent;
+        document.body.appendChild(tempDiv);
+        
+        // Esperar un momento para que se renderice
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Capturar como imagen
+        const canvasImg = await html2canvas(tempDiv.querySelector('body')!, {
+          scale: 2, // Alta calidad
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+        
+        // Remover div temporal
+        document.body.removeChild(tempDiv);
+        
+        // Crear PDF
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        const imgWidth = 297; // A4 landscape width en mm
+        const imgHeight = (canvasImg.height * imgWidth) / canvasImg.width;
+        
+        pdf.addImage(canvasImg.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
+        pdf.save(`graficos-consolidado-${periodLabel.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
+        
+        console.log('✅ PDF generado con fallback (html2canvas + jsPDF)');
       }
     } catch (error) {
       console.error('❌ Error generando PDF:', error);
@@ -663,9 +702,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             height: notes.length > 200 ? `${Math.min(80 + Math.floor(notes.length / 200) * 20, 400)}px` : '80px'
           }}
         />
-        <p className="mt-2 text-xs text-gray-500">
-          Agrega comentarios, insights o conclusiones basadas en el gráfico para compartir con tu equipo.
-        </p>
       </div>
     </div>
   );
