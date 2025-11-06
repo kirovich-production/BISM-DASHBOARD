@@ -383,6 +383,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 border-radius: 12px;
                 padding: 18px;
                 margin-top: 35px;
+                page-break-before: always;
               }
               
               .notes-section h3 {
@@ -455,19 +456,36 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                 Chart.register(ChartDataLabels);
                 
                 const ctx = document.getElementById('myChart').getContext('2d');
+                
+                // Debug: verificar los datos
+                const chartData = {
+                  labels: ${JSON.stringify(selectedMonths)},
+                  datasets: ${JSON.stringify(chartDatasets)}
+                };
+                console.log('Chart Data:', chartData);
+                
+                // Verificar que los valores son números válidos
+                chartData.datasets.forEach((dataset, idx) => {
+                  console.log(\`Dataset \${idx} (\${dataset.label}):\`, dataset.data);
+                  const maxVal = Math.max(...dataset.data.filter(v => v > 0));
+                  const minVal = Math.min(...dataset.data.filter(v => v > 0));
+                  console.log(\`Range: \${minVal} - \${maxVal}\`);
+                });
                 new Chart(ctx, {
                   type: 'bar',
-                  data: {
-                    labels: ${JSON.stringify(selectedMonths)},
-                    datasets: ${JSON.stringify(chartDatasets)}
-                  },
+                  data: chartData,
                   options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    aspectRatio: 2.5,
                     layout: {
                       padding: {
                         top: 40
                       }
+                    },
+                    interaction: {
+                      intersect: false,
+                      mode: 'index'
                     },
                     plugins: {
                       legend: {
@@ -525,8 +543,20 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
                     scales: {
                       y: {
                         beginAtZero: true,
-                        grace: '5%',
+                        grace: '10%',
+                        afterDataLimits: function(axis) {
+                          // Asegurar que hay suficiente espacio vertical
+                          const range = axis.max - axis.min;
+                          if (range > 0 && range < axis.max * 0.1) {
+                            // Si el rango es muy pequeño comparado con los valores, ajustar
+                            axis.max = axis.max * 1.2;
+                            if (axis.min > 0) {
+                              axis.min = Math.max(0, axis.min * 0.8);
+                            }
+                          }
+                        },
                         ticks: {
+                          maxTicksLimit: 8,
                           callback: function(value) {
                             ${dataType === 'monto' ? `
                               return new Intl.NumberFormat('es-CL', {
