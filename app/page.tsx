@@ -9,6 +9,8 @@ import SevillaTable from './components/tables/SevillaTable';
 import LabranzaTable from './components/tables/LabranzaTable';
 import ConsolidadoChartsView from './components/ConsolidadoChartsView';
 import MesAnualChartsView from './components/MesAnualChartsView';
+import WaterfallChartsView from './components/WaterfallChartsView';
+import EbidtaComboView from './components/EbidtaComboView';
 import { UploadResponse, UploadedDocument, Period } from '@/types';
 
 export default function Home() {
@@ -629,7 +631,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' || activeView === 'graficos-consolidado' || activeView === 'mes-anual' ? (
+        ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' || activeView === 'graficos-consolidado' || activeView === 'mes-anual' || activeView === 'waterfall-charts' || activeView === 'ebitda-combo' ? (
           /* Sevilla, Labranza, Consolidado, Charts and Mes-Anual Views */
           excelData && selectedPeriod ? (
             <div className="bg-white h-full overflow-hidden flex flex-col">
@@ -664,6 +666,20 @@ export default function Home() {
                 <MesAnualChartsView
                   data={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
                   periodLabel={excelData.periodLabel}
+                />
+              ) : activeView === 'waterfall-charts' ? (
+                <WaterfallChartsView
+                  consolidadoData={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
+                  sevillaData={excelData.sevilla && Array.isArray(excelData.sevilla) ? null : (excelData.sevilla || null)}
+                  labranzaData={excelData.labranza && Array.isArray(excelData.labranza) ? null : (excelData.labranza || null)}
+                  selectedUserName={selectedUserName}
+                  selectedPeriod={excelData.periodLabel}
+                />
+              ) : activeView === 'ebitda-combo' ? (
+                <EbidtaComboView
+                  data={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
+                  selectedUserName={selectedUserName}
+                  selectedPeriod={excelData.periodLabel}
                 />
               ) : null}
             </div>

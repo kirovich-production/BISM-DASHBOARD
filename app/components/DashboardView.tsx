@@ -117,6 +117,52 @@ export default function DashboardView({
     };
   };
 
+  // Card de Comparativo EBITDA (si hay datos consolidados)
+  const getWaterfallCard = () => {
+    const hasConsolidado = availableSections.some(s => 
+      ['consolidado', 'consolidados'].includes(s.toLowerCase())
+    );
+    
+    if (!hasConsolidado) return null;
+
+    return {
+      id: 'waterfall-charts',
+      title: 'Comparativo EBITDA',
+      description: 'Evolución comparativa: Consolidado vs. Sevilla vs. Labranza',
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      ),
+      color: 'from-cyan-500 to-blue-600',
+      bgColor: 'bg-cyan-50',
+      iconColor: 'text-cyan-600',
+    };
+  };
+
+  // Card de EBITDA Combo (si hay datos consolidados)
+  const getEbidtaComboCard = () => {
+    const hasConsolidado = availableSections.some(s => 
+      ['consolidado', 'consolidados'].includes(s.toLowerCase())
+    );
+    
+    if (!hasConsolidado) return null;
+
+    return {
+      id: 'ebitda-combo',
+      title: 'EBITDA Combo',
+      description: 'EBITDA mensual (barras) + % margen EBITDA (línea)',
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      ),
+      color: 'from-indigo-500 to-purple-600',
+      bgColor: 'bg-indigo-50',
+      iconColor: 'text-indigo-600',
+    };
+  };
+
   // Card de carga de datos (siempre disponible)
   const uploadCard = {
     id: 'upload',
@@ -132,15 +178,19 @@ export default function DashboardView({
     iconColor: 'text-orange-600',
   };
 
-  // Construir array final de cards: secciones + consolidado + mes-anual (si existen) + upload
+  // Construir array final de cards: secciones + consolidado + mes-anual + comparativo-ebitda + combo (si existen) + upload
   const sectionCards = generateSectionCards();
   const consolidadoCard = getConsolidadoCard();
   const mesAnualCard = getMesAnualCard();
+  const waterfallCard = getWaterfallCard();
+  const ebidtaComboCard = getEbidtaComboCard();
   
   const cards = [];
   cards.push(...sectionCards);
   if (consolidadoCard) cards.push(consolidadoCard);
   if (mesAnualCard) cards.push(mesAnualCard);
+  if (waterfallCard) cards.push(waterfallCard);
+  if (ebidtaComboCard) cards.push(ebidtaComboCard);
   cards.push(uploadCard);
 
   // Navegación dinámica basada en el id de la card
