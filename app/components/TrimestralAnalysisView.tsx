@@ -458,6 +458,8 @@ export default function TrimestralAnalysisView({
 
             .metrics-section {
               margin-bottom: 30px;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             .metrics-title {
               color: #374151;
@@ -466,11 +468,15 @@ export default function TrimestralAnalysisView({
               margin-bottom: 20px;
               border-bottom: 2px solid #e5e7eb;
               padding-bottom: 10px;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             .metrics-grid {
               display: grid;
               grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
               gap: 20px;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             .metric-card {
               background: white;
@@ -479,6 +485,8 @@ export default function TrimestralAnalysisView({
               border-radius: 12px;
               padding: 20px;
               box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             .metric-title {
               font-weight: bold;
@@ -554,6 +562,8 @@ export default function TrimestralAnalysisView({
               border-radius: 12px;
               padding: 20px;
               margin-top: 30px;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             .notes-title {
               color: #000000ff;
