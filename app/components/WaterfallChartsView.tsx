@@ -13,7 +13,6 @@ import {
   ChartOptions,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import jsPDF from 'jspdf';
 
 ChartJS.register(
   CategoryScale,
@@ -414,68 +413,270 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
     },
   };
 
-  // Función para exportar PDF
+  // Función para exportar PDF usando Browserless (como MesAnualChartsView)
   const exportPDF = async () => {
-    if (!chartRef.current) return;
+    if (!chartRef.current) {
+      alert('Gráfico no disponible para exportar');
+      return;
+    }
 
     try {
-      const chartElement = chartRef.current.canvas.parentElement;
-      if (!chartElement) return;
-
-      // Crear una copia del elemento para el PDF
-      const clonedElement = chartElement.cloneNode(true) as HTMLElement;
-      clonedElement.style.backgroundColor = 'white';
-      clonedElement.style.padding = '20px';
-      clonedElement.style.width = '800px';
-      clonedElement.style.height = '600px';
+      console.log('🎯 Iniciando generación PDF Comparativo EBITDA...');
       
-      document.body.appendChild(clonedElement);
-
-      // Usar html2canvas si está disponible, sino usar canvas.toDataURL
-      let dataUrl: string;
-      if (typeof window !== 'undefined' && window.html2canvas) {
-        const canvas = await window.html2canvas(clonedElement, { backgroundColor: 'white' });
-        dataUrl = canvas.toDataURL('image/png');
-      } else if (chartRef.current) {
-        dataUrl = chartRef.current.toBase64Image();
-      } else {
-        throw new Error('No se pudo capturar el gráfico');
+      // Capturar el gráfico
+      let chartImageData = '';
+      if (chartRef.current) {
+        try {
+          const canvas = chartRef.current.canvas;
+          if (canvas) {
+            chartImageData = canvas.toDataURL('image/png', 0.95);
+            console.log('✅ Gráfico capturado exitosamente');
+          }
+        } catch (error) {
+          console.error('❌ Error capturando gráfico:', error);
+        }
       }
 
-      document.body.removeChild(clonedElement);
+      // Preparar datos para el PDF
+      const currentDate = new Date().toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
 
-      const pdf = new jsPDF('landscape', 'mm', 'a4');
+      // Calcular promedios
+      const consolidadoPromedio = showPercentages 
+        ? parseFloat((consolidadoEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitdaPercent.length).toFixed(2))
+        : (consolidadoEbitda.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitda.length);
       
-      // Título
-      pdf.setFontSize(16);
-      pdf.setTextColor(34, 139, 34);
-      pdf.text(`Comparativo EBITDA por Centro - ${selectedUserName || 'Usuario'}`, 20, 20);
+      const sevillaPromedio = showPercentages 
+        ? parseFloat((sevillaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitdaPercent.length).toFixed(2))
+        : (sevillaEbitda.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitda.length);
       
-      // Período
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(`Período: ${selectedPeriod || 'No especificado'}`, 20, 30);
+      const labranzaPromedio = showPercentages 
+        ? parseFloat((labranzaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitdaPercent.length).toFixed(2))
+        : (labranzaEbitda.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitda.length);
+
+      const formatValue = (value: number): string => {
+        if (showPercentages) {
+          return `${value.toFixed(2)}%`;
+        }
+        return new Intl.NumberFormat('es-CL', {
+          style: 'currency',
+          currency: 'CLP',
+          minimumFractionDigits: 0,
+        }).format(value);
+      };
+
+      const html = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Comparativo EBITDA por Centro - ${selectedUserName || 'Usuario'}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Arial', sans-serif;
+              background: #ffffff;
+              color: #1f2937;
+              line-height: 1.4;
+              padding: 20px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 10px;
+              border-bottom: 3px solid #22c55e;
+              padding-bottom: 15px;
+            }
+            .header h1 {
+              color: #22c55e;
+              font-size: 28px;
+              margin: 0 0 10px 0;
+              font-weight: bold;
+            }
+            .header p {
+              color: #6b7280;
+              font-size: 14px;
+              margin: 0;
+            }
+            .chart-container {
+              text-align: center;
+              margin: 20px 0;
+              background: white;
+              border-radius: 12px;
+              padding: 20px;
+              border: 1px solid #e5e7eb;
+            }
+            .chart-image {
+              max-width: 100%;
+              height: auto;
+              border-radius: 8px;
+            }
+            .summary-section {
+              margin: 30px 0;
+            }
+            .summary-title {
+              color: #374151;
+              font-size: 20px;
+              font-weight: bold;
+              margin-bottom: 20px;
+              border-bottom: 2px solid #e5e7eb;
+              padding-bottom: 10px;
+            }
+            .summary-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 20px;
+              margin-bottom: 30px;
+            }
+            .summary-card {
+              background: white;
+              border-radius: 12px;
+              padding: 20px;
+              border: 2px solid #e5e7eb;
+              text-align: center;
+            }
+            .card-consolidado {
+              border-left: 6px solid #3b82f6;
+              background: #eff6ff;
+            }
+            .card-sevilla {
+              border-left: 6px solid #8b5cf6;
+              background: #f3e8ff;
+            }
+            .card-labranza {
+              border-left: 6px solid #10b981;
+              background: #ecfdf5;
+            }
+            .card-title {
+              font-size: 14px;
+              font-weight: 600;
+              margin-bottom: 10px;
+            }
+            .card-consolidado .card-title { color: #1e40af; }
+            .card-sevilla .card-title { color: #7c3aed; }
+            .card-labranza .card-title { color: #059669; }
+            .card-value {
+              font-size: 24px;
+              font-weight: bold;
+            }
+            .card-consolidado .card-value { color: #1e3a8a; }
+            .card-sevilla .card-value { color: #6b21a8; }
+            .card-labranza .card-value { color: #047857; }
+            .notes-section {
+              background: #ffffff;
+              border: 2px solid #b2b0aeed;
+              border-radius: 12px;
+              padding: 20px;
+              margin: 30px 0;
+            }
+            .notes-title {
+              color: #000011;
+              font-size: 18px;
+              font-weight: bold;
+              margin-bottom: 15px;
+            }
+            .notes-content {
+              color: #000011;
+              font-size: 14px;
+              line-height: 1.6;
+              white-space: pre-wrap;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 12px;
+              color: #9ca3af;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>📊 Comparativo EBITDA por Centro</h1>
+            <p>Usuario: ${selectedUserName || 'No seleccionado'} | Período: ${selectedPeriod || 'No seleccionado'} | Generado: ${currentDate}</p>
+          </div>
+
+          ${chartImageData ? `
+          <div class="chart-container">
+            <img src="${chartImageData}" alt="Gráfico Comparativo EBITDA" class="chart-image" />
+          </div>
+          ` : ''}
+
+          <div class="summary-section">
+            <h2 class="summary-title">📋 Resumen de Promedios EBITDA</h2>
+            <div class="summary-grid">
+              <div class="summary-card card-consolidado">
+                <div class="card-title">EBITDA Promedio Consolidado ${showPercentages ? '(%)' : '(CLP)'}</div>
+                <div class="card-value">${formatValue(consolidadoPromedio)}</div>
+              </div>
+              <div class="summary-card card-sevilla">
+                <div class="card-title">EBITDA Promedio Sevilla ${showPercentages ? '(%)' : '(CLP)'}</div>
+                <div class="card-value">${formatValue(sevillaPromedio)}</div>
+              </div>
+              <div class="summary-card card-labranza">
+                <div class="card-title">EBITDA Promedio Labranza ${showPercentages ? '(%)' : '(CLP)'}</div>
+                <div class="card-value">${formatValue(labranzaPromedio)}</div>
+              </div>
+            </div>
+          </div>
+
+          ${notes.trim() ? `
+          <div class="notes-section">
+            <h3 class="notes-title">Notas del Comparativo</h3>
+            <div class="notes-content">${notes}</div>
+          </div>
+          ` : ''}
+
+          <div class="footer">
+            <span>BISM Dashboard - Documento generado automáticamente</span>
+            <span>Comparativo EBITDA por Centro - ${currentDate}</span>
+          </div>
+        </body>
+        </html>
+      `;
+
+      console.log('📤 Enviando HTML a API de generación de PDF...');
       
-      // Gráfico
-      pdf.addImage(dataUrl, 'PNG', 20, 40, 250, 150);
-      
-      // Notas si existen
-      if (notes.trim()) {
-        pdf.setFontSize(10);
-        pdf.text('Notas:', 20, 200);
-        const splitNotes = pdf.splitTextToSize(notes, 250);
-        pdf.text(splitNotes, 20, 210);
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          html,
+          title: `comparativo-ebitda-${selectedUserName || 'usuario'}-${selectedPeriod || 'periodo'}`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
       }
-      
-      // Timestamp
-      pdf.setFontSize(8);
-      pdf.setTextColor(128, 128, 128);
-      pdf.text(`Generado el: ${new Date().toLocaleString('es-ES')}`, 20, 280);
-      
-      pdf.save(`comparativo-ebitda-${selectedUserName || 'usuario'}-${selectedPeriod || 'periodo'}.pdf`);
+
+      const blob = await response.blob();
+      console.log('✅ PDF generado exitosamente');
+
+      // Descargar el archivo
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `comparativo-ebitda-${selectedUserName || 'usuario'}-${selectedPeriod || 'periodo'}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      console.log('📁 Archivo descargado exitosamente');
     } catch (error) {
-      console.error('Error al generar PDF:', error);
-      alert('Error al generar el PDF. Intenta de nuevo.');
+      console.error('❌ Error al generar PDF:', error);
+      alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
     }
   };
 

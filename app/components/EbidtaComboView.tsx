@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,10 +11,9 @@ import {
   Title,
   Tooltip,
   Legend,
-  ChartOptions
-} from 'chart.js';
-import { Chart } from 'react-chartjs-2';
-import jsPDF from 'jspdf';
+  ChartOptions,
+} from "chart.js";
+import { Chart } from "react-chartjs-2";
 
 ChartJS.register(
   CategoryScale,
@@ -30,7 +29,10 @@ ChartJS.register(
 // Usar html2canvas para la captura
 declare global {
   interface Window {
-    html2canvas: (element: HTMLElement, options?: { backgroundColor?: string }) => Promise<HTMLCanvasElement>;
+    html2canvas: (
+      element: HTMLElement,
+      options?: { backgroundColor?: string }
+    ) => Promise<HTMLCanvasElement>;
   }
 }
 
@@ -45,9 +47,13 @@ interface EbidtaComboViewProps {
   selectedPeriod?: string;
 }
 
-export default function EbidtaComboView({ data, selectedUserName, selectedPeriod }: EbidtaComboViewProps) {
+export default function EbidtaComboView({
+  data,
+  selectedUserName,
+  selectedPeriod,
+}: EbidtaComboViewProps) {
   const chartRef = useRef<ChartJS>(null);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState("");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -68,21 +74,21 @@ export default function EbidtaComboView({ data, selectedUserName, selectedPeriod
   // Función para parsear valores monetarios mejorada
   const parseValue = (value: string | number | undefined): number => {
     if (value === undefined || value === null) return 0;
-    if (typeof value === 'number') return value;
-    if (typeof value === 'string') {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
       // Casos especiales
-      if (value === '#DIV/0!' || value === '' || value === '$0') return 0;
-      
+      if (value === "#DIV/0!" || value === "" || value === "$0") return 0;
+
       // Remover símbolo $ y espacios
-      let cleaned = value.replace(/\$|\s/g, '');
-      
+      let cleaned = value.replace(/\$|\s/g, "");
+
       // Si tiene comas como separadores de miles (ej: 2,365,037)
       // Las comas están separando miles, no decimales
-      if (cleaned.includes(',')) {
+      if (cleaned.includes(",")) {
         // Remover todas las comas (separadores de miles)
-        cleaned = cleaned.replace(/,/g, '');
+        cleaned = cleaned.replace(/,/g, "");
       }
-      
+
       // Parsear el número final
       const parsed = parseFloat(cleaned);
       return isNaN(parsed) ? 0 : parsed;
@@ -93,55 +99,93 @@ export default function EbidtaComboView({ data, selectedUserName, selectedPeriod
   // Obtener datos para el gráfico combo
   const getComboData = () => {
     // Buscar filas igual que en EbidtaChartsView
-    const ebitdaRow = data.find((row: ExcelRow) => 
-      row.Item?.toLowerCase().includes('ebitda') || 
-      row.Item?.toLowerCase().includes('ebidta')
+    const ebitdaRow = data.find(
+      (row: ExcelRow) =>
+        row.Item?.toLowerCase().includes("ebitda") ||
+        row.Item?.toLowerCase().includes("ebidta")
     );
-    
-    const ventasNetasRow = data.find((row: ExcelRow) => 
-      row.Item?.toLowerCase().includes('ventas netas') || 
-      row.Item?.toLowerCase().includes('ventas afectas') ||
-      row.Item === 'Ventas Netas'
+
+    const ventasNetasRow = data.find(
+      (row: ExcelRow) =>
+        row.Item?.toLowerCase().includes("ventas netas") ||
+        row.Item?.toLowerCase().includes("ventas afectas") ||
+        row.Item === "Ventas Netas"
     );
 
     // Debug: Mostrar qué filas encontró
-    console.log('🔍 [EbidtaComboView] Filas encontradas:');
-    console.log('- EBITDA Row:', ebitdaRow?.Item, ebitdaRow);
-    console.log('- Ventas Netas Row:', ventasNetasRow?.Item, ventasNetasRow);
-    console.log('- Total filas en data:', data.length);
-    console.log('- Primeras 3 filas:', data.slice(0, 3));
+    console.log("🔍 [EbidtaComboView] Filas encontradas:");
+    console.log("- EBITDA Row:", ebitdaRow?.Item, ebitdaRow);
+    console.log("- Ventas Netas Row:", ventasNetasRow?.Item, ventasNetasRow);
+    console.log("- Total filas en data:", data.length);
+    console.log("- Primeras 3 filas:", data.slice(0, 3));
 
     // Nombres de meses como están en los datos reales
-    const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const SHORT_MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    
+    const MONTHS = [
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
+    ];
+    const SHORT_MONTHS = [
+      "Ene",
+      "Feb",
+      "Mar",
+      "Abr",
+      "May",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dic",
+    ];
+
     const processedData = SHORT_MONTHS.map((shortMonth, index) => {
       const fullMonth = MONTHS[index];
       const ebitdaRaw = ebitdaRow ? ebitdaRow[`${fullMonth} Monto`] : 0;
-      const ventasRaw = ventasNetasRow ? ventasNetasRow[`${fullMonth} Monto`] : 0;
-      
+      const ventasRaw = ventasNetasRow
+        ? ventasNetasRow[`${fullMonth} Monto`]
+        : 0;
+
       const ebitda = parseValue(ebitdaRaw);
       const ventasNetas = parseValue(ventasRaw);
-      
+
       // Calcular margen EBITDA (%)
       const margenEbitda = ventasNetas !== 0 ? (ebitda / ventasNetas) * 100 : 0;
 
       // Debug para los primeros 3 meses
       if (index < 3) {
-        console.log(`📊 [${fullMonth}] Raw: EBITDA="${ebitdaRaw}", Ventas="${ventasRaw}"`);
-        console.log(`📊 [${fullMonth}] Parsed: EBITDA=${ebitda}, Ventas=${ventasNetas}, Margen=${margenEbitda.toFixed(2)}%`);
+        console.log(
+          `📊 [${fullMonth}] Raw: EBITDA="${ebitdaRaw}", Ventas="${ventasRaw}"`
+        );
+        console.log(
+          `📊 [${fullMonth}] Parsed: EBITDA=${ebitda}, Ventas=${ventasNetas}, Margen=${margenEbitda.toFixed(
+            2
+          )}%`
+        );
       }
 
       return {
         month: shortMonth,
         ebitda,
         ventasNetas,
-        margenEbitda
+        margenEbitda,
       };
     });
 
-    console.log('📈 [EbidtaComboView] Datos procesados:', processedData.slice(0, 3));
+    console.log(
+      "📈 [EbidtaComboView] Datos procesados:",
+      processedData.slice(0, 3)
+    );
     return processedData;
   };
 
@@ -149,34 +193,34 @@ export default function EbidtaComboView({ data, selectedUserName, selectedPeriod
 
   // Configuración del gráfico combo
   const chartData = {
-    labels: comboData.map(d => d.month),
+    labels: comboData.map((d) => d.month),
     datasets: [
       {
-        type: 'bar' as const,
-        label: 'EBITDA Mensual',
-        data: comboData.map(d => d.ebitda),
-        backgroundColor: 'rgba(59, 130, 246, 0.7)',
-        borderColor: 'rgba(59, 130, 246, 1)',
+        type: "bar" as const,
+        label: "EBITDA Mensual",
+        data: comboData.map((d) => d.ebitda),
+        backgroundColor: "rgba(59, 130, 246, 0.7)",
+        borderColor: "rgba(59, 130, 246, 1)",
         borderWidth: 2,
-        yAxisID: 'y'
+        yAxisID: "y",
       },
       {
-        type: 'line' as const,
-        label: '% Margen EBITDA',
-        data: comboData.map(d => d.margenEbitda),
-        backgroundColor: 'rgba(16, 185, 129, 0.2)',
-        borderColor: 'rgba(16, 185, 129, 1)',
+        type: "line" as const,
+        label: "% Margen EBITDA",
+        data: comboData.map((d) => d.margenEbitda),
+        backgroundColor: "rgba(16, 185, 129, 0.2)",
+        borderColor: "rgba(16, 185, 129, 1)",
         borderWidth: 3,
         fill: false,
         tension: 0.3,
         pointRadius: 6,
         pointHoverRadius: 8,
-        pointBackgroundColor: 'rgba(16, 185, 129, 1)',
-        pointBorderColor: 'white',
+        pointBackgroundColor: "rgba(16, 185, 129, 1)",
+        pointBorderColor: "white",
         pointBorderWidth: 2,
-        yAxisID: 'y1'
-      }
-    ]
+        yAxisID: "y1",
+      },
+    ],
   };
 
   const options: ChartOptions = {
@@ -184,191 +228,464 @@ export default function EbidtaComboView({ data, selectedUserName, selectedPeriod
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: "top" as const,
         labels: {
           usePointStyle: true,
           padding: 20,
           font: {
             size: 12,
-            weight: 'bold'
-          }
-        }
+            weight: "bold",
+          },
+        },
       },
       title: {
         display: true,
-        text: `Análisis Combo EBITDA - ${selectedUserName || 'Usuario'} - ${selectedPeriod || 'Período'}`,
+        text: `Análisis Combo EBITDA - ${selectedUserName || "Usuario"} - ${
+          selectedPeriod || "Período"
+        }`,
         font: {
           size: 18,
-          weight: 'bold'
+          weight: "bold",
         },
-        color: '#1f2937',
-        padding: 20
+        color: "#1f2937",
+        padding: 20,
       },
       tooltip: {
-        mode: 'index' as const,
+        mode: "index" as const,
         intersect: false,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: 'white',
-        bodyColor: 'white',
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        titleColor: "white",
+        bodyColor: "white",
+        borderColor: "rgba(255, 255, 255, 0.2)",
         borderWidth: 1,
         callbacks: {
-          label: function(context) {
+          label: function (context) {
             const value = context.parsed.y || 0;
-            if (context.dataset.label?.includes('%')) {
+            if (context.dataset.label?.includes("%")) {
               return `${context.dataset.label}: ${value.toFixed(1)}%`;
             } else {
-              const formatter = new Intl.NumberFormat('es-CL', {
-                style: 'currency',
-                currency: 'CLP',
+              const formatter = new Intl.NumberFormat("es-CL", {
+                style: "currency",
+                currency: "CLP",
                 minimumFractionDigits: 0,
-                maximumFractionDigits: 0
+                maximumFractionDigits: 0,
               });
               return `${context.dataset.label}: ${formatter.format(value)}`;
             }
-          }
-        }
-      }
+          },
+        },
+      },
     },
     scales: {
       x: {
         grid: {
-          display: false
+          display: false,
         },
         ticks: {
-          color: '#6b7280',
+          color: "#6b7280",
           font: {
             size: 11,
-            weight: 'bold'
-          }
-        }
+            weight: "bold",
+          },
+        },
       },
       y: {
-        type: 'linear' as const,
+        type: "linear" as const,
         display: true,
-        position: 'left' as const,
+        position: "left" as const,
         title: {
           display: true,
-          text: 'EBITDA (CLP)',
-          color: '#374151',
+          text: "EBITDA (CLP)",
+          color: "#374151",
           font: {
             size: 12,
-            weight: 'bold'
-          }
+            weight: "bold",
+          },
         },
         grid: {
-          color: 'rgba(59, 130, 246, 0.1)'
+          color: "rgba(59, 130, 246, 0.1)",
         },
         ticks: {
-          color: '#3b82f6',
-          callback: function(value) {
-            const formatter = new Intl.NumberFormat('es-CL', {
-              notation: 'compact',
-              compactDisplay: 'short',
+          color: "#3b82f6",
+          callback: function (value) {
+            const formatter = new Intl.NumberFormat("es-CL", {
+              notation: "compact",
+              compactDisplay: "short",
               minimumFractionDigits: 0,
-              maximumFractionDigits: 1
+              maximumFractionDigits: 1,
             });
             return formatter.format(value as number);
-          }
-        }
+          },
+        },
       },
       y1: {
-        type: 'linear' as const,
+        type: "linear" as const,
         display: true,
-        position: 'right' as const,
+        position: "right" as const,
         title: {
           display: true,
-          text: 'Margen EBITDA (%)',
-          color: '#374151',
+          text: "Margen EBITDA (%)",
+          color: "#374151",
           font: {
             size: 12,
-            weight: 'bold'
-          }
+            weight: "bold",
+          },
         },
         grid: {
           drawOnChartArea: false,
         },
         ticks: {
-          color: '#10b981',
-          callback: function(value) {
+          color: "#10b981",
+          callback: function (value) {
             return `${(value as number).toFixed(1)}%`;
-          }
-        }
-      }
+          },
+        },
+      },
     },
     interaction: {
-      mode: 'index' as const,
+      mode: "index" as const,
       intersect: false,
     },
   };
 
-  // Función para exportar PDF
+  // Función para exportar PDF usando Browserless (como MesAnualChartsView)
   const exportPDF = async () => {
-    if (!chartRef.current) return;
+    if (!chartRef.current) {
+      alert("Gráfico no disponible para exportar");
+      return;
+    }
 
     try {
-      const chartElement = chartRef.current.canvas.parentElement;
-      if (!chartElement) return;
+      console.log("🎯 Iniciando generación PDF Análisis Combo EBITDA...");
 
-      // Crear una copia del elemento para el PDF
-      const clonedElement = chartElement.cloneNode(true) as HTMLElement;
-      clonedElement.style.backgroundColor = 'white';
-      clonedElement.style.padding = '20px';
-      clonedElement.style.width = '800px';
-      clonedElement.style.height = '600px';
-      
-      document.body.appendChild(clonedElement);
-
-      // Usar html2canvas si está disponible, sino usar canvas.toDataURL
-      let dataUrl: string;
-      if (typeof window !== 'undefined' && window.html2canvas) {
-        const canvas = await window.html2canvas(clonedElement, { backgroundColor: 'white' });
-        dataUrl = canvas.toDataURL('image/png');
-      } else if (chartRef.current) {
-        dataUrl = chartRef.current.toBase64Image();
-      } else {
-        throw new Error('No se pudo capturar el gráfico');
+      // Capturar el gráfico
+      let chartImageData = "";
+      if (chartRef.current) {
+        try {
+          const canvas = chartRef.current.canvas;
+          if (canvas) {
+            chartImageData = canvas.toDataURL("image/png", 0.95);
+            console.log("✅ Gráfico capturado exitosamente");
+          }
+        } catch (error) {
+          console.error("❌ Error capturando gráfico:", error);
+        }
       }
 
-      document.body.removeChild(clonedElement);
+      // Preparar datos para el PDF
+      const currentDate = new Date().toLocaleDateString("es-ES", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
 
-      const pdf = new jsPDF('landscape', 'mm', 'a4');
-      
-      // Título
-      pdf.setFontSize(16);
-      pdf.setTextColor(59, 130, 246);
-      pdf.text(`Análisis Combo EBITDA - ${selectedUserName || 'Usuario'}`, 20, 20);
-      
-      // Período
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(`Período: ${selectedPeriod || 'No especificado'}`, 20, 30);
-      
-      // Gráfico
-      pdf.addImage(dataUrl, 'PNG', 20, 40, 250, 150);
-      
-      // Notas si existen
-      if (notes.trim()) {
-        pdf.setFontSize(10);
-        pdf.text('Notas:', 20, 200);
-        const splitNotes = pdf.splitTextToSize(notes, 250);
-        pdf.text(splitNotes, 20, 210);
+      // Calcular métricas si hay datos
+      let ebitdaPromedio = 0;
+      let margenPromedio = 0;
+      let ebitdaMaximo = 0;
+      let margenMaximo = 0;
+
+      if (comboData.length > 0) {
+        ebitdaPromedio =
+          comboData.reduce((acc, d) => acc + d.ebitda, 0) / comboData.length;
+        margenPromedio =
+          comboData.reduce((acc, d) => acc + d.margenEbitda, 0) /
+          comboData.length;
+        ebitdaMaximo = Math.max(...comboData.map((d) => d.ebitda));
+        margenMaximo = Math.max(...comboData.map((d) => d.margenEbitda));
       }
-      
-  // Timestamp
-  pdf.setFontSize(8);
-  pdf.setTextColor(128, 128, 128);
-  pdf.text(`Generado el: ${new Date().toLocaleString('es-CL')}`, 20, 280);
-      
-      pdf.save(`combo-ebitda-${selectedUserName || 'usuario'}-${selectedPeriod || 'periodo'}.pdf`);
+
+      const html = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Análisis Combo EBITDA - ${
+            selectedUserName || "Usuario"
+          }</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Arial', sans-serif;
+              background: #ffffff;
+              color: #1f2937;
+              line-height: 1.4;
+              padding: 20px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 10px;
+              border-bottom: 3px solid #3b82f6;
+              padding-bottom: 15px;
+            }
+            .header h1 {
+              color: #3b82f6;
+              font-size: 28px;
+              margin: 0 0 10px 0;
+              font-weight: bold;
+            }
+            .header p {
+              color: #6b7280;
+              font-size: 14px;
+              margin: 0;
+            }
+            .chart-container {
+              text-align: center;
+              margin: 20px 0;
+              background: white;
+              border-radius: 12px;
+              padding: 20px;
+              border: 1px solid #e5e7eb;
+            }
+            .chart-image {
+              max-width: 100%;
+              height: auto;
+              border-radius: 8px;
+            }
+            .summary-section {
+              margin: 30px 0;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .summary-title {
+              color: #374151;
+              font-size: 20px;
+              font-weight: bold;
+              margin-bottom: 20px;
+              border-bottom: 2px solid #e5e7eb;
+              padding-bottom: 10px;
+            }
+            .summary-grid {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 20px;
+              margin-bottom: 30px;
+            }
+            .summary-card {
+              background: white;
+              border-radius: 12px;
+              padding: 20px;
+              border: 2px solid #e5e7eb;
+              text-align: center;
+            }
+            .card-ebitda-prom {
+              border-left: 6px solid #3b82f6;
+              background: #eff6ff;
+            }
+            .card-margen-prom {
+              border-left: 6px solid #10b981;
+              background: #ecfdf5;
+            }
+            .card-ebitda-max {
+              border-left: 6px solid #f59e0b;
+              background: #fffbeb;
+            }
+            .card-margen-max {
+              border-left: 6px solid #8b5cf6;
+              background: #f3e8ff;
+            }
+            .card-title {
+              font-size: 14px;
+              font-weight: 600;
+              margin-bottom: 10px;
+            }
+            .card-ebitda-prom .card-title { color: #1e40af; }
+            .card-margen-prom .card-title { color: #059669; }
+            .card-ebitda-max .card-title { color: #d97706; }
+            .card-margen-max .card-title { color: #7c3aed; }
+            .card-value {
+              font-size: 24px;
+              font-weight: bold;
+            }
+            .card-ebitda-prom .card-value { color: #1e3a8a; }
+            .card-margen-prom .card-value { color: #047857; }
+            .card-ebitda-max .card-value { color: #92400e; }
+            .card-margen-max .card-value { color: #6b21a8; }
+            .insights-section {
+              background: linear-gradient(to right, #eff6ff, #ecfdf5);
+              border: 2px solid #3b82f6;
+              border-radius: 12px;
+              padding: 20px;
+              margin: 30px 0;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .insights-title {
+              color: #374151;
+              font-size: 18px;
+              font-weight: bold;
+              margin-bottom: 15px;
+            }
+            .insights-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 20px;
+            }
+            .insight-item {
+              font-size: 14px;
+            }
+            .insight-label {
+              font-weight: 600;
+              margin-bottom: 5px;
+            }
+            .insight-blue { color: #1e40af; }
+            .insight-green { color: #059669; }
+            .insight-text {
+              color: #6b7280;
+              line-height: 1.5;
+            }
+            .notes-section {
+              background: #ffffff;
+              border: 2px solid #aeacaaff;
+              border-radius: 12px;
+              padding: 20px;
+              margin: 30px 0;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .notes-title {
+              color: #0000011;
+              font-size: 18px;
+              font-weight: bold;
+              margin-bottom: 15px;
+            }
+            .notes-content {
+              color: #6b7280;
+              font-size: 14px;
+              line-height: 1.6;
+              white-space: pre-wrap;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 12px;
+              color: #9ca3af;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Análisis Combo EBITDA</h1>
+            
+          </div>
+
+          ${
+            chartImageData
+              ? `
+          <div class="chart-container">
+            <img src="${chartImageData}" alt="Gráfico Análisis Combo EBITDA" class="chart-image" />
+          </div>
+          `
+              : ""
+          }
+
+          ${
+            comboData.length > 0
+              ? `
+          <div class="summary-section">
+            <h2 class="summary-title">Métricas de Resumen</h2>
+            <div class="summary-grid">
+              <div class="summary-card card-ebitda-prom">
+                <div class="card-title">EBITDA Promedio</div>
+                <div class="card-value">$${ebitdaPromedio.toLocaleString(
+                  "es-CL",
+                  { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                )}</div>
+              </div>
+              <div class="summary-card card-margen-prom">
+                <div class="card-title">Margen Promedio</div>
+                <div class="card-value">${margenPromedio.toFixed(1)}%</div>
+              </div>
+              <div class="summary-card card-ebitda-max">
+                <div class="card-title">EBITDA Máximo</div>
+                <div class="card-value">$${ebitdaMaximo.toLocaleString(
+                  "es-CL",
+                  { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                )}</div>
+              </div>
+              <div class="summary-card card-margen-max">
+                <div class="card-title">Margen Máximo</div>
+                <div class="card-value">${margenMaximo.toFixed(1)}%</div>
+              </div>
+            </div>
+          </div>
+          `
+              : ""
+          }
+
+         
+
+          ${
+            notes.trim()
+              ? `
+              
+          <div class="notes-section">
+            <h3 class="notes-title">Notas del Análisis</h3>
+            <div class="notes-content">${notes}</div>
+          </div>
+          
+          `
+              : ""
+          }
+
+          <div class="footer">
+            <span>BISM Dashboard - Documento generado automáticamente</span>
+            <span>Análisis Combo EBITDA - ${currentDate}</span>
+          </div>
+        </body>
+        </html>
+      `;
+
+      console.log("📤 Enviando HTML a API de generación de PDF...");
+
+      const response = await fetch("/api/generate-pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          html,
+          title: `combo-ebitda-${selectedUserName || "usuario"}-${
+            selectedPeriod || "periodo"
+          }`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      console.log("✅ PDF generado exitosamente");
+
+      // Descargar el archivo
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `combo-ebitda-${selectedUserName || "usuario"}-${
+        selectedPeriod || "periodo"
+      }-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      console.log("📁 Archivo descargado exitosamente");
     } catch (error) {
-      console.error('Error al generar PDF:', error);
-      alert('Error al generar el PDF. Intenta de nuevo.');
+      console.error("❌ Error al generar PDF:", error);
+      alert("Error al generar el PDF. Por favor, inténtalo de nuevo.");
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
+    <div className="bg-white rounded-xl shadow-lg p-6 overflow-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
@@ -376,21 +693,34 @@ export default function EbidtaComboView({ data, selectedUserName, selectedPeriod
             📊📈 Análisis Combo EBITDA
           </h2>
           <p className="text-gray-600">
-            EBITDA mensual (barras) + % margen EBITDA (línea) - Doble perspectiva del negocio
+            EBITDA mensual (barras) + % margen EBITDA (línea) - Doble
+            perspectiva del negocio
           </p>
           <div className="mt-2 text-sm text-gray-500">
-            <span className="font-medium">Usuario:</span> {selectedUserName || 'No seleccionado'} | 
-            <span className="font-medium ml-2">Período:</span> {selectedPeriod || 'No seleccionado'}
+            <span className="font-medium">Usuario:</span>{" "}
+            {selectedUserName || "No seleccionado"} |
+            <span className="font-medium ml-2">Período:</span>{" "}
+            {selectedPeriod || "No seleccionado"}
           </div>
         </div>
-        
+
         <div className="flex gap-2">
           <button
             onClick={exportPDF}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
             Exportar PDF
           </button>
@@ -398,13 +728,8 @@ export default function EbidtaComboView({ data, selectedUserName, selectedPeriod
       </div>
 
       {/* Chart Container */}
-      <div className="relative h-96 mb-6">
-        <Chart
-          type='bar'
-          ref={chartRef}
-          data={chartData}
-          options={options}
-        />
+      <div className="w-full h-[500px] mb-6 overflow-visible">
+        <Chart type="bar" ref={chartRef} data={chartData} options={options} />
       </div>
 
       {/* Summary Cards */}
@@ -412,49 +737,57 @@ export default function EbidtaComboView({ data, selectedUserName, selectedPeriod
         {comboData.length > 0 && (
           <>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="text-blue-700 text-sm font-medium">EBITDA Promedio</div>
+              <div className="text-blue-700 text-sm font-medium">
+                EBITDA Promedio
+              </div>
               <div className="text-blue-900 text-lg font-bold">
-                ${(comboData.reduce((acc, d) => acc + d.ebitda, 0) / comboData.length).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                $
+                {(
+                  comboData.reduce((acc, d) => acc + d.ebitda, 0) /
+                  comboData.length
+                ).toLocaleString("es-CL", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
               </div>
             </div>
-            
+
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="text-green-700 text-sm font-medium">Margen Promedio</div>
+              <div className="text-green-700 text-sm font-medium">
+                Margen Promedio
+              </div>
               <div className="text-green-900 text-lg font-bold">
-                {(comboData.reduce((acc, d) => acc + d.margenEbitda, 0) / comboData.length).toFixed(1)}%
+                {(
+                  comboData.reduce((acc, d) => acc + d.margenEbitda, 0) /
+                  comboData.length
+                ).toFixed(1)}
+                %
               </div>
             </div>
-            
+
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="text-amber-700 text-sm font-medium">EBITDA Máximo</div>
+              <div className="text-amber-700 text-sm font-medium">
+                EBITDA Máximo
+              </div>
               <div className="text-amber-900 text-lg font-bold">
-                ${Math.max(...comboData.map(d => d.ebitda)).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                $
+                {Math.max(...comboData.map((d) => d.ebitda)).toLocaleString(
+                  "es-CL",
+                  { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                )}
               </div>
             </div>
-            
+
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <div className="text-purple-700 text-sm font-medium">Margen Máximo</div>
+              <div className="text-purple-700 text-sm font-medium">
+                Margen Máximo
+              </div>
               <div className="text-purple-900 text-lg font-bold">
-                {Math.max(...comboData.map(d => d.margenEbitda)).toFixed(1)}%
+                {Math.max(...comboData.map((d) => d.margenEbitda)).toFixed(1)}%
               </div>
             </div>
           </>
         )}
-      </div>
-
-      {/* Insights Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">💡 Insights del Análisis</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="font-medium text-blue-700">Valores Absolutos:</span>
-            <p className="text-gray-600">Las barras azules muestran el EBITDA mensual en pesos, indicando la generación de valor absoluto.</p>
-          </div>
-          <div>
-            <span className="font-medium text-green-700">Rentabilidad:</span>
-            <p className="text-gray-600">La línea verde muestra el % margen EBITDA, indicando la eficiencia operativa del negocio.</p>
-          </div>
-        </div>
       </div>
 
       {/* Notes Section */}

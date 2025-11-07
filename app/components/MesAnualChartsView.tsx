@@ -41,6 +41,8 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
   const [notes, setNotes] = useState<string>('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chartRef = useRef<any>(null);
 
 
 
@@ -278,57 +280,57 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
       return;
     }
 
-    if (!contentRef.current) {
-      alert('Error: No se encontró el contenedor.');
-      return;
-    }
-
     setIsGeneratingPdf(true);
     console.log('🎯 Iniciando generación de PDF Mes-Anual...');
 
     try {
-      // Esperar un momento para que se renderice
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Capturar el contenido completo
-      const { default: html2canvas } = await import('html2canvas');
+      console.log('📈 Capturando gráfico...');
       
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 4,
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
-        backgroundColor: '#ffffff',
-        width: contentRef.current.scrollWidth,
-        height: contentRef.current.scrollHeight,
-        windowWidth: 1920,
-        windowHeight: 1080,
-        scrollX: 0,
-        scrollY: 0,
-        foreignObjectRendering: false,
-        imageTimeout: 15000,
-        removeContainer: true,
-        onclone: function(clonedDoc: Document) {
-          const clonedBody = clonedDoc.body;
-          if (clonedBody) {
-            clonedBody.style.setProperty('-webkit-font-smoothing', 'antialiased');
-            clonedBody.style.setProperty('-moz-osx-font-smoothing', 'grayscale');
-            clonedBody.style.textRendering = 'optimizeQuality';
+      // Capturar el gráfico
+      let chartImageData = '';
+      if (chartRef.current) {
+        try {
+          const canvas = chartRef.current.canvas;
+          if (canvas) {
+            chartImageData = canvas.toDataURL('image/png', 0.95);
+            console.log('✅ Gráfico capturado exitosamente');
+          } else {
+            console.warn('⚠️ Canvas del gráfico no encontrado');
           }
-        },
-      });
-      
-      const chartImageData = canvas.toDataURL('image/png', 1.0);
-      console.log('📊 Contenido capturado como imagen');
+        } catch (error) {
+          console.error('❌ Error capturando gráfico:', error);
+        }
+      }
 
-      // Generar HTML para Browserless
-      const currentDate = new Date().toLocaleString('es-CL', { 
+      // Generar HTML con tabla y datos para PDF
+      const currentDate = new Date().toLocaleDateString('es-ES', { 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       });
+
+      // Funciones de formato
+      const formatValue = (value: string | number | null | undefined): string => {
+        if (value === null || value === undefined || value === '') return '-';
+        if (typeof value === 'number') {
+          return new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP',
+            minimumFractionDigits: 0,
+          }).format(value);
+        }
+        return String(value);
+      };
+
+      const formatPercentage = (value: string | number | null | undefined): string => {
+        if (value === null || value === undefined || value === '') return '-';
+        if (typeof value === 'number') {
+          return `${value.toFixed(1)}%`;
+        }
+        return String(value);
+      };
 
       const html = `
         <!DOCTYPE html>
@@ -340,119 +342,94 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              font-family: 'Arial', sans-serif;
               background: #ffffff;
               color: #1f2937;
-              line-height: 1.5;
-              padding: 30px;
-              -webkit-font-smoothing: antialiased;
-              -moz-osx-font-smoothing: grayscale;
-              text-rendering: optimizeQuality;
-              font-feature-settings: "liga" 1, "calt" 1;
-              image-rendering: -webkit-optimize-contrast;
-              image-rendering: crisp-edges;
-              transform: scale(1);
-              transform-origin: top left;
+              line-height: 1.4;
+              padding: 20px;
             }
             .header {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              margin-bottom: 40px;
-              padding-bottom: 20px;
+              text-align: center;
+              margin-bottom: 10px;
               border-bottom: 3px solid #3b82f6;
+              padding-bottom: 15px;
             }
-            .header-left {
-              display: flex;
-              align-items: center;
-              gap: 15px;
+            .header h1 {
+              color: #3b82f6;
+              font-size: 28px;
+              margin: 0 0 10px 0;
+              font-weight: bold;
             }
-            .icon-container {
-              background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-              padding: 12px;
-              border-radius: 12px;
-              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-            }
-            .icon {
-              width: 24px;
-              height: 24px;
-              color: white;
-            }
-            .title {
-              font-size: 32px;
-              font-weight: 800;
-              color: #111827;
-              margin-bottom: 4px;
-            }
-            .subtitle {
-              font-size: 16px;
-              color: #6b7280;
-              font-weight: 500;
-            }
-            .date-info {
-              text-align: right;
+            .header p {
               color: #6b7280;
               font-size: 14px;
+              margin: 0;
             }
-            .content-container {
+            .chart-container {
+              text-align: center;
+              margin: 30px 0;
               background: white;
-              border-radius: 16px;
-              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-              padding: 30px;
-              margin-bottom: 40px;
+              border-radius: 12px;
+              padding: 20px;
               border: 1px solid #e5e7eb;
             }
-            .content-image {
-              width: 100%;
+            .chart-image {
+              max-width: 100%;
               height: auto;
               border-radius: 8px;
-              display: block;
-              image-rendering: -webkit-optimize-contrast;
-              image-rendering: -moz-crisp-edges;
-              image-rendering: crisp-edges;
-              image-rendering: pixelated;
-              image-orientation: none;
-              object-fit: contain;
-              object-position: center;
-              backface-visibility: hidden;
-              transform: translateZ(0);
             }
-            .notes-section {
+            .table-container {
               background: white;
-              border-radius: 16px;
-              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-              padding: 30px;
-              border: 1px solid #e5e7eb;
-              ${notes && notes.trim() ? '' : 'display: none;'}
-            }
-            .notes-header {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              margin-bottom: 20px;
-              padding-bottom: 15px;
-              border-bottom: 2px solid #f3f4f6;
-            }
-            .notes-icon {
-              width: 20px;
-              height: 20px;
-              color: #3b82f6;
-            }
-            .notes-title {
-              font-size: 20px;
-              font-weight: 700;
-              color: #111827;
-            }
-            .notes-content {
-              background: #f9fafb;
-              padding: 20px;
               border-radius: 12px;
-              border: 1px solid #e5e7eb;
-              font-size: 14px;
-              line-height: 1.7;
+              margin-bottom: 30px;
+              margin-top: 5px;
+              border: 2px solid #e5e7eb;
+              overflow: hidden;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            th {
+              background: #1e40af;
+              color: white;
+              padding: 12px;
+              text-align: center;
+              font-weight: bold;
+              font-size: 12px;
+            }
+            td {
+              padding: 10px;
+              text-align: center;
+              border-bottom: 1px solid #e5e7eb;
+              font-size: 11px;
+            }
+            tr:nth-child(even) {
+              background: #f8fafc;
+            }
+            tr:hover {
+              background: #e0f2fe;
+            }
+            .item-name {
+              text-align: left !important;
+              font-weight: 600;
               color: #374151;
-              white-space: pre-wrap;
-              word-wrap: break-word;
+            }
+            .month-value {
+              color: #3b82f6;
+              font-weight: 600;
+            }
+            .annual-value {
+              color: #059669;
+              font-weight: 600;
+            }
+            .percentage {
+              color: #dc2626;
+              font-weight: 600;
+            }
+            .average-value {
+              color: #7c3aed;
+              font-weight: 600;
             }
             .footer {
               margin-top: 40px;
@@ -466,53 +443,64 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
             }
             @media print {
               body { padding: 20px; }
-              .content-container { break-inside: avoid; }
+              .table-container { break-inside: avoid; }
             }
           </style>
         </head>
         <body>
           <div class="header">
-            <div class="header-left">
-              <div class="icon-container">
-                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div>
-                <h1 class="title">Comparación ${selectedMonth} vs Anual</h1>
-                <p class="subtitle">Período: ${periodLabel}</p>
-              </div>
-            </div>
-            <div class="date-info">
-              <p><strong>Generado:</strong> ${currentDate}</p>
-              <p>BISM Dashboard</p>
-            </div>
+            <h1>Comparación ${selectedMonth} vs Anual</h1>
+            <p>Período: ${periodLabel} | Generado: ${currentDate}</p>
           </div>
 
-          <div class="content-container">
-            <img src="${chartImageData}" alt="Comparación ${selectedMonth} vs Anual" class="content-image" />
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ÍTEM</th>
+                  <th>${selectedMonth.toUpperCase()}</th>
+                  <th>ACUMULADO 2024</th>
+                  <th>%</th>
+                  <th>PROMEDIO ANUAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableData.map(row => `
+                  <tr>
+                    <td class="item-name">${row.item}</td>
+                    <td class="month-value">${formatValue(row.mes)}</td>
+                    <td class="annual-value">${formatValue(row.acumulado)}</td>
+                    <td class="percentage">${formatPercentage(row.porcentaje)}</td>
+                    <td class="average-value">${formatValue(row.promedio)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
           </div>
+
+          ${chartImageData ? `
+          <div class="chart-container">
+            <img src="${chartImageData}" alt="Gráfico de comparación" class="chart-image" />
+          </div>
+          ` : ''}
 
           ${notes && notes.trim() ? `
-          <div class="notes-section">
-            <div class="notes-header">
-              <svg class="notes-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <h2 class="notes-title">Notas y Observaciones</h2>
-            </div>
-            <div class="notes-content">${notes.replace(/\n/g, '\n')}</div>
+          <div style="background: #ffffff; border: 2px solid #cdcac5d8; border-radius: 12px; padding: 20px; margin-top: 30px;">
+            <h3 style="color: #000000; margin: 0 0 15px 0; font-size: 18px;">Notas y Observaciones</h3>
+            <div style="color: #000011; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${notes}</div>
           </div>
           ` : ''}
 
           <div class="footer">
-            <span>Documento generado automáticamente por BISM Dashboard</span>
-            <span>Comparación ${selectedMonth} vs Datos Anuales - ${periodLabel}</span>
+            <span>BISM Dashboard - Documento generado automáticamente</span>
+            <span>Comparación ${selectedMonth} vs Datos Anuales ${periodLabel}</span>
           </div>
         </body>
         </html>
       `;
 
+      console.log('📤 Enviando HTML a API de generación de PDF...');
+      
       // Enviar a Browserless
       const response = await fetch('/api/generate-pdf', {
         method: 'POST',
@@ -525,12 +513,24 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
         }),
       });
 
+      console.log('📡 Respuesta del API recibida:', response.status);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.useClientFallback) {
-          throw new Error('Browserless no disponible, usando método local');
+        let errorMessage = `Error HTTP ${response.status}: ${response.statusText}`;
+        
+        try {
+          const errorData = await response.json();
+          console.error('❌ Error del API:', errorData);
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          
+          if (errorData.useClientFallback) {
+            throw new Error('Browserless no disponible: ' + errorMessage);
+          }
+        } catch {
+          console.error('❌ No se pudo parsear la respuesta de error');
         }
-        throw new Error(`Error del servidor: ${response.statusText}`);
+        
+        throw new Error(errorMessage);
       }
 
       // Descargar PDF
@@ -792,7 +792,7 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
 
           {selectedItemForChart && chartData ? (
             <div className="h-200">
-              <Bar data={chartData} options={chartOptions} />
+              <Bar ref={chartRef} data={chartData} options={chartOptions} />
             </div>
           ) : (
             <div className="h-200 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg">
