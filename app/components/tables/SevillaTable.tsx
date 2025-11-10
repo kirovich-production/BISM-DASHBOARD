@@ -417,7 +417,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
             {/* Header de la tabla */}
             <thead className="bg-indigo-600 sticky top-0 z-10">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider border-r border-indigo-500">
+                <th scope="col" className="sticky left-0 z-20 px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider border-r border-indigo-500 bg-indigo-600 shadow-lg">
                   Concepto
                 </th>
                 {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
@@ -440,7 +440,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                 </th>
               </tr>
               <tr>
-                <th scope="col" className="px-6 py-2 bg-indigo-700 border-r border-indigo-500"></th>
+                <th scope="col" className="sticky left-0 z-20 px-6 py-2 bg-indigo-700 border-r border-indigo-500 shadow-lg"></th>
                 {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
                   <React.Fragment key={monthIdx}>
                     <th className="px-3 py-2 text-center text-xs font-medium text-white bg-indigo-700 border-r border-indigo-600">
@@ -471,7 +471,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                 <tr key={`cat-${categoryIndex}`} className="bg-gradient-to-r from-indigo-100 to-indigo-50 border-t-2 border-indigo-300">
                   <td
                     colSpan={1 + (data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).length * 2) + 3}
-                    className="px-6 py-3 text-sm font-bold text-indigo-900 uppercase tracking-wide"
+                    className="sticky left-0 z-10 px-6 py-3 text-sm font-bold text-indigo-900 uppercase tracking-wide bg-gradient-to-r from-indigo-100 to-indigo-50 shadow-lg"
                   >
                     {category.name}
                   </td>
@@ -483,7 +483,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                     key={`cat-${categoryIndex}-row-${rowIndex}`}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-6 py-3 text-sm text-gray-900 whitespace-nowrap border-r border-gray-200">
+                    <td className="sticky left-0 z-10 px-6 py-3 text-sm text-gray-900 whitespace-nowrap border-r border-gray-200 bg-white shadow-lg">
                       {row.Item}
                     </td>
                     {/* Meses normales (solo Monto y %) */}
@@ -516,7 +516,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
                     key={`cat-${categoryIndex}-total`}
                     className="bg-indigo-50 font-semibold border-t-2 border-indigo-200"
                   >
-                    <td className="px-6 py-3 text-sm text-indigo-900 font-bold whitespace-nowrap border-r border-indigo-200">
+                    <td className="sticky left-0 z-10 px-6 py-3 text-sm text-indigo-900 font-bold whitespace-nowrap border-r border-indigo-200 bg-indigo-50 shadow-lg">
                       {category.total.Item}
                     </td>
                     {/* Meses normales (solo Monto y %) */}
