@@ -469,11 +469,13 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
               {data.categories.flatMap((category: EERRCategory, categoryIndex: number) => [
                 // FILA DE CATEGORÍA (título con estilo especial)
                 <tr key={`cat-${categoryIndex}`} className="bg-gradient-to-r from-indigo-100 to-indigo-50 border-t-2 border-indigo-300">
-                  <td
-                    colSpan={1 + (data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).length * 2) + 3}
-                    className="sticky left-0 z-10 px-6 py-3 text-sm font-bold text-indigo-900 uppercase tracking-wide bg-gradient-to-r from-indigo-100 to-indigo-50 shadow-lg"
-                  >
+                  <td className="sticky left-0 z-10 px-6 py-3 text-sm font-bold text-indigo-900 uppercase tracking-wide bg-gradient-to-r from-indigo-100 to-indigo-50 shadow-lg">
                     {category.name}
+                  </td>
+                  <td
+                    colSpan={(data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).length * 2) + 3}
+                    className="px-6 py-3 text-sm font-bold text-indigo-900 uppercase tracking-wide bg-gradient-to-r from-indigo-100 to-indigo-50"
+                  >
                   </td>
                 </tr>,
 
