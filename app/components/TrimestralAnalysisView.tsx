@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -14,7 +14,7 @@ import {
   Legend,
   ChartOptions,
 } from "chart.js";
-import type { ExcelRow } from "@/types";
+import type { ExcelRow, EERRData } from "@/types";
 
 // Registrar componentes de Chart.js
 ChartJS.register(
@@ -29,7 +29,9 @@ ChartJS.register(
 );
 
 interface TrimestralAnalysisViewProps {
-  data: ExcelRow[];
+  consolidadoData: ExcelRow[];
+  sevillaData: EERRData | null;
+  labranzaData: EERRData | null;
   periodLabel: string;
 }
 
@@ -76,9 +78,12 @@ const parseValue = (value: string | number | undefined): number => {
 };
 
 export default function TrimestralAnalysisView({
-  data,
+  consolidadoData,
+  sevillaData,
+  labranzaData,
   periodLabel,
 }: TrimestralAnalysisViewProps) {
+  const [selectedUnit, setSelectedUnit] = useState<'consolidado' | 'sevilla' | 'labranza'>('consolidado');
   const [selectedQuarter1, setSelectedQuarter1] = useState<QuarterKey>("Q1");
   const [selectedQuarter2, setSelectedQuarter2] = useState<QuarterKey>("Q3");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -89,21 +94,59 @@ export default function TrimestralAnalysisView({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Limpiar ítems seleccionados cuando cambie la unidad
+  useEffect(() => {
+    setSelectedItems([]);
+  }, [selectedUnit]);
+
+  // Función para convertir EERRData a ExcelRow[]
+  const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
+    const rows: ExcelRow[] = [];
+    
+    eerrData.categories.forEach(category => {
+      category.rows.forEach(row => {
+        rows.push(row);
+      });
+      
+      // Agregar fila de total si existe
+      if (category.total) {
+        rows.push(category.total);
+      }
+    });
+    
+    return rows;
+  };
+
+  // Función para obtener datos activos según la unidad seleccionada
+  const getActiveData = (): ExcelRow[] => {
+    switch(selectedUnit) {
+      case 'sevilla': 
+        return sevillaData ? convertEERRToExcelRows(sevillaData) : [];
+      case 'labranza': 
+        return labranzaData ? convertEERRToExcelRows(labranzaData) : [];
+      case 'consolidado': 
+      default: 
+        return consolidadoData || [];
+    }
+  };
+
+  const activeData = getActiveData();
+
   // Extraer ítems disponibles
   const availableItems = useMemo(() => {
-    return data
-      .map((row) => row.Item)
+    return activeData
+      .map((row: ExcelRow) => row.Item)
       .filter(
         (item): item is string => typeof item === "string" && item.trim() !== ""
       )
       .slice(0, 20); // Limitar para performance
-  }, [data]);
+  }, [activeData]);
 
   // Función para calcular métricas trimestrales
   const calculateQuarterMetrics = useMemo(
     () => (quarterKey: QuarterKey, item: string) => {
       const quarter = QUARTERS[quarterKey];
-      const itemRow = data.find((row) => row.Item === item);
+      const itemRow = activeData.find((row: ExcelRow) => row.Item === item);
 
       if (!itemRow)
         return {
@@ -127,7 +170,7 @@ export default function TrimestralAnalysisView({
 
       return { total, average, peak, peakMonth, values };
     },
-    [data]
+    [activeData]
   );
 
   // Datos para gráfico de comparación trimestral
@@ -183,7 +226,7 @@ export default function TrimestralAnalysisView({
 
     const datasets = selectedItems
       .map((item, index) => {
-        const itemRow = data.find((row) => row.Item === item);
+        const itemRow = activeData.find((row: ExcelRow) => row.Item === item);
         if (!itemRow) return null;
 
         const values = allMonths.map((month) =>
@@ -223,7 +266,7 @@ export default function TrimestralAnalysisView({
       labels: allMonths.map((month) => month.substring(0, 3)), // Abreviar nombres
       datasets,
     };
-  }, [selectedQuarter1, selectedQuarter2, selectedItems, data]);
+  }, [selectedQuarter1, selectedQuarter2, selectedItems, activeData]);
 
   // Opciones del gráfico de comparación
   const comparisonOptions: ChartOptions<"bar"> = {
@@ -753,6 +796,17 @@ export default function TrimestralAnalysisView({
               <p className="text-sm text-gray-800">
                 Período: {periodLabel} - Análisis por Q1, Q2, Q3, Q4
               </p>
+              <div className="mt-2">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
+                  selectedUnit === 'consolidado' ? 'bg-blue-100 text-blue-800' :
+                  selectedUnit === 'sevilla' ? 'bg-indigo-100 text-indigo-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
+                  {selectedUnit === 'consolidado' ? '📊 Datos Consolidado' :
+                   selectedUnit === 'sevilla' ? '🏪 Datos Sevilla' :
+                   '🌾 Datos Labranza'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -804,6 +858,89 @@ export default function TrimestralAnalysisView({
               </>
             )}
           </button>
+        </div>
+      </div>
+
+      {/* Selector de Unidad de Negocio */}
+      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          🏢 Unidad de Negocio
+        </h3>
+        
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => setSelectedUnit('consolidado')}
+            className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
+              selectedUnit === 'consolidado'
+                ? 'bg-blue-500 text-white border-blue-500 shadow-lg'
+                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300'
+            }`}
+          >
+            📊 Consolidado
+            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              {consolidadoData?.length || 0}
+            </span>
+          </button>
+          
+          <button
+            onClick={() => setSelectedUnit('sevilla')}
+            disabled={!sevillaData}
+            className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
+              selectedUnit === 'sevilla'
+                ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg'
+                : sevillaData 
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300'
+                  : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+            }`}
+          >
+            🏪 Sevilla
+            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+              sevillaData 
+                ? 'bg-indigo-100 text-indigo-800' 
+                : 'bg-gray-200 text-gray-500'
+            }`}>
+              {sevillaData ? convertEERRToExcelRows(sevillaData).length : 0}
+            </span>
+          </button>
+          
+          <button
+            onClick={() => setSelectedUnit('labranza')}
+            disabled={!labranzaData}
+            className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
+              selectedUnit === 'labranza'
+                ? 'bg-green-500 text-white border-green-500 shadow-lg'
+                : labranzaData 
+                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:border-green-300'
+                  : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+            }`}
+          >
+            🌾 Labranza
+            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+              labranzaData 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-gray-200 text-gray-500'
+            }`}>
+              {labranzaData ? convertEERRToExcelRows(labranzaData).length : 0}
+            </span>
+          </button>
+        </div>
+        
+        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-700">
+            <span className="font-semibold">Unidad activa:</span> 
+            <span className={`ml-2 px-3 py-1 rounded-full text-xs font-semibold ${
+              selectedUnit === 'consolidado' ? 'bg-blue-100 text-blue-800' :
+              selectedUnit === 'sevilla' ? 'bg-indigo-100 text-indigo-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {selectedUnit === 'consolidado' ? '📊 Consolidado' :
+               selectedUnit === 'sevilla' ? '🏪 Sevilla' :
+               '🌾 Labranza'}
+            </span>
+            <span className="ml-3 text-gray-600">
+              • {activeData.length} ítems disponibles
+            </span>
+          </p>
         </div>
       </div>
 
@@ -921,7 +1058,7 @@ export default function TrimestralAnalysisView({
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-            {availableItems.map((item, index) => (
+            {availableItems.map((item: string, index: number) => (
               <button
                 key={item}
                 onClick={() => toggleItem(item)}

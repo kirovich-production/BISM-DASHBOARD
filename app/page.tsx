@@ -659,7 +659,9 @@ export default function Home() {
                 />
               ) : activeView === 'analisis-trimestral' ? (
                 <TrimestralAnalysisView
-                  data={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
+                  consolidadoData={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
+                  sevillaData={excelData.sevilla || null}
+                  labranzaData={excelData.labranza || null}
                   periodLabel={excelData.periodLabel}
                 />
               ) : activeView === 'mes-anual' ? (
