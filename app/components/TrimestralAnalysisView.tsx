@@ -77,6 +77,24 @@ const parseValue = (value: string | number | undefined): number => {
   return 0;
 };
 
+// Función para convertir EERRData a ExcelRow[]
+const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
+  const rows: ExcelRow[] = [];
+  
+  eerrData.categories.forEach(category => {
+    category.rows.forEach(row => {
+      rows.push(row);
+    });
+    
+    // Agregar fila de total si existe
+    if (category.total) {
+      rows.push(category.total);
+    }
+  });
+  
+  return rows;
+};
+
 export default function TrimestralAnalysisView({
   consolidadoData,
   sevillaData,
@@ -94,28 +112,42 @@ export default function TrimestralAnalysisView({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Limpiar ítems seleccionados cuando cambie la unidad
+  // Limpiar ítems seleccionados cuando cambie la unidad y auto-seleccionar algunos ítems
   useEffect(() => {
+    console.log("🔄 Cambiando unidad a:", selectedUnit);
     setSelectedItems([]);
-  }, [selectedUnit]);
-
-  // Función para convertir EERRData a ExcelRow[]
-  const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
-    const rows: ExcelRow[] = [];
     
-    eerrData.categories.forEach(category => {
-      category.rows.forEach(row => {
-        rows.push(row);
-      });
-      
-      // Agregar fila de total si existe
-      if (category.total) {
-        rows.push(category.total);
+    // Auto-seleccionar los primeros 3 ítems si hay datos disponibles
+    setTimeout(() => {
+      // Obtener datos activos según la unidad seleccionada directamente
+      let currentActiveData: ExcelRow[] = [];
+      switch(selectedUnit) {
+        case 'sevilla': 
+          currentActiveData = sevillaData ? convertEERRToExcelRows(sevillaData) : [];
+          break;
+        case 'labranza': 
+          currentActiveData = labranzaData ? convertEERRToExcelRows(labranzaData) : [];
+          break;
+        case 'consolidado': 
+        default: 
+          currentActiveData = consolidadoData || [];
+          break;
       }
-    });
-    
-    return rows;
-  };
+      
+      console.log("📊 Datos activos disponibles:", currentActiveData.length);
+      console.log("🏷️ Primeros ítems disponibles:", currentActiveData.slice(0, 5).map(row => row.Item));
+      
+      if (currentActiveData.length > 0) {
+        const firstItems = currentActiveData
+          .slice(0, 3)
+          .map(row => row.Item)
+          .filter(item => typeof item === "string" && item.trim() !== "");
+        
+        console.log("🎯 Auto-seleccionando ítems:", firstItems);
+        setSelectedItems(firstItems);
+      }
+    }, 100);
+  }, [selectedUnit, consolidadoData, sevillaData, labranzaData]);
 
   // Función para obtener datos activos según la unidad seleccionada
   const getActiveData = (): ExcelRow[] => {
