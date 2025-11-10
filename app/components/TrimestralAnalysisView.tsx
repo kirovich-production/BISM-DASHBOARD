@@ -139,7 +139,7 @@ export default function TrimestralAnalysisView({
       .filter(
         (item): item is string => typeof item === "string" && item.trim() !== ""
       )
-      .slice(0, 20); // Limitar para performance
+      .slice(0, 100); // Aumentar límite para mostrar más ítems
   }, [activeData]);
 
   // Función para calcular métricas trimestrales
