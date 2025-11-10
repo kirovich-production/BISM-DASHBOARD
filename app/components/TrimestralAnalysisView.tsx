@@ -149,6 +149,13 @@ export default function TrimestralAnalysisView({
     }, 100);
   }, [selectedUnit, consolidadoData, sevillaData, labranzaData]);
 
+  // Logging para debug de selectedItems
+  useEffect(() => {
+    console.log("🎨 selectedItems cambió:", selectedItems);
+    console.log("📊 selectedItems.length:", selectedItems.length);
+    console.log("🔍 ¿Debe mostrar gráfico?", selectedItems.length > 0);
+  }, [selectedItems]);
+
   // Función para obtener datos activos según la unidad seleccionada
   const getActiveData = (): ExcelRow[] => {
     switch(selectedUnit) {
@@ -177,10 +184,12 @@ export default function TrimestralAnalysisView({
   // Función para calcular métricas trimestrales
   const calculateQuarterMetrics = useMemo(
     () => (quarterKey: QuarterKey, item: string) => {
+      console.log(`📊 Calculando métricas para: ${item} en ${quarterKey}`);
       const quarter = QUARTERS[quarterKey];
       const itemRow = activeData.find((row: ExcelRow) => row.Item === item);
 
-      if (!itemRow)
+      if (!itemRow) {
+        console.log(`❌ No se encontró itemRow para: ${item}`);
         return {
           total: 0,
           average: 0,
@@ -188,10 +197,25 @@ export default function TrimestralAnalysisView({
           peakMonth: "",
           values: [0, 0, 0],
         };
+      }
 
+      console.log(`✅ ItemRow encontrado para ${item}:`, Object.keys(itemRow));
+      
+      // Buscar columnas que contengan nombres de meses
+      const monthColumns = Object.keys(itemRow).filter(key => 
+        key.includes('Enero') || key.includes('Febrero') || key.includes('Marzo') ||
+        key.includes('Abril') || key.includes('Mayo') || key.includes('Junio') ||
+        key.includes('Julio') || key.includes('Agosto') || key.includes('Septiembre') ||
+        key.includes('Octubre') || key.includes('Noviembre') || key.includes('Diciembre')
+      );
+      console.log(`🗓️ Columnas de meses encontradas:`, monthColumns);
+      
       const values = quarter.months.map((month) => {
-        const value = parseValue(itemRow[`${month} Monto`]);
-        return value;
+        const columnName = `${month} Monto`;
+        const rawValue = itemRow[columnName];
+        const parsedValue = parseValue(rawValue);
+        console.log(`   ${month}: ${columnName} = ${rawValue} → ${parsedValue}`);
+        return parsedValue;
       });
 
       const total = values.reduce((acc, val) => acc + val, 0);
@@ -207,17 +231,23 @@ export default function TrimestralAnalysisView({
 
   // Datos para gráfico de comparación trimestral
   const comparisonChartData = useMemo(() => {
+    console.log("🎯 Generando comparisonChartData");
+    console.log("📋 selectedItems:", selectedItems);
+    console.log("📊 activeData length:", activeData.length);
+    
     // Labels serán los nombres de los ítems seleccionados
     const labels = selectedItems;
 
     // Crear dos datasets: uno para cada trimestre
     const q1Data = selectedItems.map((item) => {
       const metrics = calculateQuarterMetrics(selectedQuarter1, item);
+      console.log(`${selectedQuarter1} ${item}:`, metrics.total);
       return metrics.total;
     });
 
     const q2Data = selectedItems.map((item) => {
       const metrics = calculateQuarterMetrics(selectedQuarter2, item);
+      console.log(`${selectedQuarter2} ${item}:`, metrics.total);
       return metrics.total;
     });
 
@@ -247,6 +277,7 @@ export default function TrimestralAnalysisView({
     selectedQuarter2,
     selectedItems,
     calculateQuarterMetrics,
+    activeData,
   ]); // Datos para gráfico de evolución mensual
   const evolutionChartData = useMemo(() => {
     if (selectedItems.length === 0) return { labels: [], datasets: [] };
