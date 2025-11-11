@@ -211,10 +211,21 @@ export default function TrimestralAnalysisView({
       console.log(`🗓️ Columnas de meses encontradas:`, monthColumns);
       
       const values = quarter.months.map((month) => {
-        const columnName = `${month} Monto`;
-        const rawValue = itemRow[columnName];
+        // Intentar ambos formatos: "Enero Monto" y "ENERO Monto"
+        const columnName1 = `${month} Monto`;           // Formato normal: "Enero Monto"
+        const columnName2 = `${month.toUpperCase()} Monto`;  // Formato mayúscula: "ENERO Monto"
+        
+        let rawValue = itemRow[columnName1];
+        let usedColumnName = columnName1;
+        
+        // Si no encuentra con formato normal, intenta con mayúsculas
+        if (rawValue === undefined) {
+          rawValue = itemRow[columnName2];
+          usedColumnName = columnName2;
+        }
+        
         const parsedValue = parseValue(rawValue);
-        console.log(`   ${month}: ${columnName} = ${rawValue} → ${parsedValue}`);
+        console.log(`   ${month}: ${usedColumnName} = ${rawValue} → ${parsedValue}`);
         return parsedValue;
       });
 
