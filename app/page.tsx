@@ -41,31 +41,22 @@ export default function Home() {
     periods?: AbortController;
     data?: AbortController;
   }>({});
-  // const [sessionLoading, setSessionLoading] = useState(true); // TODO: Usar para spinner de carga
 
   // 🔄 Cargar sesión desde servidor (DB Sessions) al montar el componente
   useEffect(() => {
     const loadSession = async () => {
       try {
-        console.log('🔍 [SESSION] Verificando sesión activa...');
-        
         const response = await fetch('/api/auth/session');
         const result = await response.json();
         
         if (result.success && result.userId && result.userName) {
-          console.log('✅ [SESSION] Sesión válida encontrada:', result.userName);
           setSelectedUserId(result.userId);
           setSelectedUserName(result.userName);
           setUploadUserId(result.userId);
           setUploadUserName(result.userName);
-        } else {
-          console.log('ℹ️ [SESSION] No hay sesión activa o sesión inválida');
-          // No hay sesión válida, el usuario deberá seleccionar
         }
-      } catch (error) {
-        console.error('❌ [SESSION] Error al cargar sesión:', error);
-      } finally {
-        // setSessionLoading(false); // TODO: Descomentar cuando se use sessionLoading
+      } catch {
+        // Error loading session
       }
     };
 
@@ -118,7 +109,6 @@ export default function Home() {
 
     // Prevenir llamadas duplicadas
     if (fetchPeriodsInProgress.current) {
-      console.log('⏭️ [fetchPeriods] Ya hay un fetch en progreso, saltando...');
       return;
     }
 
@@ -152,12 +142,9 @@ export default function Home() {
         }
       } else if (result.periods && result.periods.length === 0 && selectedUserName) {
         // 🔍 Usuario guardado en localStorage pero sin períodos (posiblemente eliminado)
-        console.warn('⚠️ [fetchPeriods] Usuario guardado pero sin períodos. Verificando si existe...');
-        
         // Intentar verificar si el usuario existe consultando la API
         // Si no hay períodos, probablemente el usuario fue eliminado
         // Limpiar localStorage para evitar confusión
-        console.log('🗑️ [fetchPeriods] Limpiando localStorage de usuario inexistente');
         localStorage.removeItem('bism_selectedUserId');
         localStorage.removeItem('bism_selectedUserName');
         setSelectedUserId(null);
@@ -169,10 +156,8 @@ export default function Home() {
     } catch (error) {
       // Ignorar errores de abort
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('⏭️ [fetchPeriods] Request cancelado (nuevo fetch en progreso)');
         return;
       }
-      console.error('Error al cargar períodos:', error);
     } finally {
       fetchPeriodsInProgress.current = false;
     }
@@ -187,7 +172,6 @@ export default function Home() {
     // Prevenir llamadas duplicadas al mismo período
     const cacheKey = `${period}-${selectedUserName}`;
     if (fetchDataInProgress.current || lastFetchedPeriod.current === cacheKey) {
-      console.log('⏭️ [fetchData] Ya hay un fetch en progreso o período ya cargado, saltando...');
       return;
     }
 
@@ -227,10 +211,8 @@ export default function Home() {
     } catch (error) {
       // Ignorar errores de abort
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('⏭️ [fetchData] Request cancelado (nuevo fetch en progreso)');
         return;
       }
-      console.error('Error al cargar datos:', error);
     } finally {
       setLoadingData(false);
       fetchDataInProgress.current = false;
@@ -250,8 +232,6 @@ export default function Home() {
   };
 
   const handleUserChange = (userId: string, userName: string) => {
-    console.log('👤 [handleUserChange] Cambiando usuario:', userName, '(ID:', userId, ')');
-    
     setUploadUserId(userId);
     setUploadUserName(userName);
     
@@ -271,8 +251,6 @@ export default function Home() {
   // 💾 Crear sesión en servidor
   const createSession = async (userId: string, userName: string) => {
     try {
-      console.log('💾 [SESSION] Creando sesión para:', userName);
-      
       const response = await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -282,26 +260,21 @@ export default function Home() {
       const result = await response.json();
       
       if (result.success) {
-        console.log('✅ [SESSION] Sesión creada exitosamente');
-      } else {
-        console.error('❌ [SESSION] Error al crear sesión:', result.error);
+        } else {
+        }
+    } catch {
+      // Error creating session
       }
-    } catch (error) {
-      console.error('❌ [SESSION] Error al crear sesión:', error);
-    }
   };
 
   // 🗑️ Cerrar sesión
   const deleteSession = async () => {
     try {
-      console.log('🗑️ [SESSION] Cerrando sesión...');
-      
       await fetch('/api/auth/session', { method: 'DELETE' });
       
-      console.log('✅ [SESSION] Sesión cerrada');
-    } catch (error) {
-      console.error('❌ [SESSION] Error al cerrar sesión:', error);
-    }
+      } catch {
+      // Error closing session
+      }
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -355,8 +328,6 @@ export default function Home() {
         setSelectedPeriod(result.period);
         
         // 🎯 NUEVA LÓGICA: Crear sesión y redirigir a dashboard
-        console.log('✅ [handleUpload] Archivo cargado exitosamente, creando sesión y redirigiendo...');
-        
         // Crear sesión con el usuario que subió los datos
         await createSession(uploadUserId, uploadUserName);
         
@@ -372,8 +343,7 @@ export default function Home() {
       } else {
         setMessage({ type: 'error', text: `❌ ${result.error}` });
       }
-    } catch (error) {
-      console.error('Error:', error);
+    } catch {
       setMessage({ type: 'error', text: '❌ Error al subir el archivo' });
     } finally {
       setLoading(false);
@@ -652,7 +622,7 @@ export default function Home() {
                 />
               ) : activeView === 'consolidado' ? (
                 <TableView
-                  sections={excelData.sections || []}
+                  sections={excelData.consolidado || []}
                   periodLabel={excelData.periodLabel}
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}

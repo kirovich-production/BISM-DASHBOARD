@@ -23,9 +23,6 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
     includeAnual: boolean = false,
     year?: number
   ): string => {
-    console.log('🔍 Generando página:', pageTitle);
-    console.log('📊 Datos recibidos:', data?.length || 0, 'filas');
-    console.log('📅 Meses visibles:', visibleMonths);
     // Crear tabla HTML manualmente
     const formatValue = (value: unknown, isPercentage: boolean = false): string => {
       if (value === null || value === undefined || value === '') return '-';
@@ -136,7 +133,6 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
     if (!contentRef.current || isGeneratingPdf) return;
 
     setIsGeneratingPdf(true);
-    console.log('🎯 Iniciando generación de PDF multi-página (Consolidado)...');
 
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'fixed bottom-20 right-6 bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999] flex items-center gap-3';
@@ -150,7 +146,6 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
     document.body.appendChild(loadingDiv);
 
     try {
-      console.log('📄 Generando PDF multi-página con Browserless.io...');
       
       // Obtener datos de consolidado
       const consolidadosSection = sections.find(s => s.name === 'Consolidados');
@@ -180,7 +175,6 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
       );
 
       // Generar PDF multi-página usando la nueva API route
-      console.log('📄 Generando PDF multi-página...');
       const response = await fetch('/api/generate-pdf-multipage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -208,13 +202,11 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
       
       window.URL.revokeObjectURL(url);
 
-      console.log('✅ PDFs multi-página generados exitosamente');
 
     } catch (error) {
       console.error('❌ Error generando PDF con Browserless.io:', error);
       
       // Método de respaldo con jsPDF
-      console.log('🔄 Intentando método de respaldo con jsPDF...');
       try {
         const jsPDF = (await import('jspdf')).default;
         const html2canvas = (await import('html2canvas')).default;
@@ -247,7 +239,6 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
         pdf.addImage(imgData, 'PNG', 0, 0, scaledWidth, scaledHeight);
         pdf.save(`Consolidado_${periodLabel}_Respaldo.pdf`);
 
-        console.log('✅ PDF de respaldo generado exitosamente');
 
       } catch (fallbackError) {
         console.error('❌ Error con método de respaldo:', fallbackError);

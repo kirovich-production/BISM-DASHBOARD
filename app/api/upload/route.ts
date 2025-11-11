@@ -50,27 +50,18 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
-    console.log('='.repeat(60));
-    console.log(`[UPLOAD] 📂 Procesando archivo: ${file.name}`);
-    console.log(`[UPLOAD] 👤 Usuario: ${userName} (ID: ${userId})`);
-    console.log(`[UPLOAD] 📅 Período: ${periodLabel} (${period})`);
+   
     
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     
-    console.log(`[UPLOAD] 📋 Hojas en el Excel: ${workbook.SheetNames.join(', ')}`);
-    console.log('='.repeat(60));
     
     // Parsear las 3 hojas con las nuevas funciones
-    console.log('[UPLOAD] 🔄 Iniciando parseo de hojas...');
     
     const consolidadoData = parseConsolidado(workbook);
-    console.log(`[UPLOAD] Consolidado: ${consolidadoData ? '✅ OK' : '❌ FALLÓ'}`);
     
     const sevillaData = parseEERR(workbook, 'EERR SEVILLA');
-    console.log(`[UPLOAD] EERR SEVILLA: ${sevillaData ? '✅ OK' : '⚠️ No encontrada'}`);
     
     const labranzaData = parseEERR(workbook, 'EERR LABRANZA');
-    console.log(`[UPLOAD] EERR LABRANZA: ${labranzaData ? '✅ OK' : '⚠️ No encontrada'}`);
 
     // Validar que al menos tengamos la hoja consolidado
     if (!consolidadoData) {
@@ -118,14 +109,8 @@ export async function POST(request: NextRequest) {
 
     // Insertar documento completo en MongoDB
     const result = await collection.insertOne(document);
-    
-    console.log('[UPLOAD] ✅ Documento guardado en MongoDB:', {
-      insertedId: result.insertedId,
-      collection: collectionName,
-      period: periodLabel,
-      sectionsFound: consolidadoData?.map(s => s.name) || []
-    });
-    console.log('='.repeat(60));
+  
+
 
     return NextResponse.json({
       success: true,

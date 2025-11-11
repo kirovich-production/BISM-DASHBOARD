@@ -336,10 +336,8 @@ export default function MesAnualChartsView({
     }
 
     setIsGeneratingPdf(true);
-    console.log('🎯 Iniciando generación de PDF Mes-Anual...');
 
     try {
-      console.log('📈 Capturando gráfico...');
       
       // Capturar el gráfico
       let chartImageData = '';
@@ -348,7 +346,6 @@ export default function MesAnualChartsView({
           const canvas = chartRef.current.canvas;
           if (canvas) {
             chartImageData = canvas.toDataURL('image/png', 0.95);
-            console.log('✅ Gráfico capturado exitosamente');
           } else {
             console.warn('⚠️ Canvas del gráfico no encontrado');
           }
@@ -554,7 +551,6 @@ export default function MesAnualChartsView({
         </html>
       `;
 
-      console.log('📤 Enviando HTML a API de generación de PDF...');
       
       // Enviar a Browserless
       const response = await fetch('/api/generate-pdf', {
@@ -568,7 +564,6 @@ export default function MesAnualChartsView({
         }),
       });
 
-      console.log('📡 Respuesta del API recibida:', response.status);
 
       if (!response.ok) {
         let errorMessage = `Error HTTP ${response.status}: ${response.statusText}`;
@@ -600,7 +595,6 @@ export default function MesAnualChartsView({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      console.log('✅ PDF generado exitosamente');
       
     } catch (error) {
       console.error('❌ Error generando PDF:', error);

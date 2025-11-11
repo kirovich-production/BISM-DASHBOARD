@@ -41,7 +41,6 @@ export interface EERRData {
   sheetName: string;
   months: string[];
   categories: EERRCategory[];
-  rawData?: unknown[];
 }
 
 // Tipos para los datos del Excel formato antiguo (Consolidado)
@@ -96,9 +95,6 @@ export interface UploadedDocument {
   consolidado?: ExcelSection[];  // Formato antiguo (3 secciones: Labranza, Sevilla, Consolidados)
   sevilla?: EERRData;            // Nuevo formato EERR Sevilla
   labranza?: EERRData;           // Nuevo formato EERR Labranza
-  
-  // DEPRECATED (mantener compatibilidad temporal):
-  sections?: ExcelSection[];
 }
 
 export interface UploadResponse {

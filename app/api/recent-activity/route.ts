@@ -8,7 +8,7 @@ interface Upload {
   period: string;
   periodLabel: string;
   version: number;
-  sections: Array<{ name: string; data: unknown[] }>;
+  consolidado?: Array<{ name: string; data: unknown[] }>;
   uploadedAt: Date;
 }
 
@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
       period: upload.period,
       periodLabel: upload.periodLabel,
       version: upload.version,
-      sections: upload.sections.map(s => s.name),
-      recordsCount: upload.sections.reduce((acc, s) => acc + s.data.length, 0),
+      sections: upload.consolidado?.map(s => s.name) || [],
+      recordsCount: upload.consolidado?.reduce((acc, s) => acc + s.data.length, 0) || 0,
       timestamp: upload.uploadedAt,
     }));
 

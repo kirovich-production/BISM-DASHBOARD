@@ -7,7 +7,6 @@ import { cleanExpiredSessions } from '@/lib/sessionCleanup';
  */
 export async function GET() {
   try {
-    console.log('[CLEANUP] 🧹 Iniciando limpieza de sesiones expiradas...');
     
     const deletedCount = await cleanExpiredSessions();
     

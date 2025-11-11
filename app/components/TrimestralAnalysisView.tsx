@@ -81,47 +81,18 @@ const parseValue = (value: string | number | undefined): number => {
 const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
   const rows: ExcelRow[] = [];
   
-  console.log("🔄 [convertEERRToExcelRows] Iniciando conversión de EERR Data");
-  console.log("📊 Categorías encontradas:", eerrData.categories.length);
   
-  eerrData.categories.forEach((category, categoryIndex) => {
-    console.log(`📂 Categoría ${categoryIndex}: ${category.name} (${category.rows.length} filas)`);
-    
-    category.rows.forEach((row, rowIndex) => {
-      console.log(`   📄 Fila ${rowIndex}: Item="${row.Item}"`);
-      
-      // Debug específico para items críticos (Finiquitos, Consumo de Electricidad)
-      const criticalItems = ['Finiquitos', 'Consumo de Electricidad', 'Ventas', 'Sueldo Personal'];
-      if (criticalItems.includes(row.Item)) {
-        console.log(`   🔍 [ITEM CRÍTICO] Analizando "${row.Item}" en datos fuente`);
-        
-        // Mostrar valores específicos de meses críticos
-        ['ENERO Monto', 'FEBRERO Monto', 'MARZO Monto', 'JULIO Monto', 'AGOSTO Monto', 'SEPTIEMBRE Monto'].forEach(monthKey => {
-          if (row[monthKey] !== undefined) {
-            const value = row[monthKey];
-            const isEmpty = value === '' || value === null || value === undefined;
-            console.log(`      💰 ${monthKey}: "${value}" (tipo: ${typeof value}, vacío: ${isEmpty}, parseValue: ${parseValue(value)})`);
-          }
-        });
-      }
-      
-      // Debug de las primeras 3 filas para ver estructura de columnas
-      if (categoryIndex === 0 && rowIndex < 3) {
-        const columns = Object.keys(row).filter(key => key !== 'Item');
-        console.log(`   🏷️ Columnas disponibles:`, columns.slice(0, 15)); // Mostrar primeras 15 columnas
-      }
-      
+  eerrData.categories.forEach((category) => {
+    category.rows.forEach((row) => {
       rows.push(row);
     });
     
     // Agregar fila de total si existe
     if (category.total) {
-      console.log(`   📋 Total de categoría: ${category.total.Item}`);
       rows.push(category.total);
     }
   });
   
-  console.log("✅ [convertEERRToExcelRows] Conversión completada:", rows.length, "filas totales");
   return rows;
 };
 
@@ -144,37 +115,30 @@ export default function TrimestralAnalysisView({
 
   // Limpiar ítems seleccionados cuando cambie la unidad y auto-seleccionar algunos ítems
   useEffect(() => {
-    console.log("🔄 Cambiando unidad a:", selectedUnit);
     setSelectedItems([]);
     
     // Auto-seleccionar los primeros 3 ítems si hay datos disponibles
     setTimeout(() => {
-      console.log(`🔄 [AUTO-SELECT] Iniciando auto-selección para: ${selectedUnit}`);
       
       // Obtener datos activos según la unidad seleccionada directamente
       let currentActiveData: ExcelRow[] = [];
       switch(selectedUnit) {
         case 'sevilla': 
           if (sevillaData) {
-            console.log("🏭 [AUTO-SELECT] Procesando datos de Sevilla...");
             currentActiveData = convertEERRToExcelRows(sevillaData);
           }
           break;
         case 'labranza': 
           if (labranzaData) {
-            console.log("🌾 [AUTO-SELECT] Procesando datos de Labranza...");
             currentActiveData = convertEERRToExcelRows(labranzaData);
           }
           break;
         case 'consolidado': 
         default: 
-          console.log("📊 [AUTO-SELECT] Usando datos consolidados...");
           currentActiveData = consolidadoData || [];
           break;
       }
       
-      console.log("📊 [AUTO-SELECT] Datos activos disponibles:", currentActiveData.length);
-      console.log("🏷️ [AUTO-SELECT] Todos los ítems disponibles:", currentActiveData.map(row => row.Item));
       
       if (currentActiveData.length > 0) {
         // Filtrar items válidos que tengan datos en al menos un mes
@@ -201,26 +165,15 @@ export default function TrimestralAnalysisView({
           .slice(0, 3)
           .map(row => row.Item);
         
-        console.log("🎯 [AUTO-SELECT] Items válidos encontrados:", validItems);
         
         if (validItems.length > 0) {
           setSelectedItems(validItems);
-          console.log("✅ [AUTO-SELECT] Items auto-seleccionados:", validItems);
         } else {
-          console.log("⚠️ [AUTO-SELECT] No se encontraron items válidos con datos de meses");
         }
       } else {
-        console.log("❌ [AUTO-SELECT] No hay datos activos disponibles");
       }
     }, 200); // Aumentar timeout para asegurar que los datos estén procesados
   }, [selectedUnit, consolidadoData, sevillaData, labranzaData]);
-
-  // Logging para debug de selectedItems
-  useEffect(() => {
-    console.log("🎨 selectedItems cambió:", selectedItems);
-    console.log("📊 selectedItems.length:", selectedItems.length);
-    console.log("🔍 ¿Debe mostrar gráfico?", selectedItems.length > 0);
-  }, [selectedItems]);
 
   // Función para obtener datos activos según la unidad seleccionada
   const getActiveData = (): ExcelRow[] => {
@@ -250,12 +203,10 @@ export default function TrimestralAnalysisView({
   // Función para calcular métricas trimestrales
   const calculateQuarterMetrics = useMemo(
     () => (quarterKey: QuarterKey, item: string) => {
-      console.log(`📊 Calculando métricas para: ${item} en ${quarterKey}`);
       const quarter = QUARTERS[quarterKey];
       const itemRow = activeData.find((row: ExcelRow) => row.Item === item);
 
       if (!itemRow) {
-        console.log(`❌ No se encontró itemRow para: ${item}`);
         return {
           total: 0,
           average: 0,
@@ -265,26 +216,6 @@ export default function TrimestralAnalysisView({
         };
       }
 
-      console.log(`✅ ItemRow encontrado para ${item}`);
-      console.log(`🔍 TODAS las columnas disponibles:`, Object.keys(itemRow));
-      
-      // Buscar columnas que contengan nombres de meses con patrones más amplios
-      const allColumns = Object.keys(itemRow);
-      const monthColumns = allColumns.filter(key => 
-        key.includes('Enero') || key.includes('ENERO') ||
-        key.includes('Febrero') || key.includes('FEBRERO') ||
-        key.includes('Marzo') || key.includes('MARZO') ||
-        key.includes('Abril') || key.includes('ABRIL') ||
-        key.includes('Mayo') || key.includes('MAYO') ||
-        key.includes('Junio') || key.includes('JUNIO') ||
-        key.includes('Julio') || key.includes('JULIO') ||
-        key.includes('Agosto') || key.includes('AGOSTO') ||
-        key.includes('Septiembre') || key.includes('SEPTIEMBRE') ||
-        key.includes('Octubre') || key.includes('OCTUBRE') ||
-        key.includes('Noviembre') || key.includes('NOVIEMBRE') ||
-        key.includes('Diciembre') || key.includes('DICIEMBRE')
-      );
-      console.log(`🗓️ Columnas de meses encontradas (${monthColumns.length}):`, monthColumns);
       
       const values = quarter.months.map((month) => {
         // Intentar múltiples formatos de columnas
@@ -300,31 +231,26 @@ export default function TrimestralAnalysisView({
         ];
         
         let rawValue = undefined;
-        let usedColumnName = '';
         
         // Buscar en todos los formatos posibles
         for (const columnName of possibleColumnNames) {
           if (itemRow[columnName] !== undefined) {
             rawValue = itemRow[columnName];
-            usedColumnName = columnName;
             break;
           }
         }
         
         // Si no encontró nada, buscar por coincidencia parcial
         if (rawValue === undefined) {
-          const allColumns = Object.keys(itemRow);
-          const matchingColumn = allColumns.find(col => 
+          const matchingColumn = Object.keys(itemRow).find(col => 
             col.toLowerCase().includes(month.toLowerCase())
           );
           if (matchingColumn) {
             rawValue = itemRow[matchingColumn];
-            usedColumnName = matchingColumn;
           }
         }
         
         const parsedValue = parseValue(rawValue);
-        console.log(`   ${month}: ${usedColumnName || 'NO ENCONTRADO'} = ${rawValue} → ${parsedValue}`);
         return parsedValue;
       });
 
@@ -341,13 +267,8 @@ export default function TrimestralAnalysisView({
 
   // Datos para gráfico de comparación trimestral
   const comparisonChartData = useMemo(() => {
-    console.log("🎯 [CHART] Generando comparisonChartData");
-    console.log("📋 [CHART] selectedItems:", selectedItems);
-    console.log("📊 [CHART] activeData length:", activeData.length);
-    console.log("🏢 [CHART] selectedUnit:", selectedUnit);
     
     if (selectedItems.length === 0) {
-      console.log("⚠️ [CHART] No hay items seleccionados, retornando datos vacíos");
       return {
         labels: [],
         datasets: []
@@ -358,19 +279,14 @@ export default function TrimestralAnalysisView({
     const labels = selectedItems;
 
     // Crear dos datasets: uno para cada trimestre
-    console.log(`📊 [CHART] Calculando datos para ${selectedQuarter1} vs ${selectedQuarter2}`);
     
     const q1Data = selectedItems.map((item) => {
-      console.log(`🔍 [CHART] Calculando ${selectedQuarter1} para item: ${item}`);
       const metrics = calculateQuarterMetrics(selectedQuarter1, item);
-      console.log(`✅ [CHART] ${selectedQuarter1} ${item}: total=${metrics.total}, values=[${metrics.values.join(', ')}]`);
       return metrics.total;
     });
 
     const q2Data = selectedItems.map((item) => {
-      console.log(`🔍 [CHART] Calculando ${selectedQuarter2} para item: ${item}`);
       const metrics = calculateQuarterMetrics(selectedQuarter2, item);
-      console.log(`${selectedQuarter2} ${item}:`, metrics.total);
       return metrics.total;
     });
 
@@ -400,8 +316,6 @@ export default function TrimestralAnalysisView({
     selectedQuarter2,
     selectedItems,
     calculateQuarterMetrics,
-    activeData,
-    selectedUnit,
   ]); // Datos para gráfico de evolución mensual
   const evolutionChartData = useMemo(() => {
     if (selectedItems.length === 0) return { labels: [], datasets: [] };
@@ -634,7 +548,6 @@ export default function TrimestralAnalysisView({
     }
 
     setIsGeneratingPdf(true);
-    console.log("🎯 Iniciando generación de PDF Análisis Trimestral...");
 
     try {
       // Capturar el gráfico como imagen
@@ -646,7 +559,6 @@ export default function TrimestralAnalysisView({
         if (canvas) {
           try {
             chartImageBase64 = canvas.toDataURL("image/png", 0.8);
-            console.log("📊 Gráfico capturado como imagen");
           } catch (error) {
             console.warn("⚠️ No se pudo capturar el gráfico:", error);
           }
@@ -907,7 +819,6 @@ export default function TrimestralAnalysisView({
         </html>
       `;
 
-      console.log("📤 Enviando solicitud a API de PDF...");
 
       const response = await fetch("/api/generate-pdf", {
         method: "POST",
@@ -934,7 +845,6 @@ export default function TrimestralAnalysisView({
       }
 
       const blob = await response.blob();
-      console.log("✅ PDF generado exitosamente");
 
       // Descargar el archivo
       const url = window.URL.createObjectURL(blob);
@@ -946,7 +856,6 @@ export default function TrimestralAnalysisView({
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      console.log("📁 Archivo descargado exitosamente");
     } catch (error) {
       console.error("❌ Error al generar PDF:", error);
       alert("Error al generar el PDF. Por favor, inténtalo de nuevo.");

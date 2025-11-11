@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('📄 API PDF: Iniciando generación de PDF multi-página...');
     
     const { pages } = await request.json();
     
@@ -141,7 +140,6 @@ export async function POST(request: NextRequest) {
       </html>
     `;
 
-    console.log('📤 Enviando HTML combinado a Browserless.io...');
     const response = await fetch(`https://production-sfo.browserless.io/pdf?token=${browserlessToken}`, {
       method: 'POST',
       headers: {
@@ -171,7 +169,6 @@ export async function POST(request: NextRequest) {
     // Obtener el PDF como buffer
     const pdfBuffer = await response.arrayBuffer();
     
-    console.log('✅ PDF multi-página generado exitosamente');
     
     // Retornar el PDF como respuesta
     return new NextResponse(pdfBuffer, {

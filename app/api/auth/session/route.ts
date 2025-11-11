@@ -34,16 +34,13 @@ export async function POST(request: NextRequest) {
     
     if (collectionExists) {
       // Verificar si tiene al menos un documento
-      const hasDocuments = await db.collection(userCollectionName).countDocuments({}) > 0;
-      console.log(`[SESSION] ✅ Usuario validado: ${userName} (colección: ${userCollectionName}, documentos: ${hasDocuments ? 'Sí' : 'No'})`);
+      await db.collection(userCollectionName).countDocuments({});
     } else {
-      console.log(`[SESSION] ℹ️ Usuario nuevo: ${userName} (colección: ${userCollectionName} no existe aún)`);
       // Permitir crear sesión para usuarios nuevos
     }
 
     // 🗑️ LIMPIAR SESIONES ANTIGUAS DE ESTE USUARIO (una sesión por usuario)
     await db.collection(SESSION_COLLECTION).deleteMany({ userId });
-    console.log(`[SESSION] 🗑️ Sesiones anteriores eliminadas para usuario: ${userName}`);
 
     // 🆕 CREAR NUEVA SESIÓN
     const now = new Date();
@@ -64,7 +61,6 @@ export async function POST(request: NextRequest) {
     };
 
     await db.collection(SESSION_COLLECTION).insertOne(newSession);
-    console.log(`[SESSION] 💾 Nueva sesión creada: ${sessionId} para ${userName}`);
 
     // 🍪 GUARDAR SESSION_ID EN COOKIE
     const response = NextResponse.json({
@@ -82,7 +78,6 @@ export async function POST(request: NextRequest) {
       path: '/'
     });
 
-    console.log(`[SESSION] 🍪 Cookie configurada para sesión: ${sessionId}`);
 
     return response;
 
@@ -144,7 +139,6 @@ export async function GET(request: NextRequest) {
 
     if (!collectionExists) {
       console.warn(`[SESSION] ❌ Usuario sin datos o eliminado: ${session.userName} (${userCollectionName})`);
-      console.log(`[SESSION] 🗑️ Invalidando sesión de usuario sin colección`);
       
       // Eliminar sesión de BD
       await db.collection(SESSION_COLLECTION).deleteOne({ sessionId });
@@ -164,7 +158,6 @@ export async function GET(request: NextRequest) {
       { $set: { lastActivityAt: new Date() } }
     );
 
-    console.log(`[SESSION] ✅ Sesión válida: ${sessionId} (usuario: ${session.userName})`);
 
     return NextResponse.json({
       success: true,
@@ -199,9 +192,7 @@ export async function DELETE(request: NextRequest) {
     const { db } = await connectToDatabase();
 
     // 🗑️ ELIMINAR SESIÓN DE BD
-    const result = await db.collection(SESSION_COLLECTION).deleteOne({ sessionId });
-
-    console.log(`[SESSION] 🗑️ Sesión eliminada: ${sessionId} (deleted: ${result.deletedCount})`);
+    await db.collection(SESSION_COLLECTION).deleteOne({ sessionId });
 
     // 🍪 ELIMINAR COOKIE
     const response = NextResponse.json({

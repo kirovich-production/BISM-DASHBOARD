@@ -98,14 +98,11 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
   };
 
   // Función para extraer EBITDA de una tabla específica (formato antiguo - Consolidado)
-  const getEbitdaFromConsolidado = (data: ExcelRow[], tableName: string) => {
+  const getEbitdaFromConsolidado = (data: ExcelRow[]) => {
     const ebitdaRow = data?.find(row => 
       row.Item && typeof row.Item === 'string' && 
       row.Item.toLowerCase().includes('ebidta')
     );
-
-    console.log(`=== ${tableName.toUpperCase()} DEBUG (Consolidado) ===`);
-    console.log(`EBITDA Row encontrada:`, ebitdaRow?.Item);
 
     const monthKeys = [
       'Enero Monto', 'Febrero Monto', 'Marzo Monto', 'Abril Monto', 'Mayo Monto', 'Junio Monto',
@@ -115,34 +112,25 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
     return monthKeys.map((monthKey, index) => {
       const value = ebitdaRow ? parseValue(ebitdaRow[monthKey]) : 0;
       if (index < 3) {
-        console.log(`${tableName} - ${monthKey}:`, ebitdaRow?.[monthKey], '→', value);
       }
       return value;
     });
   };
 
   // Función para extraer EBITDA de formato EERR (Sevilla/Labranza)
-  const getEbitdaFromEERR = (data: EERRData | null, tableName: string) => {
+  const getEbitdaFromEERR = (data: EERRData | null) => {
     if (!data || !data.categories) {
-      console.log(`=== ${tableName.toUpperCase()} DEBUG (EERR) ===`);
-      console.log(`No data available for ${tableName}`);
       return Array(12).fill(0); // 12 meses con valor 0
     }
-
-    console.log(`=== ${tableName.toUpperCase()} DEBUG (EERR) ===`);
-    console.log(`Categories available:`, data.categories.map(cat => cat.name));
-    console.log(`Full data structure:`, JSON.stringify(data, null, 2));
 
     // Buscar EBITDA en todas las categorías - probar diferentes variantes
     let ebitdaRow = null;
     for (const category of data.categories) {
-      console.log(`Searching in category: ${category.name}, rows:`, category.rows?.length || 0);
       
       // Mostrar todas las filas disponibles en esta categoría
       if (category.rows) {
         category.rows.forEach((row, idx) => {
           if (idx < 5) { // Mostrar solo las primeras 5 filas
-            console.log(`  Row ${idx}: "${row.Item}"`);
           }
         });
       }
@@ -158,18 +146,15 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
       );
       
       if (ebitdaRow) {
-        console.log(`Found EBITDA in category: ${category.name}, Item: "${ebitdaRow.Item}"`);
         break;
       }
     }
 
     if (!ebitdaRow) {
-      console.log(`EBITDA Row NOT FOUND in ${tableName}`);
       return Array(12).fill(0);
     }
 
-    console.log(`EBITDA Row encontrada:`, ebitdaRow?.Item);
-    console.log(`All keys in EBITDA row:`, Object.keys(ebitdaRow));
+    
 
     const monthKeys = [
       'ENERO Monto', 'FEBRERO Monto', 'MARZO Monto', 'ABRIL Monto', 'MAYO Monto', 'JUNIO Monto',
@@ -180,21 +165,19 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
       const rawValue = ebitdaRow?.[monthKey];
       const value = ebitdaRow ? parseValue(rawValue) : 0;
       if (index < 3) {
-        console.log(`${tableName} - ${monthKey}:`, rawValue, '→', value, `(type: ${typeof rawValue})`);
       }
       return value;
     });
   };
 
   // Función para extraer EBITDA % de Consolidado
-  const getEbitdaPercentageFromConsolidado = (data: ExcelRow[], tableName: string) => {
+  const getEbitdaPercentageFromConsolidado = (data: ExcelRow[]) => {
     const ebitdaRow = data?.find(row => 
       row.Item && typeof row.Item === 'string' && 
       row.Item.toLowerCase().includes('ebidta')
     );
 
     if (!ebitdaRow) {
-      console.log(`EBITDA % Row NOT FOUND in ${tableName}`);
       return Array(12).fill(0);
     }
 
@@ -254,12 +237,12 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
   };
 
   // Obtener datos EBITDA de las tres fuentes
-  const consolidadoEbitda = getEbitdaFromConsolidado(consolidadoData, 'Consolidado');
-  const sevillaEbitda = getEbitdaFromEERR(sevillaData, 'Sevilla');
-  const labranzaEbitda = getEbitdaFromEERR(labranzaData, 'Labranza');
+  const consolidadoEbitda = getEbitdaFromConsolidado(consolidadoData);
+  const sevillaEbitda = getEbitdaFromEERR(sevillaData);
+  const labranzaEbitda = getEbitdaFromEERR(labranzaData);
 
   // Obtener datos EBITDA % de las tres fuentes
-  const consolidadoEbitdaPercent = getEbitdaPercentageFromConsolidado(consolidadoData, 'Consolidado');
+  const consolidadoEbitdaPercent = getEbitdaPercentageFromConsolidado(consolidadoData);
   const sevillaEbitdaPercent = getEbitdaPercentageFromEERR(sevillaData);
   const labranzaEbitdaPercent = getEbitdaPercentageFromEERR(labranzaData);
 
@@ -421,7 +404,6 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
     }
 
     try {
-      console.log('🎯 Iniciando generación PDF Comparativo EBITDA...');
       
       // Capturar el gráfico
       let chartImageData = '';
@@ -430,7 +412,6 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
           const canvas = chartRef.current.canvas;
           if (canvas) {
             chartImageData = canvas.toDataURL('image/png', 0.95);
-            console.log('✅ Gráfico capturado exitosamente');
           }
         } catch (error) {
           console.error('❌ Error capturando gráfico:', error);
@@ -643,7 +624,6 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
         </html>
       `;
 
-      console.log('📤 Enviando HTML a API de generación de PDF...');
       
       const response = await fetch('/api/generate-pdf', {
         method: 'POST',
@@ -661,7 +641,7 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
       }
 
       const blob = await response.blob();
-      console.log('✅ PDF generado exitosamente');
+      
 
       // Descargar el archivo
       const url = window.URL.createObjectURL(blob);
@@ -673,7 +653,6 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      console.log('📁 Archivo descargado exitosamente');
     } catch (error) {
       console.error('❌ Error al generar PDF:', error);
       alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');

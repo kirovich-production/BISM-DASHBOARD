@@ -29,24 +29,9 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
     );
   }
 
-  // Debug: Ver qué meses tenemos y qué keys tiene la primera fila
-  console.log('[SevillaTable] Meses en data.months:', data.months);
+
   if (data.categories.length > 0 && data.categories[0].rows.length > 0) {
-    const firstRow = data.categories[0].rows[0];
-    console.log('[SevillaTable] Keys de la primera fila:', Object.keys(firstRow));
-    console.log('[SevillaTable] Primeros 5 valores:', Object.entries(firstRow).slice(0, 5));
-    
-    // 🔍 Log detallado de cada mes y sus valores
-    console.log('[SevillaTable] 🔍 Análisis detallado de montos por mes:');
-    data.months.forEach(month => {
-      const montoKey = `${month} Monto`;
-      const percentKey = `${month} %`;
-      console.log(`  ${month}:`);
-      console.log(`    - Key esperada para Monto: "${montoKey}"`);
-      console.log(`    - Valor en firstRow: ${firstRow[montoKey]}`);
-      console.log(`    - Key esperada para %: "${percentKey}"`);
-      console.log(`    - Valor en firstRow: ${firstRow[percentKey]}`);
-    });
+   
   }
 
   const formatNumber = (value: string | number | undefined): string => {
@@ -93,7 +78,6 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
     if (!contentRef.current || isGeneratingPdf) return;
 
     setIsGeneratingPdf(true);
-    console.log('🎯 Iniciando generación de PDF Sevilla...');
 
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'fixed bottom-20 right-6 bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999] flex items-center gap-3';
@@ -107,7 +91,6 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
     document.body.appendChild(loadingDiv);
 
     try {
-      console.log('📄 Intentando con Browserless.io...');
       
       // Preparar tabla para captura
       const scrollContainers = contentRef.current.querySelectorAll('.overflow-auto');
@@ -286,7 +269,6 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
         const errorData = await response.json().catch(() => ({}));
         
         if (response.status === 503 || errorData.useClientFallback) {
-          console.log('⚠️ Servidor no disponible, usando fallback del cliente...');
           loadingDiv.innerHTML = `
             <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
@@ -320,7 +302,6 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
           
           loadingDiv.remove();
           setIsGeneratingPdf(false);
-          console.log('✅ PDF generado con método alternativo');
           return;
         }
         
@@ -337,7 +318,6 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt }:
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      console.log('✅ PDF generado exitosamente');
       
       loadingDiv.innerHTML = `
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

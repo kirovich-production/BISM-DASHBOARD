@@ -45,7 +45,6 @@ interface EERRData {
   sheetName: string;
   months: string[];
   categories: EERRCategory[];
-  rawData?: unknown[];
 }
 
 interface EERRCategory {
@@ -171,8 +170,6 @@ export default function EbidtaComboView({
   const getComboData = () => {
     const data = getActiveData();
     
-    // Debug: Mostrar items disponibles (solo primeros 5)
-    console.log(`🔍 [EbidtaComboView-${selectedUnit}] Items disponibles:`, data.slice(0, 5).map(row => row.Item));
     
     // Buscar filas con patrones más amplios
     const ebitdaRow = data.find(
@@ -197,12 +194,6 @@ export default function EbidtaComboView({
                item === "Ingresos por Ventas";
       }
     );
-
-    // Debug: Mostrar qué filas encontró
-    console.log(`🔍 [EbidtaComboView-${selectedUnit}] Filas encontradas:`);
-    console.log("- EBITDA Row:", ebitdaRow?.Item, ebitdaRow);
-    console.log("- Ventas Netas Row:", ventasNetasRow?.Item, ventasNetasRow);
-    console.log("- Total filas en data:", data.length);
 
     // Nombres de meses como están en los datos reales
     const MONTHS = [
@@ -249,13 +240,6 @@ export default function EbidtaComboView({
       // Calcular margen EBITDA (%)
       const margenEbitda = ventasNetas !== 0 ? (ebitda / ventasNetas) * 100 : 0;
 
-      // Debug solo para los primeros 3 meses
-      if (index < 3) {
-        console.log(
-          `📊 [${selectedUnit}-${fullMonth}] EBITDA=${ebitda}, Ventas=${ventasNetas}, Margen=${margenEbitda.toFixed(1)}%`
-        );
-      }
-
       return {
         month: shortMonth,
         ebitda,
@@ -263,11 +247,6 @@ export default function EbidtaComboView({
         margenEbitda,
       };
     });
-
-    console.log(
-      `📈 [EbidtaComboView-${selectedUnit}] Datos procesados:`,
-      processedData.slice(0, 3)
-    );
     return processedData;
   };
 
@@ -438,8 +417,6 @@ export default function EbidtaComboView({
     }
 
     try {
-      console.log("🎯 Iniciando generación PDF Análisis Combo EBITDA...");
-
       // Capturar el gráfico
       let chartImageData = "";
       if (chartRef.current) {
@@ -447,7 +424,6 @@ export default function EbidtaComboView({
           const canvas = chartRef.current.canvas;
           if (canvas) {
             chartImageData = canvas.toDataURL("image/png", 0.95);
-            console.log("✅ Gráfico capturado exitosamente");
           }
         } catch (error) {
           console.error("❌ Error capturando gráfico:", error);
@@ -725,7 +701,6 @@ export default function EbidtaComboView({
         </html>
       `;
 
-      console.log("📤 Enviando HTML a API de generación de PDF...");
 
       const response = await fetch("/api/generate-pdf", {
         method: "POST",
@@ -745,7 +720,6 @@ export default function EbidtaComboView({
       }
 
       const blob = await response.blob();
-      console.log("✅ PDF generado exitosamente");
 
       // Descargar el archivo
       const url = window.URL.createObjectURL(blob);
@@ -759,7 +733,6 @@ export default function EbidtaComboView({
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      console.log("📁 Archivo descargado exitosamente");
     } catch (error) {
       console.error("❌ Error al generar PDF:", error);
       alert("Error al generar el PDF. Por favor, inténtalo de nuevo.");

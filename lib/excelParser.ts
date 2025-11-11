@@ -6,8 +6,6 @@ import { EERRData, EERRCategory, EERRRow, ExcelSection, ExcelRow } from '@/types
  * Lee hojas con formato: EERR SEVILLA, EERR LABRANZA
  */
 export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData | null {
-  console.log(`[parseEERR] Intentando procesar hoja: "${sheetName}"`);
-  console.log('[parseEERR] Hojas disponibles:', workbook.SheetNames.join(', '));
   
   const worksheet = workbook.Sheets[sheetName];
   
@@ -18,12 +16,10 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
       name.toLowerCase().includes(sheetName.toLowerCase().replace('eerr ', ''))
     );
     if (similarSheet) {
-      console.log(`[parseEERR] 💡 Sugerencia: Se encontró una hoja similar: "${similarSheet}"`);
     }
     return null;
   }
 
-  console.log(`[parseEERR] ✅ Hoja "${sheetName}" encontrada, procesando...`);
 
   // Convertir a array de arrays
   const rawData = XLSX.utils.sheet_to_json(worksheet, { 
@@ -32,7 +28,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
     raw: false 
   }) as unknown[][];
 
-  console.log(`[parseEERR] Total de filas: ${rawData.length}`);
 
   // ========================================
   // PASO 1: DETECCIÓN AUTOMÁTICA DE ESTRUCTURA
@@ -50,10 +45,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
       monthsRowIndex = i;
       subHeaderRowIndex = i + 1;
       dataStartRowIndex = i + 1; // ✅ CORREGIDO: Los datos (incluyendo headers de categorías) empiezan justo después de meses
-      console.log(`[parseEERR] 📅 Estructura detectada:`);
-      console.log(`   - Fila de meses: ${monthsRowIndex}`);
-      console.log(`   - Fila de sub-headers: ${subHeaderRowIndex}`);
-      console.log(`   - Datos inician en: ${dataStartRowIndex} (incluye headers de categorías)`);
       break;
     }
   }
@@ -61,14 +52,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
   if (monthsRowIndex === -1) {
     console.error(`[parseEERR] ❌ No se detectó la fila de meses`);
     return null;
-  }
-
-  // DEBUG: Mostrar primeras 10 filas después de meses
-  console.log(`[parseEERR] 🔍 DEBUG - Primeras filas después de la fila de meses:`);
-  for (let i = monthsRowIndex; i < Math.min(monthsRowIndex + 10, rawData.length); i++) {
-    const row = rawData[i];
-    const firstCol = row && row[0] ? String(row[0]).trim() : '';
-    console.log(`   Fila ${i}: "${firstCol}"`);
   }
 
   // ========================================
@@ -86,7 +69,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
     }
   }
 
-  console.log(`[parseEERR] Meses encontrados (${months.length}): ${months.join(', ')}`);
 
   // ========================================
   // PASO 3: CONSTRUIR HEADERS DINÁMICOS CON MAPEO DE COLUMNAS
@@ -105,7 +87,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
     // 🔧 NORMALIZAR A MAYÚSCULAS para que coincida con el array months
     if (monthVal && monthVal !== '') {
       currentMonth = monthVal.toUpperCase();
-      console.log(`[${sheetName}] 🔄 Nuevo mes detectado en columna ${i}: "${currentMonth}"`);
     }
     
     if (currentMonth) {
@@ -121,43 +102,13 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
       if (headerName) {
         headers.push(headerName);
         columnMapping[headerName] = i; // 🔑 GUARDAR EL ÍNDICE DE COLUMNA REAL
-        
-        // Log especial para CONSOLIDADO
-        if (currentMonth.toUpperCase().includes('CONSOLIDADO')) {
-          console.log(`[${sheetName}] 📍 CONSOLIDADO columna ${i}: "${headerName}" (subVal: "${subVal}")`);
-        }
       }
     }
   }
   
-  console.log(`[${sheetName}] Headers generados (${headers.length}): ${headers.slice(0, 5).join(', ')}...`);
-  console.log(`[${sheetName}] Últimos 5 headers:`, headers.slice(-5).join(', '));
-  console.log(`[${sheetName}] 🗺️ Mapeo de columnas (primeros 3):`, Object.entries(columnMapping).slice(0, 3));
-  
   // ========================================
-  // PASO 4: MOSTRAR PREVIEW DE DATOS
   // ========================================
-  console.log(`[${sheetName}] Preview de filas (desde fila ${dataStartRowIndex}):`);
-  for (let i = dataStartRowIndex; i < Math.min(dataStartRowIndex + 60, rawData.length); i++) {
-    const firstCol = String(rawData[i][0] || '').trim();
-    const firstColUpper = firstCol.toUpperCase();
-    
-    // Marcar filas importantes
-    let marker = '   ';
-    if (firstColUpper.includes('INGRESOS OPERACIONALES')) marker = '🟢 HEADER → ';
-    if (firstColUpper.includes('GASTOS DE ADMINISTRACION')) marker = '🔵 HEADER → ';
-    if (firstColUpper.includes('GASTOS GENERALES DE ADMINISTRACION')) marker = '🟣 HEADER → ';
-    if (firstColUpper.includes('MARGEN BRUTO OPERACIONAL')) marker = '🟡 TOTAL → ';
-    if (firstColUpper === 'VENTAS' || firstCol === 'Ventas') marker = '📊 ITEM → ';
-    if (firstColUpper.includes('EBIDTA') || firstColUpper.includes('EBITDA')) marker = '💚 HEADER → ';
-    
-    if (firstCol) {
-      console.log(`${marker}Fila ${i}: "${firstCol}"`);
-    }
-  }
-
-  // ========================================
-  // PASO 5: PARSEAR CATEGORÍAS Y DATOS
+  // PASO 4: PARSEAR CATEGORÍAS Y DATOS
   // ========================================
   const categories: EERRCategory[] = [];
   let currentCategory: EERRCategory | null = null;
@@ -186,7 +137,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
         }
         currentCategory.total = totalRow;
         
-        console.log(`[${sheetName}] MARGEN BRUTO OPERACIONAL detectado como total de: ${currentCategory.name}`);
         
         // Guardar categoría con total
         categories.push(currentCategory);
@@ -218,7 +168,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
         rows: [ebitdaRow]
       });
       
-      console.log(`[${sheetName}] EBIDTA detectado como fila de valores (no categoría con items)`);
       continue;
     }
     
@@ -236,7 +185,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
         }
         currentCategory.total = totalRow;
         
-        console.log(`[${sheetName}] Total detectado para categoría: ${currentCategory.name}`);
         
         // Guardar categoría con total
         categories.push(currentCategory);
@@ -268,7 +216,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
         rows: []
       };
       
-      console.log(`[${sheetName}] Nueva categoría detectada: ${firstCol} en fila ${i}`);
       continue;
     }
 
@@ -295,7 +242,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
         rows: [resultRow]
       });
       
-      console.log(`[${sheetName}] RESULTADO NETO detectado como fila final`);
       continue;
     }
 
@@ -311,20 +257,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
         }
       }
       currentCategory.rows.push(rowData);
-      
-      // Log para debug (solo primera fila de cada categoría)
-      if (currentCategory.rows.length === 1) {
-        console.log(`[${sheetName}] 🔍 Primera fila de "${currentCategory.name}": ${firstCol}`);
-        console.log(`[${sheetName}]    Valores de primeras 3 columnas:`, 
-          headers.slice(1, 4).map(h => `${h}: ${rowData[h]}`).join(', '));
-        
-        // Log especial para CONSOLIDADO
-        const consolidadoHeaders = headers.filter(h => h.toUpperCase().includes('CONSOLIDADO'));
-        if (consolidadoHeaders.length > 0) {
-          console.log(`[${sheetName}] 📊 Valores CONSOLIDADO de "${firstCol}":`, 
-            consolidadoHeaders.map(h => `${h}: ${rowData[h]}`).join(', '));
-        }
-      }
     }
   }
 
@@ -333,14 +265,11 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
     categories.push(currentCategory);
   }
 
-  console.log(`[${sheetName}] Total categorías parseadas: ${categories.length}`);
-  console.log(`[${sheetName}] Meses detectados: ${months.join(', ')}`);
 
   return {
     sheetName,
     months,
-    categories,
-    rawData: rawData.slice(0, 100) // Guardar primeras 100 filas para debug
+    categories
   };
 }
 
@@ -349,7 +278,6 @@ export function parseEERR(workbook: XLSX.WorkBook, sheetName: string): EERRData 
  * Lee hoja con 3 secciones: Labranza, Sevilla, Consolidados
  */
 export function parseConsolidado(workbook: XLSX.WorkBook): ExcelSection[] | null {
-  console.log('[parseConsolidado] Hojas disponibles en el Excel:', workbook.SheetNames);
   
   const sheetName = workbook.SheetNames.find(
     name => name.toLowerCase() === 'consolidado' || name.toLowerCase() === 'consolidados'
@@ -357,11 +285,9 @@ export function parseConsolidado(workbook: XLSX.WorkBook): ExcelSection[] | null
 
   if (!sheetName) {
     console.error('[parseConsolidado] No se encontró la hoja "Consolidado" o "Consolidados"');
-    console.log('[parseConsolidado] Hojas encontradas:', workbook.SheetNames.join(', '));
     return null;
   }
 
-  console.log(`[parseConsolidado] Procesando hoja: "${sheetName}"`);
 
   const worksheet = workbook.Sheets[sheetName];
   const allDataRaw = XLSX.utils.sheet_to_json(worksheet, { 
@@ -370,7 +296,6 @@ export function parseConsolidado(workbook: XLSX.WorkBook): ExcelSection[] | null
     raw: false 
   }) as unknown[][];
 
-  console.log(`[parseConsolidado] Total de filas en la hoja: ${allDataRaw.length}`);
 
   // Detectar secciones (Labranza, Sevilla, Consolidados)
   const sectionRanges: Array<{
@@ -459,7 +384,6 @@ export function parseConsolidado(workbook: XLSX.WorkBook): ExcelSection[] | null
       }
     }
     
-    console.log(`[parseConsolidado] 📋 Headers construidos (${headers.length}):`, headers.slice(0, 5).join(', '), '...', headers.slice(-5).join(', '));
   }
 
   // Parsear datos de cada sección

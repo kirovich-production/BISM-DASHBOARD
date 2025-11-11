@@ -10,7 +10,6 @@ export async function POST(request: NextRequest) {
 
     // Si no hay token de Browserless, usar fallback del cliente
     if (!BROWSERLESS_TOKEN) {
-      console.log('⚠️ No BROWSERLESS_TOKEN - usando fallback del cliente');
       return NextResponse.json(
         { 
           error: 'Browserless token not configured',
@@ -22,7 +21,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🚀 Generando PDF con Browserless.io (Alta Calidad)...');
 
     // Llamar a Browserless.io API con configuración de alta calidad
     const browserlessUrl = `https://production-sfo.browserless.io/pdf?token=${BROWSERLESS_TOKEN}`;
@@ -92,7 +90,6 @@ export async function POST(request: NextRequest) {
     }
 
     const pdfBuffer = await response.arrayBuffer();
-    console.log('✅ PDF generado exitosamente con Browserless.io');
 
     return new NextResponse(pdfBuffer, {
       headers: {

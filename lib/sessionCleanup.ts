@@ -18,7 +18,6 @@ export async function cleanExpiredSessions() {
     });
 
     if (result.deletedCount > 0) {
-      console.log(`[CLEANUP] 🗑️ ${result.deletedCount} sesiones expiradas eliminadas`);
     }
 
     return result.deletedCount;
@@ -38,7 +37,6 @@ export async function deleteUserSessions(userId: string) {
 
     const result = await db.collection(SESSION_COLLECTION).deleteMany({ userId });
 
-    console.log(`[CLEANUP] 🗑️ ${result.deletedCount} sesiones eliminadas para usuario: ${userId}`);
 
     return result.deletedCount;
   } catch (error) {

@@ -104,7 +104,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
             .replace(/[$%\s]/g, '')     // eliminar símbolos y espacios
             .replace(/,/g, '');         // quitar comas (separador de miles)
           const num = parseFloat(cleaned);
-          console.log('Parsed number:', num);
           return isNaN(num) ? 0 : num;
         }
         return 0;
@@ -252,7 +251,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
     }
 
     setIsGeneratingPdf(true);
-    console.log('🎯 Iniciando generación de PDF Consolidado (enfoque híbrido)...');
 
     try {
       // PASO 1: Capturar solo el gráfico como imagen
@@ -293,7 +291,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
       
       // Generar imagen PNG sin compresión para máxima calidad
       const chartImageData = chartCanvas.toDataURL('image/png', 1.0);
-      console.log('📊 Gráfico capturado como imagen');
 
       // PASO 2: Generar HTML completo con la imagen del gráfico incrustada
       const currentDate = new Date().toLocaleString('es-CL', { 
@@ -525,7 +522,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
       `;
 
       // PASO 3: Enviar a Browserless para generar PDF
-      console.log('🚀 Enviando HTML a Browserless...');
       const response = await fetch('/api/generate-pdf', {
         method: 'POST',
         headers: {
@@ -540,7 +536,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
       if (!response.ok) {
         const errorData = await response.json();
         if (errorData.useClientFallback) {
-          console.log('⚠️ Browserless falló, usando fallback local...');
           throw new Error('Browserless no disponible, usando método local');
         }
         throw new Error(`Error del servidor: ${response.statusText}`);
@@ -558,13 +553,11 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      console.log('✅ PDF generado exitosamente con Browserless');
       
     } catch (error) {
       console.error('❌ Error generando PDF:', error);
       
       // FALLBACK: Si falla Browserless, usar método local
-      console.log('🔄 Intentando método de respaldo local...');
       try {
         const { default: jsPDF } = await import('jspdf');
         
@@ -595,7 +588,6 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
         }
         
         pdf.save(`graficos-consolidado-${periodLabel}-${Date.now()}-backup.pdf`);
-        console.log('✅ PDF de respaldo generado');
       } catch (fallbackError) {
         console.error('❌ Error en método de respaldo:', fallbackError);
         alert('Error al generar el PDF. Por favor intenta de nuevo.');

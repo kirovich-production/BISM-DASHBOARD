@@ -24,7 +24,6 @@ export async function GET() {
     // Ordenar por nombre
     users.sort((a, b) => a.name.localeCompare(b.name));
 
-    console.log('[USERS API] Usuarios encontrados:', users.map(u => u.name));
 
     return NextResponse.json({
       success: true,

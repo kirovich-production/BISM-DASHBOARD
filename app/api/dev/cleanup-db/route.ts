@@ -17,14 +17,11 @@ export async function GET() {
       );
     }
 
-    console.log('[CLEANUP] 🧹 Iniciando limpieza de base de datos...');
 
     const { db } = await connectToDatabase();
 
     // Obtener todas las colecciones
     const collections = await db.listCollections().toArray();
-    console.log(`[CLEANUP] 📋 Colecciones encontradas: ${collections.length}`);
-    collections.forEach(c => console.log(`   - ${c.name}`));
 
     const results = [];
 
@@ -42,10 +39,8 @@ export async function GET() {
         
         if (exists) {
           await db.collection(collectionName).drop();
-          console.log(`[CLEANUP] ✅ Eliminada: ${collectionName}`);
           results.push({ collection: collectionName, status: 'deleted' });
         } else {
-          console.log(`[CLEANUP] ⏭️ No existe: ${collectionName}`);
           results.push({ collection: collectionName, status: 'not_found' });
         }
       } catch (error) {
@@ -56,8 +51,6 @@ export async function GET() {
 
     // Verificar qué colecciones quedan
     const remainingCollections = await db.listCollections().toArray();
-    console.log(`[CLEANUP] 📊 Colecciones restantes: ${remainingCollections.length}`);
-    remainingCollections.forEach(c => console.log(`   - ${c.name}`));
 
     return NextResponse.json({
       success: true,

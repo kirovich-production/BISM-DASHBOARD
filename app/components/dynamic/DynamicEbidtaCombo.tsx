@@ -13,7 +13,6 @@ interface EERRData {
   sheetName: string;
   months: string[];
   categories: EERRCategory[];
-  rawData?: unknown[];
 }
 
 interface EERRCategory {
