@@ -9,8 +9,28 @@ interface ExcelRow {
   [key: string]: string | number | undefined;
 }
 
+interface EERRData {
+  sheetName: string;
+  months: string[];
+  categories: EERRCategory[];
+  rawData?: unknown[];
+}
+
+interface EERRCategory {
+  name: string;
+  rows: EERRRow[];
+  total?: EERRRow;
+}
+
+interface EERRRow {
+  Item: string;
+  [key: string]: string | number | undefined;
+}
+
 interface EbidtaComboViewProps {
-  data: ExcelRow[];
+  consolidadoData?: ExcelRow[];
+  sevillaData?: EERRData;  
+  labranzaData?: EERRData;
   selectedUserName?: string;
   selectedPeriod?: string;
 }

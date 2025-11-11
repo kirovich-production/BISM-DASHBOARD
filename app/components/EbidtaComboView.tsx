@@ -41,20 +41,91 @@ interface ExcelRow {
   [key: string]: string | number | undefined;
 }
 
+interface EERRData {
+  sheetName: string;
+  months: string[];
+  categories: EERRCategory[];
+  rawData?: unknown[];
+}
+
+interface EERRCategory {
+  name: string;
+  rows: EERRRow[];
+  total?: EERRRow;
+}
+
+interface EERRRow {
+  Item: string;
+  [key: string]: string | number | undefined;
+}
+
+// Función helper fuera del componente para evitar recreaciones
+const convertEERRToExcelRows = (eerrData?: EERRData): ExcelRow[] => {
+  if (!eerrData || !eerrData.categories) return [];
+  
+  const rows: ExcelRow[] = [];
+  
+  eerrData.categories.forEach(category => {
+    category.rows.forEach(row => {
+      const convertedRow: ExcelRow = { Item: row.Item };
+      
+      Object.keys(row).forEach(key => {
+        if (key !== 'Item') {
+          convertedRow[key] = row[key];
+        }
+      });
+      
+      rows.push(convertedRow);
+    });
+    
+    if (category.total) {
+      const convertedRow: ExcelRow = { Item: category.total.Item };
+      
+      Object.keys(category.total).forEach(key => {
+        if (key !== 'Item') {
+          convertedRow[key] = category.total![key];
+        }
+      });
+      
+      rows.push(convertedRow);
+    }
+  });
+  
+  return rows;
+};
+
 interface EbidtaComboViewProps {
-  data: ExcelRow[];
+  consolidadoData?: ExcelRow[];
+  sevillaData?: EERRData;  
+  labranzaData?: EERRData;
   selectedUserName?: string;
   selectedPeriod?: string;
 }
 
 export default function EbidtaComboView({
-  data,
+  consolidadoData,
+  sevillaData,
+  labranzaData,
   selectedUserName,
   selectedPeriod,
 }: EbidtaComboViewProps) {
   const chartRef = useRef<ChartJS>(null);
   const [notes, setNotes] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<'consolidado' | 'sevilla' | 'labranza'>('consolidado');
+
+  // Función para obtener datos activos según la unidad seleccionada
+  const getActiveData = (): ExcelRow[] => {
+    switch (selectedUnit) {
+      case 'sevilla':
+        return convertEERRToExcelRows(sevillaData);
+      case 'labranza':
+        return convertEERRToExcelRows(labranzaData);
+      case 'consolidado':
+      default:
+        return consolidadoData || [];
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -98,6 +169,8 @@ export default function EbidtaComboView({
 
   // Obtener datos para el gráfico combo
   const getComboData = () => {
+    const data = getActiveData();
+    
     // Buscar filas igual que en EbidtaChartsView
     const ebitdaRow = data.find(
       (row: ExcelRow) =>
@@ -113,7 +186,7 @@ export default function EbidtaComboView({
     );
 
     // Debug: Mostrar qué filas encontró
-    console.log("🔍 [EbidtaComboView] Filas encontradas:");
+    console.log(`🔍 [EbidtaComboView-${selectedUnit}] Filas encontradas:`);
     console.log("- EBITDA Row:", ebitdaRow?.Item, ebitdaRow);
     console.log("- Ventas Netas Row:", ventasNetasRow?.Item, ventasNetasRow);
     console.log("- Total filas en data:", data.length);
@@ -151,10 +224,12 @@ export default function EbidtaComboView({
 
     const processedData = SHORT_MONTHS.map((shortMonth, index) => {
       const fullMonth = MONTHS[index];
-      const ebitdaRaw = ebitdaRow ? ebitdaRow[`${fullMonth} Monto`] : 0;
-      const ventasRaw = ventasNetasRow
-        ? ventasNetasRow[`${fullMonth} Monto`]
-        : 0;
+      
+      // Buscar tanto formato "Enero Monto" como "ENERO Monto"  
+      const ebitdaRaw = ebitdaRow ? 
+        (ebitdaRow[`${fullMonth} Monto`] || ebitdaRow[`${fullMonth.toUpperCase()} Monto`]) : 0;
+      const ventasRaw = ventasNetasRow ?
+        (ventasNetasRow[`${fullMonth} Monto`] || ventasNetasRow[`${fullMonth.toUpperCase()} Monto`]) : 0;
 
       const ebitda = parseValue(ebitdaRaw);
       const ventasNetas = parseValue(ventasRaw);
@@ -165,10 +240,10 @@ export default function EbidtaComboView({
       // Debug para los primeros 3 meses
       if (index < 3) {
         console.log(
-          `📊 [${fullMonth}] Raw: EBITDA="${ebitdaRaw}", Ventas="${ventasRaw}"`
+          `📊 [${selectedUnit}-${fullMonth}] Raw: EBITDA="${ebitdaRaw}", Ventas="${ventasRaw}"`
         );
         console.log(
-          `📊 [${fullMonth}] Parsed: EBITDA=${ebitda}, Ventas=${ventasNetas}, Margen=${margenEbitda.toFixed(
+          `📊 [${selectedUnit}-${fullMonth}] Parsed: EBITDA=${ebitda}, Ventas=${ventasNetas}, Margen=${margenEbitda.toFixed(
             2
           )}%`
         );
@@ -183,7 +258,7 @@ export default function EbidtaComboView({
     });
 
     console.log(
-      "📈 [EbidtaComboView] Datos procesados:",
+      `📈 [EbidtaComboView-${selectedUnit}] Datos procesados:`,
       processedData.slice(0, 3)
     );
     return processedData;
@@ -240,7 +315,7 @@ export default function EbidtaComboView({
       },
       title: {
         display: true,
-        text: `Análisis Combo EBITDA - ${selectedUserName || "Usuario"} - ${
+        text: `Análisis Combo EBITDA (${selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza'}) - ${selectedUserName || "Usuario"} - ${
           selectedPeriod || "Período"
         }`,
         font: {
@@ -724,6 +799,47 @@ export default function EbidtaComboView({
             </svg>
             Exportar PDF
           </button>
+        </div>
+      </div>
+
+      {/* Selector de Unidad de Negocio */}
+      <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <h3 className="text-lg font-semibold text-gray-800">
+            🏢 Unidad de Negocio:
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedUnit('consolidado')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                selectedUnit === 'consolidado'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-blue-50'
+              }`}
+            >
+              📊 Consolidado
+            </button>
+            <button
+              onClick={() => setSelectedUnit('sevilla')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                selectedUnit === 'sevilla'
+                  ? 'bg-green-600 text-white shadow-md'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-green-50'
+              }`}
+            >
+              🏭 Sevilla
+            </button>
+            <button
+              onClick={() => setSelectedUnit('labranza')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                selectedUnit === 'labranza'
+                  ? 'bg-purple-600 text-white shadow-md'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-purple-50'
+              }`}
+            >
+              🌾 Labranza
+            </button>
+          </div>
         </div>
       </div>
 

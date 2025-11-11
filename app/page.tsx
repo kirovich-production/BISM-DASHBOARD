@@ -681,7 +681,9 @@ export default function Home() {
                 />
               ) : activeView === 'ebitda-combo' ? (
                 <DynamicEbidtaCombo
-                  data={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
+                  consolidadoData={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
+                  sevillaData={excelData.sevilla && Array.isArray(excelData.sevilla) ? undefined : (excelData.sevilla || undefined)}
+                  labranzaData={excelData.labranza && Array.isArray(excelData.labranza) ? undefined : (excelData.labranza || undefined)}
                   selectedUserName={selectedUserName}
                   selectedPeriod={excelData.periodLabel}
                 />
