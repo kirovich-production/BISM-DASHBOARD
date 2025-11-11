@@ -171,11 +171,8 @@ export default function EbidtaComboView({
   const getComboData = () => {
     const data = getActiveData();
     
-    // Debug completo: Mostrar TODOS los items disponibles
-    console.log(`🔍 [EbidtaComboView-${selectedUnit}] TODOS los items disponibles:`);
-    data.forEach((row, index) => {
-      console.log(`${index}: "${row.Item}"`);
-    });
+    // Debug: Mostrar items disponibles (solo primeros 5)
+    console.log(`🔍 [EbidtaComboView-${selectedUnit}] Items disponibles:`, data.slice(0, 5).map(row => row.Item));
     
     // Buscar filas con patrones más amplios
     const ebitdaRow = data.find(
@@ -252,20 +249,11 @@ export default function EbidtaComboView({
       // Calcular margen EBITDA (%)
       const margenEbitda = ventasNetas !== 0 ? (ebitda / ventasNetas) * 100 : 0;
 
-      // Debug para TODOS los meses para identificar el problema
-      console.log(
-        `📊 [${selectedUnit}-${fullMonth}] Raw: EBITDA="${ebitdaRaw}", Ventas="${ventasRaw}"`
-      );
-      console.log(
-        `📊 [${selectedUnit}-${fullMonth}] Parsed: EBITDA=${ebitda}, Ventas=${ventasNetas}, Margen=${margenEbitda.toFixed(
-          2
-        )}%`
-      );
-      
-      // Debug adicional: mostrar todas las columnas disponibles si es el primer mes
-      if (index === 0) {
-        console.log(`📊 [${selectedUnit}] Columnas disponibles en EBITDA row:`, ebitdaRow ? Object.keys(ebitdaRow) : 'NO EBITDA ROW');
-        console.log(`📊 [${selectedUnit}] Columnas disponibles en Ventas row:`, ventasNetasRow ? Object.keys(ventasNetasRow) : 'NO VENTAS ROW');
+      // Debug solo para los primeros 3 meses
+      if (index < 3) {
+        console.log(
+          `📊 [${selectedUnit}-${fullMonth}] EBITDA=${ebitda}, Ventas=${ventasNetas}, Margen=${margenEbitda.toFixed(1)}%`
+        );
       }
 
       return {
