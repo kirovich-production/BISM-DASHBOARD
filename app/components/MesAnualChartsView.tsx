@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
-import type { ExcelRow } from '@/types';
+import type { ExcelRow, EERRData } from '@/types';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -24,7 +24,9 @@ ChartJS.register(
 );
 
 interface MesAnualChartsViewProps {
-  data: ExcelRow[];
+  consolidadoData: ExcelRow[];
+  sevillaData: EERRData | null;
+  labranzaData: EERRData | null;
   periodLabel: string;
 }
 
@@ -33,19 +35,26 @@ const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
+// Función para convertir EERRData a ExcelRow[] - reutilizada del análisis trimestral
+const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
+  const rows: ExcelRow[] = [];
+  
+  eerrData.categories.forEach(category => {
+    category.rows.forEach(row => {
+      rows.push(row);
+    });
+    
+    // Agregar fila de total si existe
+    if (category.total) {
+      rows.push(category.total);
+    }
+  });
+  
+  return rows;
+};
 
-
-export default function MesAnualChartsView({ data, periodLabel }: MesAnualChartsViewProps) {
-  const [selectedMonth, setSelectedMonth] = useState<string>('Febrero');
-  const [selectedItemForChart, setSelectedItemForChart] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chartRef = useRef<any>(null);
-
-
-
+// Función para obtener valor con ambos formatos de columna (normal y mayúsculas)
+const getMonthValue = (row: ExcelRow, month: string): number => {
   // Función para limpiar valores numéricos
   const parseValue = (value: string | number | undefined): number => {
     if (typeof value === 'number') return value;
@@ -59,42 +68,88 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
     return 0;
   };
 
+  // Intentar ambos formatos: "Enero Monto" y "ENERO Monto"
+  const columnName1 = `${month} Monto`;           // Formato normal
+  const columnName2 = `${month.toUpperCase()} Monto`;  // Formato mayúsculas
+  
+  let rawValue = row[columnName1];
+  
+  // Si no encuentra con formato normal, intenta con mayúsculas
+  if (rawValue === undefined) {
+    rawValue = row[columnName2];
+  }
+  
+  return parseValue(rawValue);
+};
+
+export default function MesAnualChartsView({ 
+  consolidadoData, 
+  sevillaData, 
+  labranzaData, 
+  periodLabel 
+}: MesAnualChartsViewProps) {
+  const [selectedUnit, setSelectedUnit] = useState<'consolidado' | 'sevilla' | 'labranza'>('consolidado');
+  const [selectedMonth, setSelectedMonth] = useState<string>('Febrero');
+  const [selectedItemForChart, setSelectedItemForChart] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chartRef = useRef<any>(null);
+
+  // Función para obtener datos activos según la unidad seleccionada
+  const getActiveData = (): ExcelRow[] => {
+    switch(selectedUnit) {
+      case 'sevilla': 
+        return sevillaData ? convertEERRToExcelRows(sevillaData) : [];
+      case 'labranza': 
+        return labranzaData ? convertEERRToExcelRows(labranzaData) : [];
+      case 'consolidado': 
+      default: 
+        return consolidadoData || [];
+    }
+  };
+
+  const activeData = getActiveData();
+
   // Preparar datos para la tabla - TODOS los ítems del mes seleccionado
   const tableData = useMemo(() => {
     const selectedMonthIndex = MONTHS.indexOf(selectedMonth);
     
     // Primero encontrar y calcular el acumulado de Ventas Netas (referencia base)
-    const ventasNetasRow = data.find((row: ExcelRow) => 
+    const ventasNetasRow = activeData.find((row: ExcelRow) => 
       row.Item?.toLowerCase().includes('ventas netas') || 
       row.Item?.toLowerCase().includes('ventas afectas') ||
-      row.Item === 'Ventas Netas'
+      row.Item === 'Ventas Netas' ||
+      row.Item?.toLowerCase().includes('ventas')
     );
     
     let ventasNetasAcumulado = 0;
     if (ventasNetasRow) {
       for (let i = 0; i <= selectedMonthIndex; i++) {
         const monthName = MONTHS[i];
-        const monthValue = parseValue(ventasNetasRow[`${monthName} Monto`]);
+        const monthValue = getMonthValue(ventasNetasRow, monthName);
         ventasNetasAcumulado += monthValue;
       }
     }
     
-    return data.map((row: ExcelRow) => {
+    return activeData.map((row: ExcelRow) => {
       // Calcular acumulado hasta el mes seleccionado para cada ítem
       let acumuladoValue = 0;
       for (let i = 0; i <= selectedMonthIndex; i++) {
         const monthName = MONTHS[i];
-        const monthValue = parseValue(row[`${monthName} Monto`]);
+        const monthValue = getMonthValue(row, monthName);
         acumuladoValue += monthValue;
       }
 
-      const mesValue = parseValue(row[`${selectedMonth} Monto`]);
+      const mesValue = getMonthValue(row, selectedMonth);
       
       // Calcular porcentaje basado en Ventas Netas como referencia
       let porcentajeValue = 0;
       if (row.Item?.toLowerCase().includes('ventas netas') || 
           row.Item?.toLowerCase().includes('ventas afectas') ||
-          row.Item === 'Ventas Netas') {
+          row.Item === 'Ventas Netas' ||
+          row.Item?.toLowerCase().includes('ventas')) {
         // Ventas Netas siempre es 100%
         porcentajeValue = 100;
       } else {
@@ -112,7 +167,7 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
         promedio: promedioValue,
       };
     });
-  }, [data, selectedMonth]);
+  }, [activeData, selectedMonth]);
 
   // Datos para el gráfico del ítem seleccionado
   const chartData = useMemo(() => {
@@ -555,7 +610,7 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
     }
   };
 
-  if (!data || data.length === 0) {
+  if (!activeData || activeData.length === 0) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
         <div className="text-center">
@@ -585,6 +640,17 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Comparación Mes vs Anual</h1>
               <p className="text-sm text-gray-600">Período: {periodLabel}</p>
+              <div className="mt-2">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
+                  selectedUnit === 'consolidado' ? 'bg-blue-100 text-blue-800' :
+                  selectedUnit === 'sevilla' ? 'bg-indigo-100 text-indigo-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
+                  {selectedUnit === 'consolidado' ? '📊 Datos Consolidado' :
+                   selectedUnit === 'sevilla' ? '🏪 Datos Sevilla' :
+                   '🌾 Datos Labranza'}
+                </span>
+              </div>
             </div>
           </div>
           
@@ -611,6 +677,89 @@ export default function MesAnualChartsView({ data, periodLabel }: MesAnualCharts
               </>
             )}
           </button>
+        </div>
+      </div>
+
+      {/* Selector de Unidad de Negocio */}
+      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          🏢 Unidad de Negocio
+        </h3>
+        
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => setSelectedUnit('consolidado')}
+            className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
+              selectedUnit === 'consolidado'
+                ? 'bg-blue-500 text-white border-blue-500 shadow-lg'
+                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300'
+            }`}
+          >
+            📊 Consolidado
+            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              {consolidadoData?.length || 0}
+            </span>
+          </button>
+          
+          <button
+            onClick={() => setSelectedUnit('sevilla')}
+            disabled={!sevillaData}
+            className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
+              selectedUnit === 'sevilla'
+                ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg'
+                : sevillaData 
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300'
+                  : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+            }`}
+          >
+            🏪 Sevilla
+            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+              sevillaData 
+                ? 'bg-indigo-100 text-indigo-800' 
+                : 'bg-gray-200 text-gray-500'
+            }`}>
+              {sevillaData ? convertEERRToExcelRows(sevillaData).length : 0}
+            </span>
+          </button>
+          
+          <button
+            onClick={() => setSelectedUnit('labranza')}
+            disabled={!labranzaData}
+            className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
+              selectedUnit === 'labranza'
+                ? 'bg-green-500 text-white border-green-500 shadow-lg'
+                : labranzaData 
+                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:border-green-300'
+                  : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+            }`}
+          >
+            🌾 Labranza
+            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+              labranzaData 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-gray-200 text-gray-500'
+            }`}>
+              {labranzaData ? convertEERRToExcelRows(labranzaData).length : 0}
+            </span>
+          </button>
+        </div>
+        
+        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-700">
+            <span className="font-semibold">Unidad activa:</span> 
+            <span className={`ml-2 px-3 py-1 rounded-full text-xs font-semibold ${
+              selectedUnit === 'consolidado' ? 'bg-blue-100 text-blue-800' :
+              selectedUnit === 'sevilla' ? 'bg-indigo-100 text-indigo-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {selectedUnit === 'consolidado' ? '📊 Consolidado' :
+               selectedUnit === 'sevilla' ? '🏪 Sevilla' :
+               '🌾 Labranza'}
+            </span>
+            <span className="ml-3 text-gray-600">
+              • {activeData.length} ítems disponibles
+            </span>
+          </p>
         </div>
       </div>
 

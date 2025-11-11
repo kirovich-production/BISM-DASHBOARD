@@ -666,7 +666,9 @@ export default function Home() {
                 />
               ) : activeView === 'mes-anual' ? (
                 <MesAnualChartsView
-                  data={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
+                  consolidadoData={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
+                  sevillaData={excelData.sevilla && Array.isArray(excelData.sevilla) ? null : (excelData.sevilla || null)}
+                  labranzaData={excelData.labranza && Array.isArray(excelData.labranza) ? null : (excelData.labranza || null)}
                   periodLabel={excelData.periodLabel}
                 />
               ) : activeView === 'waterfall-charts' ? (
