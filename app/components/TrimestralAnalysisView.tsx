@@ -90,6 +90,21 @@ const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
     category.rows.forEach((row, rowIndex) => {
       console.log(`   📄 Fila ${rowIndex}: Item="${row.Item}"`);
       
+      // Debug específico para items críticos (Finiquitos, Consumo de Electricidad)
+      const criticalItems = ['Finiquitos', 'Consumo de Electricidad', 'Ventas', 'Sueldo Personal'];
+      if (criticalItems.includes(row.Item)) {
+        console.log(`   🔍 [ITEM CRÍTICO] Analizando "${row.Item}" en datos fuente`);
+        
+        // Mostrar valores específicos de meses críticos
+        ['ENERO Monto', 'FEBRERO Monto', 'MARZO Monto', 'JULIO Monto', 'AGOSTO Monto', 'SEPTIEMBRE Monto'].forEach(monthKey => {
+          if (row[monthKey] !== undefined) {
+            const value = row[monthKey];
+            const isEmpty = value === '' || value === null || value === undefined;
+            console.log(`      💰 ${monthKey}: "${value}" (tipo: ${typeof value}, vacío: ${isEmpty}, parseValue: ${parseValue(value)})`);
+          }
+        });
+      }
+      
       // Debug de las primeras 3 filas para ver estructura de columnas
       if (categoryIndex === 0 && rowIndex < 3) {
         const columns = Object.keys(row).filter(key => key !== 'Item');
