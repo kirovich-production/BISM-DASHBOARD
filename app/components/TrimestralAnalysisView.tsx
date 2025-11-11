@@ -81,17 +81,32 @@ const parseValue = (value: string | number | undefined): number => {
 const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
   const rows: ExcelRow[] = [];
   
-  eerrData.categories.forEach(category => {
-    category.rows.forEach(row => {
+  console.log("🔄 [convertEERRToExcelRows] Iniciando conversión de EERR Data");
+  console.log("📊 Categorías encontradas:", eerrData.categories.length);
+  
+  eerrData.categories.forEach((category, categoryIndex) => {
+    console.log(`📂 Categoría ${categoryIndex}: ${category.name} (${category.rows.length} filas)`);
+    
+    category.rows.forEach((row, rowIndex) => {
+      console.log(`   📄 Fila ${rowIndex}: Item="${row.Item}"`);
+      
+      // Debug de las primeras 3 filas para ver estructura de columnas
+      if (categoryIndex === 0 && rowIndex < 3) {
+        const columns = Object.keys(row).filter(key => key !== 'Item');
+        console.log(`   🏷️ Columnas disponibles:`, columns.slice(0, 15)); // Mostrar primeras 15 columnas
+      }
+      
       rows.push(row);
     });
     
     // Agregar fila de total si existe
     if (category.total) {
+      console.log(`   📋 Total de categoría: ${category.total.Item}`);
       rows.push(category.total);
     }
   });
   
+  console.log("✅ [convertEERRToExcelRows] Conversión completada:", rows.length, "filas totales");
   return rows;
 };
 
@@ -119,34 +134,70 @@ export default function TrimestralAnalysisView({
     
     // Auto-seleccionar los primeros 3 ítems si hay datos disponibles
     setTimeout(() => {
+      console.log(`🔄 [AUTO-SELECT] Iniciando auto-selección para: ${selectedUnit}`);
+      
       // Obtener datos activos según la unidad seleccionada directamente
       let currentActiveData: ExcelRow[] = [];
       switch(selectedUnit) {
         case 'sevilla': 
-          currentActiveData = sevillaData ? convertEERRToExcelRows(sevillaData) : [];
+          if (sevillaData) {
+            console.log("🏭 [AUTO-SELECT] Procesando datos de Sevilla...");
+            currentActiveData = convertEERRToExcelRows(sevillaData);
+          }
           break;
         case 'labranza': 
-          currentActiveData = labranzaData ? convertEERRToExcelRows(labranzaData) : [];
+          if (labranzaData) {
+            console.log("🌾 [AUTO-SELECT] Procesando datos de Labranza...");
+            currentActiveData = convertEERRToExcelRows(labranzaData);
+          }
           break;
         case 'consolidado': 
         default: 
+          console.log("📊 [AUTO-SELECT] Usando datos consolidados...");
           currentActiveData = consolidadoData || [];
           break;
       }
       
-      console.log("📊 Datos activos disponibles:", currentActiveData.length);
-      console.log("🏷️ Primeros ítems disponibles:", currentActiveData.slice(0, 5).map(row => row.Item));
+      console.log("📊 [AUTO-SELECT] Datos activos disponibles:", currentActiveData.length);
+      console.log("🏷️ [AUTO-SELECT] Todos los ítems disponibles:", currentActiveData.map(row => row.Item));
       
       if (currentActiveData.length > 0) {
-        const firstItems = currentActiveData
+        // Filtrar items válidos que tengan datos en al menos un mes
+        const validItems = currentActiveData
+          .filter(row => {
+            if (!row.Item || typeof row.Item !== "string" || row.Item.trim() === "") {
+              return false;
+            }
+            
+            // Verificar que tenga al menos una columna con datos de meses
+            const hasMonthData = Object.keys(row).some(key => {
+              const lowerKey = key.toLowerCase();
+              return (lowerKey.includes('enero') || lowerKey.includes('febrero') || 
+                      lowerKey.includes('marzo') || lowerKey.includes('abril') ||
+                      lowerKey.includes('mayo') || lowerKey.includes('junio') ||
+                      lowerKey.includes('julio') || lowerKey.includes('agosto') ||
+                      lowerKey.includes('septiembre') || lowerKey.includes('octubre') ||
+                      lowerKey.includes('noviembre') || lowerKey.includes('diciembre')) &&
+                     row[key] !== undefined && row[key] !== null && row[key] !== "";
+            });
+            
+            return hasMonthData;
+          })
           .slice(0, 3)
-          .map(row => row.Item)
-          .filter(item => typeof item === "string" && item.trim() !== "");
+          .map(row => row.Item);
         
-        console.log("🎯 Auto-seleccionando ítems:", firstItems);
-        setSelectedItems(firstItems);
+        console.log("🎯 [AUTO-SELECT] Items válidos encontrados:", validItems);
+        
+        if (validItems.length > 0) {
+          setSelectedItems(validItems);
+          console.log("✅ [AUTO-SELECT] Items auto-seleccionados:", validItems);
+        } else {
+          console.log("⚠️ [AUTO-SELECT] No se encontraron items válidos con datos de meses");
+        }
+      } else {
+        console.log("❌ [AUTO-SELECT] No hay datos activos disponibles");
       }
-    }, 100);
+    }, 200); // Aumentar timeout para asegurar que los datos estén procesados
   }, [selectedUnit, consolidadoData, sevillaData, labranzaData]);
 
   // Logging para debug de selectedItems
@@ -199,33 +250,66 @@ export default function TrimestralAnalysisView({
         };
       }
 
-      console.log(`✅ ItemRow encontrado para ${item}:`, Object.keys(itemRow));
+      console.log(`✅ ItemRow encontrado para ${item}`);
+      console.log(`🔍 TODAS las columnas disponibles:`, Object.keys(itemRow));
       
-      // Buscar columnas que contengan nombres de meses
-      const monthColumns = Object.keys(itemRow).filter(key => 
-        key.includes('Enero') || key.includes('Febrero') || key.includes('Marzo') ||
-        key.includes('Abril') || key.includes('Mayo') || key.includes('Junio') ||
-        key.includes('Julio') || key.includes('Agosto') || key.includes('Septiembre') ||
-        key.includes('Octubre') || key.includes('Noviembre') || key.includes('Diciembre')
+      // Buscar columnas que contengan nombres de meses con patrones más amplios
+      const allColumns = Object.keys(itemRow);
+      const monthColumns = allColumns.filter(key => 
+        key.includes('Enero') || key.includes('ENERO') ||
+        key.includes('Febrero') || key.includes('FEBRERO') ||
+        key.includes('Marzo') || key.includes('MARZO') ||
+        key.includes('Abril') || key.includes('ABRIL') ||
+        key.includes('Mayo') || key.includes('MAYO') ||
+        key.includes('Junio') || key.includes('JUNIO') ||
+        key.includes('Julio') || key.includes('JULIO') ||
+        key.includes('Agosto') || key.includes('AGOSTO') ||
+        key.includes('Septiembre') || key.includes('SEPTIEMBRE') ||
+        key.includes('Octubre') || key.includes('OCTUBRE') ||
+        key.includes('Noviembre') || key.includes('NOVIEMBRE') ||
+        key.includes('Diciembre') || key.includes('DICIEMBRE')
       );
-      console.log(`🗓️ Columnas de meses encontradas:`, monthColumns);
+      console.log(`🗓️ Columnas de meses encontradas (${monthColumns.length}):`, monthColumns);
       
       const values = quarter.months.map((month) => {
-        // Intentar ambos formatos: "Enero Monto" y "ENERO Monto"
-        const columnName1 = `${month} Monto`;           // Formato normal: "Enero Monto"
-        const columnName2 = `${month.toUpperCase()} Monto`;  // Formato mayúscula: "ENERO Monto"
+        // Intentar múltiples formatos de columnas
+        const possibleColumnNames = [
+          `${month} Monto`,                    // "Enero Monto"
+          `${month.toUpperCase()} Monto`,      // "ENERO Monto"
+          `${month} MONTO`,                    // "Enero MONTO"
+          `${month.toUpperCase()} MONTO`,      // "ENERO MONTO"
+          month,                               // "Enero"
+          month.toUpperCase(),                 // "ENERO"
+          `${month} Value`,                    // "Enero Value"
+          `${month.toUpperCase()} VALUE`       // "ENERO VALUE"
+        ];
         
-        let rawValue = itemRow[columnName1];
-        let usedColumnName = columnName1;
+        let rawValue = undefined;
+        let usedColumnName = '';
         
-        // Si no encuentra con formato normal, intenta con mayúsculas
+        // Buscar en todos los formatos posibles
+        for (const columnName of possibleColumnNames) {
+          if (itemRow[columnName] !== undefined) {
+            rawValue = itemRow[columnName];
+            usedColumnName = columnName;
+            break;
+          }
+        }
+        
+        // Si no encontró nada, buscar por coincidencia parcial
         if (rawValue === undefined) {
-          rawValue = itemRow[columnName2];
-          usedColumnName = columnName2;
+          const allColumns = Object.keys(itemRow);
+          const matchingColumn = allColumns.find(col => 
+            col.toLowerCase().includes(month.toLowerCase())
+          );
+          if (matchingColumn) {
+            rawValue = itemRow[matchingColumn];
+            usedColumnName = matchingColumn;
+          }
         }
         
         const parsedValue = parseValue(rawValue);
-        console.log(`   ${month}: ${usedColumnName} = ${rawValue} → ${parsedValue}`);
+        console.log(`   ${month}: ${usedColumnName || 'NO ENCONTRADO'} = ${rawValue} → ${parsedValue}`);
         return parsedValue;
       });
 
@@ -242,21 +326,34 @@ export default function TrimestralAnalysisView({
 
   // Datos para gráfico de comparación trimestral
   const comparisonChartData = useMemo(() => {
-    console.log("🎯 Generando comparisonChartData");
-    console.log("📋 selectedItems:", selectedItems);
-    console.log("📊 activeData length:", activeData.length);
+    console.log("🎯 [CHART] Generando comparisonChartData");
+    console.log("📋 [CHART] selectedItems:", selectedItems);
+    console.log("📊 [CHART] activeData length:", activeData.length);
+    console.log("🏢 [CHART] selectedUnit:", selectedUnit);
+    
+    if (selectedItems.length === 0) {
+      console.log("⚠️ [CHART] No hay items seleccionados, retornando datos vacíos");
+      return {
+        labels: [],
+        datasets: []
+      };
+    }
     
     // Labels serán los nombres de los ítems seleccionados
     const labels = selectedItems;
 
     // Crear dos datasets: uno para cada trimestre
+    console.log(`📊 [CHART] Calculando datos para ${selectedQuarter1} vs ${selectedQuarter2}`);
+    
     const q1Data = selectedItems.map((item) => {
+      console.log(`🔍 [CHART] Calculando ${selectedQuarter1} para item: ${item}`);
       const metrics = calculateQuarterMetrics(selectedQuarter1, item);
-      console.log(`${selectedQuarter1} ${item}:`, metrics.total);
+      console.log(`✅ [CHART] ${selectedQuarter1} ${item}: total=${metrics.total}, values=[${metrics.values.join(', ')}]`);
       return metrics.total;
     });
 
     const q2Data = selectedItems.map((item) => {
+      console.log(`🔍 [CHART] Calculando ${selectedQuarter2} para item: ${item}`);
       const metrics = calculateQuarterMetrics(selectedQuarter2, item);
       console.log(`${selectedQuarter2} ${item}:`, metrics.total);
       return metrics.total;
@@ -289,6 +386,7 @@ export default function TrimestralAnalysisView({
     selectedItems,
     calculateQuarterMetrics,
     activeData,
+    selectedUnit,
   ]); // Datos para gráfico de evolución mensual
   const evolutionChartData = useMemo(() => {
     if (selectedItems.length === 0) return { labels: [], datasets: [] };
