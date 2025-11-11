@@ -171,18 +171,34 @@ export default function EbidtaComboView({
   const getComboData = () => {
     const data = getActiveData();
     
-    // Buscar filas igual que en EbidtaChartsView
+    // Debug completo: Mostrar TODOS los items disponibles
+    console.log(`🔍 [EbidtaComboView-${selectedUnit}] TODOS los items disponibles:`);
+    data.forEach((row, index) => {
+      console.log(`${index}: "${row.Item}"`);
+    });
+    
+    // Buscar filas con patrones más amplios
     const ebitdaRow = data.find(
-      (row: ExcelRow) =>
-        row.Item?.toLowerCase().includes("ebitda") ||
-        row.Item?.toLowerCase().includes("ebidta")
+      (row: ExcelRow) => {
+        const item = row.Item?.toLowerCase() || '';
+        return item.includes("ebitda") || 
+               item.includes("ebidta") ||
+               item.includes("utilidad operacional") ||
+               item.includes("resultado operacional");
+      }
     );
 
     const ventasNetasRow = data.find(
-      (row: ExcelRow) =>
-        row.Item?.toLowerCase().includes("ventas netas") ||
-        row.Item?.toLowerCase().includes("ventas afectas") ||
-        row.Item === "Ventas Netas"
+      (row: ExcelRow) => {
+        const item = row.Item?.toLowerCase() || '';
+        return item.includes("ventas netas") ||
+               item.includes("ventas afectas") ||
+               item.includes("ingresos") ||
+               item.includes("revenue") ||
+               item.includes("ventas") ||
+               item === "Ventas Netas" ||
+               item === "Ingresos por Ventas";
+      }
     );
 
     // Debug: Mostrar qué filas encontró
@@ -190,7 +206,6 @@ export default function EbidtaComboView({
     console.log("- EBITDA Row:", ebitdaRow?.Item, ebitdaRow);
     console.log("- Ventas Netas Row:", ventasNetasRow?.Item, ventasNetasRow);
     console.log("- Total filas en data:", data.length);
-    console.log("- Primeras 3 filas:", data.slice(0, 3));
 
     // Nombres de meses como están en los datos reales
     const MONTHS = [
@@ -237,16 +252,20 @@ export default function EbidtaComboView({
       // Calcular margen EBITDA (%)
       const margenEbitda = ventasNetas !== 0 ? (ebitda / ventasNetas) * 100 : 0;
 
-      // Debug para los primeros 3 meses
-      if (index < 3) {
-        console.log(
-          `📊 [${selectedUnit}-${fullMonth}] Raw: EBITDA="${ebitdaRaw}", Ventas="${ventasRaw}"`
-        );
-        console.log(
-          `📊 [${selectedUnit}-${fullMonth}] Parsed: EBITDA=${ebitda}, Ventas=${ventasNetas}, Margen=${margenEbitda.toFixed(
-            2
-          )}%`
-        );
+      // Debug para TODOS los meses para identificar el problema
+      console.log(
+        `📊 [${selectedUnit}-${fullMonth}] Raw: EBITDA="${ebitdaRaw}", Ventas="${ventasRaw}"`
+      );
+      console.log(
+        `📊 [${selectedUnit}-${fullMonth}] Parsed: EBITDA=${ebitda}, Ventas=${ventasNetas}, Margen=${margenEbitda.toFixed(
+          2
+        )}%`
+      );
+      
+      // Debug adicional: mostrar todas las columnas disponibles si es el primer mes
+      if (index === 0) {
+        console.log(`📊 [${selectedUnit}] Columnas disponibles en EBITDA row:`, ebitdaRow ? Object.keys(ebitdaRow) : 'NO EBITDA ROW');
+        console.log(`📊 [${selectedUnit}] Columnas disponibles en Ventas row:`, ventasNetasRow ? Object.keys(ventasNetasRow) : 'NO VENTAS ROW');
       }
 
       return {
