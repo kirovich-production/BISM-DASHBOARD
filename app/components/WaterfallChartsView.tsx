@@ -660,7 +660,7 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
+    <div className="bg-white rounded-xl shadow-lg p-6 overflow-y-auto max-h-screen">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
