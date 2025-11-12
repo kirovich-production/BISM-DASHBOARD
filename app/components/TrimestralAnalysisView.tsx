@@ -595,7 +595,18 @@ export default function TrimestralAnalysisView({
             .header p {
               color: #6b7280;
               font-size: 14px;
-              margin: 0;
+              margin: 5px 0;
+            }
+            .header .business-unit {
+              background: #8b5cf6;
+              color: white;
+              padding: 8px 20px;
+              border-radius: 20px;
+              font-size: 16px;
+              font-weight: bold;
+              display: inline-block;
+              margin-top: 10px;
+              text-transform: uppercase;
             }
 
             .metrics-section {
@@ -733,6 +744,9 @@ export default function TrimestralAnalysisView({
           minute: "2-digit",
         }
       )}</p>
+            <div class="business-unit">
+              ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
+            </div>
           </div>
 
 
