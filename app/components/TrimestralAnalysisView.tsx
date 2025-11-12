@@ -585,6 +585,7 @@ export default function TrimestralAnalysisView({
               margin-bottom: 15px;
               border-bottom: 3px solid #8b5cf6;
               padding-bottom: 20px;
+              page-break-after: avoid;
             }
             .header h1 {
               color: #8b5cf6;
@@ -611,6 +612,7 @@ export default function TrimestralAnalysisView({
 
             .metrics-section {
               margin-bottom: 30px;
+              page-break-before: always;
               page-break-inside: avoid;
               break-inside: avoid;
             }
@@ -685,6 +687,9 @@ export default function TrimestralAnalysisView({
               padding: 20px;
               margin-bottom: 30px;
               text-align: center;
+              page-break-before: avoid;
+              page-break-after: always;
+              page-break-inside: avoid;
             }
             .chart-title {
               color: #374151;
