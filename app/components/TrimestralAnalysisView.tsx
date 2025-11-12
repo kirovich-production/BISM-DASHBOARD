@@ -637,7 +637,7 @@ export default function TrimestralAnalysisView({
 
             .metrics-section {
               margin-bottom: 30px;
-              page-break-before: auto;
+              page-break-before: always;
               page-break-inside: avoid;
               break-inside: avoid;
             }
