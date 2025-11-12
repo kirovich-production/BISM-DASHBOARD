@@ -749,8 +749,6 @@ export default function TrimestralAnalysisView({
             </div>
           </div>
 
-
-
           <div class="chart-section">
             <h3 class="chart-title">
               ${
