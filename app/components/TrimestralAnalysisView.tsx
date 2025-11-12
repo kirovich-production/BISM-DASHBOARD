@@ -582,7 +582,7 @@ export default function TrimestralAnalysisView({
             }
             .header {
               text-align: center;
-              margin-bottom: 30px;
+              margin-bottom: 15px;
               border-bottom: 3px solid #8b5cf6;
               padding-bottom: 20px;
             }
