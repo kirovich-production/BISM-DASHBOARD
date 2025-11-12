@@ -499,6 +499,8 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
             }
             .summary-section {
               margin: 30px 0;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             .summary-title {
               color: #374151;
@@ -507,12 +509,16 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
               margin-bottom: 20px;
               border-bottom: 2px solid #e5e7eb;
               padding-bottom: 10px;
+              page-break-after: avoid;
+              break-after: avoid;
             }
             .summary-grid {
               display: grid;
               grid-template-columns: repeat(3, 1fr);
               gap: 20px;
               margin-bottom: 30px;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             .summary-card {
               background: white;
@@ -520,6 +526,8 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
               padding: 20px;
               border: 2px solid #e5e7eb;
               text-align: center;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             .card-consolidado {
               border-left: 6px solid #3b82f6;
@@ -554,6 +562,8 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
               border-radius: 12px;
               padding: 20px;
               margin: 30px 0;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             .notes-title {
               color: #000011;
