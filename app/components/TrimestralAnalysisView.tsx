@@ -589,24 +589,26 @@ export default function TrimestralAnalysisView({
             }
             .header h1 {
               color: #8b5cf6;
-              font-size: 36px;
-              margin: 0 0 15px 0;
+              font-size: 40px;
+              margin: 0 0 8px 0;
               font-weight: bold;
-            }
-            .header p {
-              color: #6b7280;
-              font-size: 14px;
-              margin: 5px 0;
+              letter-spacing: -0.5px;
             }
             .header .business-unit {
               color: #1f2937;
               padding: 0;
-              font-size: 18px;
+              font-size: 20px;
               font-weight: 600;
               display: block;
-              margin-top: 15px;
+              margin: 8px 0 20px 0;
               text-transform: uppercase;
-              letter-spacing: 1px;
+              letter-spacing: 1.5px;
+            }
+            .header p {
+              color: #6b7280;
+              font-size: 12px;
+              margin: 0;
+              font-weight: normal;
             }
 
             .metrics-section {
@@ -738,6 +740,9 @@ export default function TrimestralAnalysisView({
         <body>
           <div class="header">
             <h1>Análisis Trimestral Comparativo</h1>
+            <div class="business-unit">
+              ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
+            </div>
             <p>Período: ${periodLabel} | Generado: ${new Date().toLocaleDateString(
         "es-ES",
         {
@@ -748,9 +753,6 @@ export default function TrimestralAnalysisView({
           minute: "2-digit",
         }
       )}</p>
-            <div class="business-unit">
-              ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
-            </div>
           </div>
 
           <div class="chart-section">
