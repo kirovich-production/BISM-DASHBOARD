@@ -576,15 +576,33 @@ export default function TrimestralAnalysisView({
             body {
               font-family: 'Arial', sans-serif;
               margin: 0;
-              padding: 20px;
+              padding: 0;
               color: #1f2937;
               line-height: 1.4;
+              display: flex;
+              flex-direction: column;
+              min-height: 100vh;
             }
+            
+            /* Contenedor para centrado vertical en la primera página */
+            .header-container {
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              text-align: center;
+              padding: 0 20px;
+              page-break-after: always;
+            }
+
             .header {
               text-align: center;
-              margin-bottom: 15px;
-              border-bottom: 3px solid #8b5cf6;
+              margin: 0;
               padding-bottom: 20px;
+              border-bottom: 3px solid #8b5cf6;
+              width: 100%;
+              max-width: 600px;
               page-break-after: avoid;
             }
             .header h1 {
@@ -610,10 +628,16 @@ export default function TrimestralAnalysisView({
               margin: 0;
               font-weight: normal;
             }
+            
+            /* Contenedor para el contenido de las páginas siguientes */
+            .main-content {
+              padding: 20px;
+              flex-grow: 1;
+            }
 
             .metrics-section {
               margin-bottom: 30px;
-              page-break-before: always;
+              page-break-before: auto;
               page-break-inside: avoid;
               break-inside: avoid;
             }
@@ -688,8 +712,8 @@ export default function TrimestralAnalysisView({
               padding: 20px;
               margin-bottom: 30px;
               text-align: center;
-              page-break-before: avoid;
-              page-break-after: always;
+              page-break-before: auto;
+              page-break-after: avoid;
               page-break-inside: avoid;
             }
             .chart-title {
@@ -738,12 +762,13 @@ export default function TrimestralAnalysisView({
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>Análisis Trimestral Comparativo</h1>
-            <div class="business-unit">
-              ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
-            </div>
-            <p>Período: ${periodLabel} | Generado: ${new Date().toLocaleDateString(
+          <div class="header-container">
+            <div class="header">
+              <h1>Análisis Trimestral Comparativo</h1>
+              <div class="business-unit">
+                ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
+              </div>
+              <p>Período: ${periodLabel} | Generado: ${new Date().toLocaleDateString(
         "es-ES",
         {
           year: "numeric",
@@ -753,9 +778,11 @@ export default function TrimestralAnalysisView({
           minute: "2-digit",
         }
       )}</p>
+            </div>
           </div>
-
-          <div class="chart-section">
+          
+          <div class="main-content">
+            <div class="chart-section">
             <h3 class="chart-title">
               ${
                 analysisType === "comparison"
@@ -819,20 +846,17 @@ export default function TrimestralAnalysisView({
             </div>
           </div>
 
-          ${
-            notes.trim()
-              ? `
-              
-            
-            <div class="notes-section">
-              <div class="notes-title">Análisis del gráfico:</div>
-              <div class="notes-content">${notes.replace(/\n/g, "<br>")}</div>
-            </div>
-         
-          `
-              : ""
-          }
-
+            ${
+              notes.trim()
+                ? `
+              <div class="notes-section">
+                <div class="notes-title">Análisis del gráfico:</div>
+                <div class="notes-content">${notes.replace(/\n/g, "<br>")}</div>
+              </div>
+            `
+                : ""
+            }
+          </div>
         </body>
         </html>
       `;
