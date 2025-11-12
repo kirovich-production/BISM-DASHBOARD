@@ -589,8 +589,8 @@ export default function TrimestralAnalysisView({
             }
             .header h1 {
               color: #8b5cf6;
-              font-size: 28px;
-              margin: 0 0 10px 0;
+              font-size: 36px;
+              margin: 0 0 15px 0;
               font-weight: bold;
             }
             .header p {
@@ -599,15 +599,14 @@ export default function TrimestralAnalysisView({
               margin: 5px 0;
             }
             .header .business-unit {
-              background: #8b5cf6;
-              color: white;
-              padding: 8px 20px;
-              border-radius: 20px;
-              font-size: 16px;
-              font-weight: bold;
-              display: inline-block;
-              margin-top: 10px;
+              color: #1f2937;
+              padding: 0;
+              font-size: 18px;
+              font-weight: 600;
+              display: block;
+              margin-top: 15px;
               text-transform: uppercase;
+              letter-spacing: 1px;
             }
 
             .metrics-section {
