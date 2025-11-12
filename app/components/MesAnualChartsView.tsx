@@ -472,9 +472,11 @@ export default function MesAnualChartsView({
               background: white;
               border-radius: 12px;
               margin-bottom: 30px;
-              margin-top: 5px;
+              margin-top: 0;
               border: 2px solid #e5e7eb;
               overflow: hidden;
+              page-break-before: avoid;
+              page-break-inside: auto;
             }
             table {
               width: 100%;
@@ -532,8 +534,12 @@ export default function MesAnualChartsView({
               color: #9ca3af;
             }
             @media print {
-              body { padding: 20px; }
-              .table-container { break-inside: avoid; }
+              body { padding: 0; }
+              .main-content { padding: 20px; }
+              .table-container { 
+                break-inside: avoid; 
+                page-break-before: avoid;
+              }
             }
           </style>
         </head>
