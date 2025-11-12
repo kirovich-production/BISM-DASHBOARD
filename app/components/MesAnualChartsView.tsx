@@ -398,24 +398,62 @@ export default function MesAnualChartsView({
               background: #ffffff;
               color: #1f2937;
               line-height: 1.4;
-              padding: 20px;
+              padding: 0;
+              margin: 0;
+              display: flex;
+              flex-direction: column;
+              min-height: 100vh;
             }
+            
+            /* Contenedor para centrado vertical en la primera página */
+            .header-container {
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              text-align: center;
+              padding: 0 20px;
+              page-break-after: always;
+            }
+            
             .header {
               text-align: center;
-              margin-bottom: 10px;
+              margin: 0;
+              padding-bottom: 20px;
               border-bottom: 3px solid #3b82f6;
-              padding-bottom: 15px;
+              width: 100%;
+              max-width: 600px;
+              page-break-after: avoid;
             }
             .header h1 {
               color: #3b82f6;
-              font-size: 28px;
-              margin: 0 0 10px 0;
+              font-size: 40px;
+              margin: 0 0 8px 0;
               font-weight: bold;
+              letter-spacing: -0.5px;
+            }
+            .header .business-unit {
+              color: #1f2937;
+              padding: 0;
+              font-size: 20px;
+              font-weight: 600;
+              display: block;
+              margin: 8px 0 20px 0;
+              text-transform: uppercase;
+              letter-spacing: 1.5px;
             }
             .header p {
               color: #6b7280;
-              font-size: 14px;
+              font-size: 12px;
               margin: 0;
+              font-weight: normal;
+            }
+            
+            /* Contenedor para el contenido de las páginas siguientes */
+            .main-content {
+              padding: 20px;
+              flex-grow: 1;
             }
             .chart-container {
               text-align: center;
@@ -500,12 +538,18 @@ export default function MesAnualChartsView({
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>Comparación ${selectedMonth} vs Anual</h1>
-            <p>Período: ${periodLabel} | Generado: ${currentDate}</p>
+          <div class="header-container">
+            <div class="header">
+              <h1>Comparación ${selectedMonth} vs Anual</h1>
+              <div class="business-unit">
+                ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
+              </div>
+              <p>Período: ${periodLabel} | Generado: ${currentDate}</p>
+            </div>
           </div>
-
-          <div class="table-container">
+          
+          <div class="main-content">
+            <div class="table-container">
             <table>
               <thead>
                 <tr>
@@ -536,16 +580,17 @@ export default function MesAnualChartsView({
           </div>
           ` : ''}
 
-          ${notes && notes.trim() ? `
-          <div style="background: #ffffff; border: 2px solid #cdcac5d8; border-radius: 12px; padding: 20px; margin-top: 30px;">
-            <h3 style="color: #000000; margin: 0 0 15px 0; font-size: 18px;">Notas y Observaciones</h3>
-            <div style="color: #000011; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${notes}</div>
-          </div>
-          ` : ''}
+            ${notes && notes.trim() ? `
+            <div style="background: #ffffff; border: 2px solid #cdcac5d8; border-radius: 12px; padding: 20px; margin-top: 30px;">
+              <h3 style="color: #000000; margin: 0 0 15px 0; font-size: 18px;">Notas y Observaciones</h3>
+              <div style="color: #000011; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${notes}</div>
+            </div>
+            ` : ''}
 
-          <div class="footer">
-            <span>BISM Dashboard - Documento generado automáticamente</span>
-            <span>Comparación ${selectedMonth} vs Datos Anuales ${periodLabel}</span>
+            <div class="footer">
+              <span>BISM Dashboard - Documento generado automáticamente</span>
+              <span>Comparación ${selectedMonth} vs Datos Anuales ${periodLabel}</span>
+            </div>
           </div>
         </body>
         </html>
