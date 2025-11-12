@@ -797,9 +797,13 @@ export default function TrimestralAnalysisView({
             }
           </div>
 
-          // <div class="metrics-section">
-          //   <h2 class="metrics-title">📈 Métricas Comparativas Detalladas</h2>
-          //   <div class="metrics-grid">
+          <div class="metrics-section">
+          <div class="metrics-section">
+            <h2 class="metrics-title">📈 Métricas Comparativas Detalladas</h2>
+            <div class="metrics-grid">
+          </div>
+
+          
               ${comparativeMetrics
                 .map(
                   (metric) => `
