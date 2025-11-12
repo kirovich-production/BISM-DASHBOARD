@@ -648,6 +648,7 @@ export default function TrimestralAnalysisView({
               margin-bottom: 20px;
               border-bottom: 2px solid #e5e7eb;
               padding-bottom: 10px;
+              page-break-after: avoid;
               page-break-inside: avoid;
               break-inside: avoid;
             }
@@ -655,6 +656,7 @@ export default function TrimestralAnalysisView({
               display: grid;
               grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
               gap: 20px;
+              page-break-before: avoid;
               page-break-inside: avoid;
               break-inside: avoid;
             }
