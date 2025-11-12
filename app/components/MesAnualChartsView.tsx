@@ -457,11 +457,13 @@ export default function MesAnualChartsView({
             }
             .chart-container {
               text-align: center;
-              margin: 30px 0;
+              margin: 30px 0 50px 0;
               background: white;
               border-radius: 12px;
               padding: 20px;
               border: 1px solid #e5e7eb;
+              page-break-after: avoid;
+              page-break-inside: avoid;
             }
             .chart-image {
               max-width: 100%;
@@ -587,7 +589,7 @@ export default function MesAnualChartsView({
           ` : ''}
 
             ${notes && notes.trim() ? `
-            <div style="background: #ffffff; border: 2px solid #cdcac5d8; border-radius: 12px; padding: 20px; margin-top: 30px;">
+            <div style="background: #ffffff; border: 2px solid #cdcac5d8; border-radius: 12px; padding: 20px; margin-top: 30px; page-break-before: auto; page-break-inside: avoid;">
               <h3 style="color: #000000; margin: 0 0 15px 0; font-size: 18px;">Notas y Observaciones</h3>
               <div style="color: #000011; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${notes}</div>
             </div>
