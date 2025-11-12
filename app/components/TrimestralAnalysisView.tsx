@@ -385,13 +385,13 @@ export default function TrimestralAnalysisView({
           },
         },
       },
-      title: {
-        display: true,
-        text: `Comparación Trimestral: ${QUARTERS[selectedQuarter1].label} vs ${QUARTERS[selectedQuarter2].label}`,
-        font: { size: 18, weight: "bold" },
-        color: "#1f2937",
-        padding: 20,
-      },
+      // title: {
+      //   display: true,
+      //   text: `Comparación Trimestral: ${QUARTERS[selectedQuarter1].label} vs ${QUARTERS[selectedQuarter2].label}`,
+      //   font: { size: 18, weight: "bold" },
+      //   color: "#1f2937",
+      //   padding: 20,
+      // },
       tooltip: {
         backgroundColor: "rgba(0, 0, 0, 0.8)",
         titleColor: "white",
