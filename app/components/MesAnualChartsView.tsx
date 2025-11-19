@@ -405,73 +405,56 @@ export default function MesAnualChartsView({
               min-height: 100vh;
             }
             
-            /* Contenedor para centrado vertical en la primera página */
-            .header-container {
-              min-height: 100vh;
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-              align-items: center;
-              text-align: center;
-              padding: 0 20px;
-              page-break-after: always;
-            }
-            
+            /* Header compacto en la misma página */
             .header {
               text-align: center;
-              margin: 0;
-              padding-bottom: 20px;
+              margin: 0 0 12px 0;
+              padding: 8px 12px 10px 12px;
               border-bottom: 3px solid #3b82f6;
-              width: 100%;
-              max-width: 600px;
-              page-break-after: avoid;
             }
             .header h1 {
-              color: #3b82f6;
-              font-size: 40px;
-              margin: 0 0 8px 0;
+              color: #1f2937;
+              font-size: 20px;
+              margin: 0 0 5px 0;
               font-weight: bold;
-              letter-spacing: -0.5px;
+              letter-spacing: -0.3px;
             }
             .header .business-unit {
-              color: #1f2937;
+              color: #3b82f6;
               padding: 0;
-              font-size: 20px;
+              font-size: 12px;
               font-weight: 600;
               display: block;
-              margin: 8px 0 20px 0;
+              margin: 3px 0 5px 0;
               text-transform: uppercase;
-              letter-spacing: 1.5px;
+              letter-spacing: 0.8px;
             }
             .header p {
               color: #6b7280;
-              font-size: 12px;
+              font-size: 9px;
               margin: 0;
               font-weight: normal;
             }
             
-            /* Contenedor para el contenido de las páginas siguientes */
+            /* Contenedor para el contenido */
             .main-content {
-              padding: 20px;
-              flex-grow: 1;
+              padding: 15px;
             }
             .chart-container {
               text-align: center;
-              margin: 30px 0 50px 0;
+              margin: 0 0 15px 0;
               background: white;
               border-radius: 12px;
-              padding: 20px;
+              padding: 15px;
               border: 1px solid #e5e7eb;
               page-break-before: always;
-              page-break-after: always;
               page-break-inside: avoid;
               break-inside: avoid;
-              max-height: 90vh;
-              overflow: hidden;
+              max-height: 65vh;
             }
             .chart-image {
               max-width: 100%;
-              max-height: 85vh;
+              max-height: 60vh;
               height: auto;
               width: auto;
               border-radius: 8px;
@@ -480,16 +463,25 @@ export default function MesAnualChartsView({
             .table-container {
               background: white;
               border-radius: 12px;
-              margin-bottom: 30px;
+              margin-bottom: 15px;
               margin-top: 0;
               border: 2px solid #e5e7eb;
               overflow: hidden;
-              page-break-before: avoid;
               page-break-inside: auto;
             }
             table {
               width: 100%;
               border-collapse: collapse;
+            }
+            thead {
+              display: table-header-group;
+            }
+            tbody {
+              display: table-row-group;
+            }
+            tbody tr {
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             th {
               background: #1e40af;
@@ -504,6 +496,25 @@ export default function MesAnualChartsView({
               text-align: center;
               border-bottom: 1px solid #e5e7eb;
               font-size: 11px;
+            }
+            /* Estilos compactos para tablas medianas (26-40 filas) */
+            .table-medium th {
+              padding: 10px;
+              font-size: 11px;
+            }
+            .table-medium td {
+              padding: 8px;
+              font-size: 10px;
+            }
+            /* Estilos compactos para tablas grandes (>40 filas) */
+            .table-large th {
+              padding: 8px;
+              font-size: 10px;
+            }
+            .table-large td {
+              padding: 6px;
+              font-size: 9.5px;
+              line-height: 1.4;
             }
             tr:nth-child(even) {
               background: #f8fafc;
@@ -536,46 +547,53 @@ export default function MesAnualChartsView({
               background: #ffffff;
               border: 2px solid #cdcac5d8;
               border-radius: 12px;
-              padding: 20px;
-              margin-top: 30px;
-              page-break-before: auto;
+              padding: 15px;
+              margin-top: 0;
               page-break-inside: avoid;
               break-inside: avoid;
             }
             .footer {
-              margin-top: 40px;
-              padding-top: 20px;
+              margin-top: 20px;
+              padding-top: 15px;
               border-top: 1px solid #e5e7eb;
               display: flex;
               justify-content: space-between;
               align-items: center;
-              font-size: 12px;
+              font-size: 10px;
               color: #9ca3af;
             }
             @media print {
               body { padding: 0; }
-              .main-content { padding: 20px; }
+              .main-content { padding: 15px; }
               .table-container { 
-                break-inside: avoid; 
-                page-break-before: avoid;
+                page-break-inside: auto;
+              }
+              thead { 
+                display: table-header-group;
+              }
+              tbody tr { 
+                page-break-inside: avoid;
               }
             }
           </style>
         </head>
         <body>
-          <div class="header-container">
+          <div class="main-content">
+            <!-- Header + Tabla (se divide naturalmente si es necesario) -->
             <div class="header">
-              <h1>Comparación ${selectedMonth} vs Anual</h1>
+              <h1>📊 Comparación ${selectedMonth} vs Anual</h1>
               <div class="business-unit">
                 ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
               </div>
               <p>Período: ${periodLabel} | Generado: ${currentDate}</p>
             </div>
-          </div>
-          
-          <div class="main-content">
+            
             <div class="table-container">
-            <table>
+            <table class="${
+              tableData.length <= 25 ? '' : 
+              tableData.length <= 40 ? 'table-medium' : 
+              'table-large'
+            }">
               <thead>
                 <tr>
                   <th>ÍTEM</th>
@@ -597,13 +615,14 @@ export default function MesAnualChartsView({
                 `).join('')}
               </tbody>
             </table>
-          </div>
+            </div>
 
-          ${chartImageData ? `
-          <div class="chart-container">
-            <img src="${chartImageData}" alt="Gráfico de comparación" class="chart-image" />
-          </div>
-          ` : ''}
+            <!-- Gráfico + Notas (nueva página automática) -->
+            ${chartImageData ? `
+            <div class="chart-container">
+              <img src="${chartImageData}" alt="Gráfico de comparación" class="chart-image" />
+            </div>
+            ` : ''}
 
             ${notes && notes.trim() ? `
             <div class="notes-section">
