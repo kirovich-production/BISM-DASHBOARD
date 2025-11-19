@@ -111,6 +111,7 @@ export default function TrimestralAnalysisView({
   );
   const [notes, setNotes] = useState<string>("");
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [showPdfWarning, setShowPdfWarning] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Limpiar ítems seleccionados cuando cambie la unidad y auto-seleccionar algunos ítems
@@ -512,6 +513,10 @@ export default function TrimestralAnalysisView({
     setSelectedItems((prev) =>
       prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
     );
+    // Ocultar advertencia si se reduce a 8 o menos
+    if (selectedItems.length <= 8 && showPdfWarning) {
+      setShowPdfWarning(false);
+    }
   };
 
   // Calcular métricas comparativas
@@ -543,11 +548,17 @@ export default function TrimestralAnalysisView({
   // Función para generar PDF del análisis trimestral
   const generatePDF = async () => {
     if (selectedItems.length === 0) {
-      alert("Selecciona al menos un ítem para generar el análisis");
+      setShowPdfWarning(true);
+      return;
+    }
+
+    if (selectedItems.length > 8) {
+      setShowPdfWarning(true);
       return;
     }
 
     setIsGeneratingPdf(true);
+    setShowPdfWarning(false);
 
     try {
       // Capturar el gráfico como imagen
@@ -579,159 +590,92 @@ export default function TrimestralAnalysisView({
               padding: 0;
               color: #1f2937;
               line-height: 1.4;
-              display: flex;
-              flex-direction: column;
-              min-height: 100vh;
             }
             
-            /* Contenedor para centrado vertical en la primera página */
-            .header-container {
-              min-height: 100vh;
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-              align-items: center;
-              text-align: center;
-              padding: 0 20px;
-              page-break-after: always;
-            }
-
+            /* Header compacto en la misma página */
             .header {
               text-align: center;
-              margin: 0;
-              padding-bottom: 20px;
+              margin: 0 0 15px 0;
+              padding: 10px 15px 12px 15px;
               border-bottom: 3px solid #8b5cf6;
-              width: 100%;
-              max-width: 600px;
-              page-break-after: avoid;
             }
             .header h1 {
-              color: #8b5cf6;
-              font-size: 40px;
-              margin: 0 0 8px 0;
+              color: #1f2937;
+              font-size: 24px;
+              margin: 0 0 6px 0;
               font-weight: bold;
-              letter-spacing: -0.5px;
+              letter-spacing: -0.3px;
             }
             .header .business-unit {
-              color: #1f2937;
+              color: #8b5cf6;
               padding: 0;
-              font-size: 20px;
+              font-size: 14px;
               font-weight: 600;
               display: block;
-              margin: 8px 0 20px 0;
+              margin: 4px 0 6px 0;
               text-transform: uppercase;
-              letter-spacing: 1.5px;
+              letter-spacing: 1px;
             }
             .header p {
               color: #6b7280;
-              font-size: 12px;
+              font-size: 10px;
               margin: 0;
               font-weight: normal;
             }
             
-            /* Contenedor para el contenido de las páginas siguientes */
+            /* Contenedor principal con layout vertical */
             .main-content {
-              padding: 20px;
-              flex-grow: 1;
-            }
-
-            .metrics-section {
-              margin-bottom: 30px;
-              page-break-before: always;
+              padding: 15px;
               page-break-inside: avoid;
-              break-inside: avoid;
             }
-            .metrics-title {
-              color: #374151;
-              font-size: 20px;
-              font-weight: bold;
-              margin-bottom: 20px;
-              border-bottom: 2px solid #e5e7eb;
-              padding-bottom: 10px;
-              page-break-after: avoid;
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .metrics-grid {
+            
+            .content-grid {
               display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-              gap: 20px;
-              page-break-before: avoid;
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .metric-card {
-              background: white;
-              border: 2px solid #e5e7eb;
-              border-left: 6px solid #8b5cf6;
-              border-radius: 12px;
-              padding: 20px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .metric-title {
-              font-weight: bold;
-              color: #1f2937;
-              font-size: 16px;
-              margin-bottom: 15px;
-            }
-            .metric-row {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 10px;
-              padding: 8px 0;
-              border-bottom: 1px solid #f3f4f6;
-            }
-            .metric-label {
-              font-weight: 600;
-              color: #4b5563;
-              font-size: 13px;
-            }
-            .metric-value {
-              font-weight: bold;
-              font-size: 14px;
-            }
-            .metric-q1 { color: #3b82f6; }
-            .metric-q2 { color: #10b981; }
-            .variation-positive { color: #10b981; }
-            .variation-negative { color: #ef4444; }
-            .winner-badge {
-              background: #e0f2fe;
-              color: #0277bd;
-              padding: 4px 8px;
-              border-radius: 12px;
-              font-size: 11px;
-              font-weight: bold;
+              grid-template-columns: 60% 40%;
+              grid-template-rows: auto auto;
+              gap: 15px;
+              align-items: start;
             }
 
-
+            /* Sección del gráfico - columna izquierda */
             .chart-section {
+              grid-column: 1;
+              grid-row: 1;
               background: white;
               border: 2px solid #e5e7eb;
               border-radius: 12px;
-              padding: 20px;
-              margin-bottom: 30px;
+              padding: 15px;
               text-align: center;
-              page-break-before: auto;
-              page-break-after: avoid;
               page-break-inside: avoid;
+              break-inside: avoid;
+              display: flex;
+              flex-direction: column;
+              height: fit-content;
             }
             .chart-title {
               color: #374151;
-              font-size: 18px;
+              font-size: 16px;
               font-weight: bold;
-              margin-bottom: 20px;
+              margin-bottom: 12px;
               border-bottom: 2px solid #e5e7eb;
-              padding-bottom: 10px;
+              padding-bottom: 8px;
+              flex-shrink: 0;
             }
             .chart-image {
               max-width: 100%;
+              width: 100%;
               height: auto;
+              max-height: 750px;
+              object-fit: contain;
+              object-position: top;
               border: 1px solid #d1d5db;
               border-radius: 8px;
               box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              display: block;
+              margin-bottom: 0;
+            }
+            .chart-image.compact {
+              max-height: 480px;
             }
             .chart-placeholder {
               background: #f3f4f6;
@@ -740,33 +684,124 @@ export default function TrimestralAnalysisView({
               border-radius: 8px;
               color: #6b7280;
               font-style: italic;
+              font-size: 14px;
             }
-            .notes-section {
-              background: #ffffffff;
-              border: 1px solid #6b7280;
-              border-radius: 12px;
-              padding: 20px;
-              margin-top: 30px;
+
+            /* Sección de métricas - columna derecha */
+            .metrics-section {
+              grid-column: 2;
+              grid-row: 1 / 3;
               page-break-inside: avoid;
               break-inside: avoid;
             }
-            .notes-title {
-              color: #000000ff;
+            .metrics-grid {
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+            }
+            .metrics-grid.compact {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 8px;
+            }
+            .metric-card {
+              background: white;
+              border: 2px solid #e5e7eb;
+              border-left: 6px solid #8b5cf6;
+              border-radius: 10px;
+              padding: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .metric-card.compact {
+              padding: 8px;
+              border-radius: 8px;
+              border-left-width: 4px;
+            }
+            .metric-title {
               font-weight: bold;
+              color: #1f2937;
+              font-size: 14px;
               margin-bottom: 10px;
-              font-size: 16px;
+              border-bottom: 1px solid #e5e7eb;
+              padding-bottom: 6px;
+            }
+            .metric-title.compact {
+              font-size: 11px;
+              margin-bottom: 6px;
+              padding-bottom: 4px;
+            }
+            .metric-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 6px;
+              padding: 4px 0;
+            }
+            .metric-row.compact {
+              margin-bottom: 4px;
+              padding: 2px 0;
+            }
+            .metric-label {
+              font-weight: 600;
+              color: #4b5563;
+              font-size: 11px;
+            }
+            .metric-label.compact {
+              font-size: 9px;
+            }
+            .metric-value {
+              font-weight: bold;
+              font-size: 12px;
+            }
+            .metric-value.compact {
+              font-size: 10px;
+            }
+            .metric-q1 { color: #3b82f6; }
+            .metric-q2 { color: #10b981; }
+            .variation-positive { color: #10b981; }
+            .variation-negative { color: #ef4444; }
+            .winner-badge {
+              background: #e0f2fe;
+              color: #0277bd;
+              padding: 3px 6px;
+              border-radius: 10px;
+              font-size: 10px;
+              font-weight: bold;
+            }
+
+            /* Sección de notas - 40% del ancho debajo del gráfico */
+            .notes-section {
+              grid-column: 1;
+              grid-row: 2;
+              background: #ffffff;
+              border: 1px solid #6b7280;
+              border-radius: 12px;
+              padding: 15px;
+              page-break-inside: avoid;
+              break-inside: avoid;
+              width: 66.67%;
+              max-width: 66.67%;
+            }
+            .notes-title {
+              color: #000000;
+              font-weight: bold;
+              margin-bottom: 8px;
+              font-size: 14px;
             }
             .notes-content {
-              color: #000000ff;
+              color: #000000;
               line-height: 1.6;
-              font-size: 14px;
+              font-size: 12px;
             }
           </style>
         </head>
         <body>
-          <div class="header-container">
+          <div class="main-content">
+            <!-- Header compacto -->
             <div class="header">
-              <h1>Análisis Trimestral Comparativo</h1>
+              <h1>📊 Análisis Trimestral Comparativo</h1>
               <div class="business-unit">
                 ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
               </div>
@@ -781,77 +816,77 @@ export default function TrimestralAnalysisView({
         }
       )}</p>
             </div>
-          </div>
-          
-          <div class="main-content">
+            
+            <div class="content-grid">
+            <!-- Gráfico - Columna Izquierda (60%) -->
             <div class="chart-section">
-            <h3 class="chart-title">
+              <h3 class="chart-title">
+                ${
+                  analysisType === "comparison"
+                    ? `📊 Gráfico de Comparación: ${QUARTERS[selectedQuarter1].label} vs ${QUARTERS[selectedQuarter2].label}`
+                    : `📈 Gráfico de Evolución: ${QUARTERS[selectedQuarter1].label} + ${QUARTERS[selectedQuarter2].label}`
+                }
+              </h3>
               ${
-                analysisType === "comparison"
-                  ? `📊 Gráfico de Comparación: ${QUARTERS[selectedQuarter1].label} vs ${QUARTERS[selectedQuarter2].label}`
-                  : `📈 Gráfico de Evolución: ${QUARTERS[selectedQuarter1].label} + ${QUARTERS[selectedQuarter2].label}`
+                chartImageBase64
+                  ? `<img src="${chartImageBase64}" alt="Gráfico de Análisis Trimestral" class="chart-image ${comparativeMetrics.length >= 4 ? 'compact' : ''}" />`
+                  : `<div class="chart-placeholder">Gráfico no disponible - Asegúrate de que haya ítems seleccionados y el gráfico esté visible</div>`
               }
-            </h3>
-            ${
-              chartImageBase64
-                ? `<img src="${chartImageBase64}" alt="Gráfico de Análisis Trimestral" class="chart-image" />`
-                : `<div class="chart-placeholder">Gráfico no disponible - Asegúrate de que haya ítems seleccionados y el gráfico esté visible</div>`
-            }
-          </div>
-
-          
-          <div class="metrics-section">
-            <h2 class="metrics-title">📈 Métricas Comparativas Detalladas</h2>
-            <div class="metrics-grid">
-  
-
-
-              ${comparativeMetrics
-                .map(
-                  (metric) => `
-                <div class="metric-card">
-                  <div class="metric-title">${metric.item}</div>
-                  <div class="metric-row">
-                    <span class="metric-label">${
-                      QUARTERS[selectedQuarter1].label
-                    }</span>
-                    <span class="metric-value metric-q1">$${metric.q1.total.toLocaleString(
-                      "es-CL"
-                    )}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-label">${
-                      QUARTERS[selectedQuarter2].label
-                    }</span>
-                    <span class="metric-value metric-q2">$${metric.q2.total.toLocaleString(
-                      "es-CL"
-                    )}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-label">Variación</span>
-                    <span class="metric-value ${
-                      metric.variation >= 0
-                        ? "variation-positive"
-                        : "variation-negative"
-                    }">
-                      ${
-                        metric.variation >= 0 ? "+" : ""
-                      }${metric.variation.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-label">Mejor Trimestre</span>
-                    <span class="winner-badge">${
-                      QUARTERS[metric.winner].label
-                    }</span>
-                  </div>
-                </div>
-              `
-                )
-                .join("")}
             </div>
-          </div>
 
+            <!-- Métricas - Columna Derecha (40%) -->
+            <div class="metrics-section">
+              <div class="metrics-grid ${comparativeMetrics.length >= 4 ? 'compact' : ''}">
+                ${comparativeMetrics
+                  .map(
+                    (metric) => {
+                      const isCompact = comparativeMetrics.length >= 4;
+                      return `
+                  <div class="metric-card ${isCompact ? 'compact' : ''}">
+                    <div class="metric-title ${isCompact ? 'compact' : ''}">${metric.item}</div>
+                    <div class="metric-row ${isCompact ? 'compact' : ''}">
+                      <span class="metric-label ${isCompact ? 'compact' : ''}">${
+                        QUARTERS[selectedQuarter1].label
+                      }</span>
+                      <span class="metric-value ${isCompact ? 'compact' : ''} metric-q1">$${metric.q1.total.toLocaleString(
+                        "es-CL"
+                      )}</span>
+                    </div>
+                    <div class="metric-row ${isCompact ? 'compact' : ''}">
+                      <span class="metric-label ${isCompact ? 'compact' : ''}">${
+                        QUARTERS[selectedQuarter2].label
+                      }</span>
+                      <span class="metric-value ${isCompact ? 'compact' : ''} metric-q2">$${metric.q2.total.toLocaleString(
+                        "es-CL"
+                      )}</span>
+                    </div>
+                    <div class="metric-row ${isCompact ? 'compact' : ''}">
+                      <span class="metric-label ${isCompact ? 'compact' : ''}">Variación</span>
+                      <span class="metric-value ${isCompact ? 'compact' : ''} ${
+                        metric.variation >= 0
+                          ? "variation-positive"
+                          : "variation-negative"
+                      }">
+                        ${
+                          metric.variation >= 0 ? "+" : ""
+                        }${metric.variation.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div class="metric-row ${isCompact ? 'compact' : ''}">
+                      <span class="metric-label ${isCompact ? 'compact' : ''}">Mejor Trimestre</span>
+                      <span class="winner-badge">${
+                        QUARTERS[metric.winner].label
+                      }</span>
+                    </div>
+                  </div>
+                `;
+                    }
+                  )
+                  .join("")}
+              </div>
+            </div>
+
+            <!-- Notas - Ancho Completo en la Parte Inferior -->
             ${
               notes.trim()
                 ? `
@@ -862,6 +897,7 @@ export default function TrimestralAnalysisView({
             `
                 : ""
             }
+            </div>
           </div>
         </body>
         </html>
@@ -953,6 +989,33 @@ export default function TrimestralAnalysisView({
               </div>
             </div>
           </div>
+
+          {/* Advertencia para PDF */}
+          {showPdfWarning && (
+            <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border-2 border-amber-400 rounded-lg shadow-md animate-pulse">
+              <svg className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-amber-900">
+                  {selectedItems.length === 0 
+                    ? "Debes seleccionar al menos un ítem para exportar" 
+                    : `Para exportar a PDF, selecciona máximo 8 ítems`}
+                </p>
+                {selectedItems.length > 8 && (
+                  <p className="text-xs text-amber-800 mt-1">
+                    Actualmente tienes {selectedItems.length} ítems seleccionados. Por favor, reduce tu selección.
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setShowPdfWarning(false)}
+                className="text-amber-600 hover:text-amber-800 font-bold text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+          )}
 
           {/* Botón Exportar PDF */}
           <button
@@ -1194,7 +1257,8 @@ export default function TrimestralAnalysisView({
               )}
               <button
                 onClick={() => setSelectedItems(availableItems.slice(0, 5))}
-                className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full hover:bg-blue-200 transition-colors"
+                disabled={availableItems.length === 0}
+                className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full hover:bg-blue-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
               >
                 Seleccionar top 5
               </button>
