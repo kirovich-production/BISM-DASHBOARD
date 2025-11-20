@@ -461,9 +461,7 @@ export default function EbidtaComboView({
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Análisis Combo EBITDA - ${
-            selectedUserName || "Usuario"
-          }</title>
+          <title>Análisis Combo EBITDA - ${selectedUserName || "Usuario"}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -472,230 +470,199 @@ export default function EbidtaComboView({
               color: #1f2937;
               line-height: 1.4;
               padding: 20px;
+              height: 100vh;
+              display: flex;
+              flex-direction: column;
             }
             .header {
               text-align: center;
-              margin-bottom: 10px;
+              margin-bottom: 15px;
               border-bottom: 3px solid #3b82f6;
-              padding-bottom: 15px;
+              padding-bottom: 10px;
             }
             .header h1 {
               color: #3b82f6;
-              font-size: 28px;
-              margin: 0 0 10px 0;
+              font-size: 24px;
+              margin: 0 0 6px 0;
               font-weight: bold;
             }
             .header p {
               color: #6b7280;
-              font-size: 14px;
+              font-size: 11px;
               margin: 0;
             }
+            .main-container {
+              display: flex;
+              flex-direction: column;
+              gap: 15px;
+              flex-grow: 1;
+              min-height: 0;
+            }
             .chart-container {
-              text-align: center;
-              margin: 20px 0;
               background: white;
               border-radius: 12px;
-              padding: 20px;
-              border: 1px solid #e5e7eb;
+              padding: 15px;
+              border: 2px solid #e5e7eb;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex: 0 0 62%;
+              min-height: 0;
             }
             .chart-image {
               max-width: 100%;
-              height: auto;
+              max-height: 100%;
+              width: 100%;
+              height: 100%;
+              object-fit: contain;
               border-radius: 8px;
             }
-            .summary-section {
-              margin: 30px 0;
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .summary-title {
-              color: #374151;
-              font-size: 20px;
-              font-weight: bold;
-              margin-bottom: 20px;
-              border-bottom: 2px solid #e5e7eb;
-              padding-bottom: 10px;
-            }
-            .summary-grid {
+            .bottom-grid {
               display: grid;
-              grid-template-columns: repeat(4, 1fr);
-              gap: 20px;
-              margin-bottom: 30px;
+              grid-template-columns: 1fr 1fr;
+              gap: 12px;
+              flex: 1;
+              min-height: 0;
+            }
+            .cards-container {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              grid-template-rows: 1fr 1fr;
+              gap: 10px;
             }
             .summary-card {
               background: white;
-              border-radius: 12px;
-              padding: 20px;
+              border-radius: 10px;
+              padding: 12px;
               border: 2px solid #e5e7eb;
               text-align: center;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
             }
             .card-ebitda-prom {
-              border-left: 6px solid #3b82f6;
+              border-left: 8px solid #3b82f6;
               background: #eff6ff;
             }
             .card-margen-prom {
-              border-left: 6px solid #10b981;
+              border-left: 8px solid #10b981;
               background: #ecfdf5;
             }
             .card-ebitda-max {
-              border-left: 6px solid #f59e0b;
+              border-left: 8px solid #f59e0b;
               background: #fffbeb;
             }
             .card-margen-max {
-              border-left: 6px solid #8b5cf6;
+              border-left: 8px solid #8b5cf6;
               background: #f3e8ff;
             }
             .card-title {
-              font-size: 14px;
-              font-weight: 600;
-              margin-bottom: 10px;
+              font-size: 10px;
+              font-weight: 700;
+              margin-bottom: 8px;
+              line-height: 1.3;
             }
             .card-ebitda-prom .card-title { color: #1e40af; }
             .card-margen-prom .card-title { color: #059669; }
             .card-ebitda-max .card-title { color: #d97706; }
             .card-margen-max .card-title { color: #7c3aed; }
             .card-value {
-              font-size: 24px;
+              font-size: 16px;
               font-weight: bold;
             }
             .card-ebitda-prom .card-value { color: #1e3a8a; }
             .card-margen-prom .card-value { color: #047857; }
             .card-ebitda-max .card-value { color: #92400e; }
             .card-margen-max .card-value { color: #6b21a8; }
-            .insights-section {
-              background: linear-gradient(to right, #eff6ff, #ecfdf5);
-              border: 2px solid #3b82f6;
-              border-radius: 12px;
-              padding: 20px;
-              margin: 30px 0;
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .insights-title {
-              color: #374151;
-              font-size: 18px;
-              font-weight: bold;
-              margin-bottom: 15px;
-            }
-            .insights-grid {
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 20px;
-            }
-            .insight-item {
-              font-size: 14px;
-            }
-            .insight-label {
-              font-weight: 600;
-              margin-bottom: 5px;
-            }
-            .insight-blue { color: #1e40af; }
-            .insight-green { color: #059669; }
-            .insight-text {
-              color: #6b7280;
-              line-height: 1.5;
-            }
             .notes-section {
               background: #ffffff;
-              border: 2px solid #aeacaaff;
-              border-radius: 12px;
-              padding: 20px;
-              margin: 30px 0;
-              page-break-inside: avoid;
-              break-inside: avoid;
+              border: 2px solid #d1d5db;
+              border-radius: 10px;
+              padding: 15px;
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
+              height: 100%;
             }
             .notes-title {
-              color: #0000011;
-              font-size: 18px;
+              color: #111827;
+              font-size: 13px;
               font-weight: bold;
-              margin-bottom: 15px;
+              margin-bottom: 10px;
+              flex-shrink: 0;
             }
             .notes-content {
-              color: #6b7280;
-              font-size: 14px;
+              color: #374151;
+              font-size: 11px;
               line-height: 1.6;
               white-space: pre-wrap;
+              overflow-y: auto;
+              flex-grow: 1;
             }
             .footer {
-              margin-top: 40px;
-              padding-top: 20px;
+              margin-top: 12px;
+              padding-top: 10px;
               border-top: 1px solid #e5e7eb;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              font-size: 12px;
+              text-align: center;
+              font-size: 9px;
               color: #9ca3af;
+              flex-shrink: 0;
             }
           </style>
         </head>
         <body>
+          <!-- Header -->
           <div class="header">
-            <h1>Análisis Combo EBITDA</h1>
-            
+            <h1>📊 Análisis Combo EBITDA (${selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza'})</h1>
+            <p>Usuario: ${selectedUserName || 'N/A'} | Período: ${selectedPeriod || 'N/A'} | ${currentDate}</p>
           </div>
 
-          ${
-            chartImageData
-              ? `
-          <div class="chart-container">
-            <img src="${chartImageData}" alt="Gráfico Análisis Combo EBITDA" class="chart-image" />
-          </div>
-          `
-              : ""
-          }
+          <!-- Contenedor Principal Vertical -->
+          <div class="main-container">
+            <!-- Gráfico (Ancho Completo - Arriba) -->
+            ${chartImageData ? `
+            <div class="chart-container">
+              <img src="${chartImageData}" alt="Gráfico Análisis Combo EBITDA" class="chart-image" />
+            </div>
+            ` : ''}
 
-          ${
-            comboData.length > 0
-              ? `
-          <div class="summary-section">
-            <h2 class="summary-title">Métricas de Resumen</h2>
-            <div class="summary-grid">
-              <div class="summary-card card-ebitda-prom">
-                <div class="card-title">EBITDA Promedio</div>
-                <div class="card-value">$${ebitdaPromedio.toLocaleString(
-                  "es-CL",
-                  { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-                )}</div>
+            <!-- Grid Inferior: Cards (50%) + Notas (50%) -->
+            <div class="bottom-grid">
+              <!-- Columna Izquierda: Grid 2x2 de Cards -->
+              <div class="cards-container">
+                <div class="summary-card card-ebitda-prom">
+                  <div class="card-title">EBITDA Promedio</div>
+                  <div class="card-value">$${ebitdaPromedio.toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                </div>
+                
+                <div class="summary-card card-margen-prom">
+                  <div class="card-title">Margen Promedio</div>
+                  <div class="card-value">${margenPromedio.toFixed(1)}%</div>
+                </div>
+                
+                <div class="summary-card card-ebitda-max">
+                  <div class="card-title">EBITDA Máximo</div>
+                  <div class="card-value">$${ebitdaMaximo.toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                </div>
+                
+                <div class="summary-card card-margen-max">
+                  <div class="card-title">Margen Máximo</div>
+                  <div class="card-value">${margenMaximo.toFixed(1)}%</div>
+                </div>
               </div>
-              <div class="summary-card card-margen-prom">
-                <div class="card-title">Margen Promedio</div>
-                <div class="card-value">${margenPromedio.toFixed(1)}%</div>
-              </div>
-              <div class="summary-card card-ebitda-max">
-                <div class="card-title">EBITDA Máximo</div>
-                <div class="card-value">$${ebitdaMaximo.toLocaleString(
-                  "es-CL",
-                  { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-                )}</div>
-              </div>
-              <div class="summary-card card-margen-max">
-                <div class="card-title">Margen Máximo</div>
-                <div class="card-value">${margenMaximo.toFixed(1)}%</div>
+
+              <!-- Columna Derecha: Notas -->
+              <div class="notes-section">
+                <h3 class="notes-title">Notas del Análisis</h3>
+                <div class="notes-content">${notes.trim() || 'Sin notas'}</div>
               </div>
             </div>
           </div>
-          `
-              : ""
-          }
-
-         
-
-          ${
-            notes.trim()
-              ? `
-              
-          <div class="notes-section">
-            <h3 class="notes-title">Notas del Análisis</h3>
-            <div class="notes-content">${notes}</div>
-          </div>
           
-          `
-              : ""
-          }
-
+          <!-- Footer -->
           <div class="footer">
-            <span>BISM Dashboard - Documento generado automáticamente</span>
-            <span>Análisis Combo EBITDA - ${currentDate}</span>
+            BISM Dashboard - Análisis Combo EBITDA - ${currentDate}
           </div>
         </body>
         </html>
@@ -828,76 +795,78 @@ export default function EbidtaComboView({
         <Chart type="bar" ref={chartRef} data={chartData} options={options} />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {comboData.length > 0 && (
-          <>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="text-blue-700 text-sm font-medium">
-                EBITDA Promedio
+      {/* Summary Cards + Notes Section - Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Left Column: 4 Cards in 2x2 Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          {comboData.length > 0 && (
+            <>
+              <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4">
+                <div className="text-blue-700 text-xs font-semibold">
+                  EBITDA Promedio
+                </div>
+                <div className="text-blue-900 text-lg font-bold mt-1">
+                  $
+                  {(
+                    comboData.reduce((acc, d) => acc + d.ebitda, 0) /
+                    comboData.length
+                  ).toLocaleString("es-CL", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+                </div>
               </div>
-              <div className="text-blue-900 text-lg font-bold">
-                $
-                {(
-                  comboData.reduce((acc, d) => acc + d.ebitda, 0) /
-                  comboData.length
-                ).toLocaleString("es-CL", {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })}
-              </div>
-            </div>
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="text-green-700 text-sm font-medium">
-                Margen Promedio
+              <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-4">
+                <div className="text-green-700 text-xs font-semibold">
+                  Margen Promedio
+                </div>
+                <div className="text-green-900 text-lg font-bold mt-1">
+                  {(
+                    comboData.reduce((acc, d) => acc + d.margenEbitda, 0) /
+                    comboData.length
+                  ).toFixed(1)}
+                  %
+                </div>
               </div>
-              <div className="text-green-900 text-lg font-bold">
-                {(
-                  comboData.reduce((acc, d) => acc + d.margenEbitda, 0) /
-                  comboData.length
-                ).toFixed(1)}
-                %
-              </div>
-            </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="text-amber-700 text-sm font-medium">
-                EBITDA Máximo
+              <div className="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4">
+                <div className="text-amber-700 text-xs font-semibold">
+                  EBITDA Máximo
+                </div>
+                <div className="text-amber-900 text-lg font-bold mt-1">
+                  $
+                  {Math.max(...comboData.map((d) => d.ebitda)).toLocaleString(
+                    "es-CL",
+                    { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                  )}
+                </div>
               </div>
-              <div className="text-amber-900 text-lg font-bold">
-                $
-                {Math.max(...comboData.map((d) => d.ebitda)).toLocaleString(
-                  "es-CL",
-                  { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-                )}
-              </div>
-            </div>
 
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <div className="text-purple-700 text-sm font-medium">
-                Margen Máximo
+              <div className="bg-purple-50 border-l-4 border-purple-500 rounded-lg p-4">
+                <div className="text-purple-700 text-xs font-semibold">
+                  Margen Máximo
+                </div>
+                <div className="text-purple-900 text-lg font-bold mt-1">
+                  {Math.max(...comboData.map((d) => d.margenEbitda)).toFixed(1)}%
+                </div>
               </div>
-              <div className="text-purple-900 text-lg font-bold">
-                {Math.max(...comboData.map((d) => d.margenEbitda)).toFixed(1)}%
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+            </>
+          )}
+        </div>
 
-      {/* Notes Section */}
-      <div className="mt-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Notas del análisis:
-        </label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Agrega tus observaciones sobre el análisis combo del EBITDA..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 resize-none"
-          rows={3}
-        />
+        {/* Right Column: Notes Section */}
+        <div className="bg-white border-2 border-gray-300 rounded-lg p-4 flex flex-col">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
+            📝 Notas del análisis:
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Agrega tus observaciones sobre el análisis combo del EBITDA..."
+            className="flex-grow w-full px-3 py-2 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900 resize-none min-h-[200px] bg-gray-50"
+          />
+        </div>
       </div>
     </div>
   );

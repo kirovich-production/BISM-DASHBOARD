@@ -12,7 +12,7 @@ interface PeriodSelectorProps {
 const MONTHS_SHORT = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
 
 export default function PeriodSelector({ periods, selectedPeriod, onPeriodChange }: PeriodSelectorProps) {
-  const [isExpanded, setIsExpanded] = useState(true); // Estado para colapsar/expandir
+  const [isExpanded, setIsExpanded] = useState(false); // Estado para colapsar/expandir - Inicia contraído
   
   // Extraer años disponibles y organizar períodos por año
   const periodsByYear = useMemo(() => {

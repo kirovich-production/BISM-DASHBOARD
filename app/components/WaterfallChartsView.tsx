@@ -466,68 +466,76 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
               color: #1f2937;
               line-height: 1.4;
               padding: 20px;
+              height: 100vh;
+              display: flex;
+              flex-direction: column;
             }
             .header {
               text-align: center;
-              margin-bottom: 10px;
+              margin-bottom: 15px;
               border-bottom: 3px solid #22c55e;
-              padding-bottom: 15px;
+              padding-bottom: 10px;
             }
             .header h1 {
               color: #22c55e;
-              font-size: 28px;
-              margin: 0 0 10px 0;
+              font-size: 24px;
+              margin: 0 0 6px 0;
               font-weight: bold;
             }
             .header p {
               color: #6b7280;
-              font-size: 14px;
+              font-size: 11px;
               margin: 0;
             }
+            .main-container {
+              display: flex;
+              flex-direction: column;
+              gap: 15px;
+              flex-grow: 1;
+              min-height: 0;
+            }
             .chart-container {
-              text-align: center;
-              margin: 20px 0;
               background: white;
               border-radius: 12px;
-              padding: 20px;
-              border: 1px solid #e5e7eb;
+              padding: 15px;
+              border: 2px solid #e5e7eb;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex: 0 0 62%;
+              min-height: 0;
             }
             .chart-image {
               max-width: 100%;
-              height: auto;
+              max-height: 100%;
+              width: 100%;
+              height: 100%;
+              object-fit: contain;
               border-radius: 8px;
             }
-            .summary-section {
-              margin: 30px 0;
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .summary-title {
-              color: #374151;
-              font-size: 20px;
-              font-weight: bold;
-              margin-bottom: 20px;
-              border-bottom: 2px solid #e5e7eb;
-              padding-bottom: 10px;
-              page-break-after: avoid;
-              break-after: avoid;
-            }
-            .summary-grid {
+            .bottom-grid {
               display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 20px;
-              margin-bottom: 30px;
-              page-break-inside: avoid;
-              break-inside: avoid;
+              grid-template-columns: 40% 60%;
+              gap: 10px;
+              flex: 0 0 auto;
+              max-height: 30%;
+              min-height: 0;
+            }
+            .cards-container {
+              display: flex;
+              flex-direction: column;
+              gap: 6px;
             }
             .summary-card {
               background: white;
-              border-radius: 12px;
-              padding: 20px;
+              border-radius: 8px;
+              padding: 8px 10px;
               border: 2px solid #e5e7eb;
               text-align: center;
-              page-break-inside: avoid;
-              break-inside: avoid;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
             }
             .card-consolidado {
               border-left: 6px solid #3b82f6;
@@ -542,15 +550,16 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
               background: #ecfdf5;
             }
             .card-title {
-              font-size: 14px;
-              font-weight: 600;
-              margin-bottom: 10px;
+              font-size: 9px;
+              font-weight: 700;
+              margin-bottom: 6px;
+              line-height: 1.2;
             }
             .card-consolidado .card-title { color: #1e40af; }
             .card-sevilla .card-title { color: #7c3aed; }
             .card-labranza .card-title { color: #059669; }
             .card-value {
-              font-size: 24px;
+              font-size: 16px;
               font-weight: bold;
             }
             .card-consolidado .card-value { color: #1e3a8a; }
@@ -558,77 +567,87 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
             .card-labranza .card-value { color: #047857; }
             .notes-section {
               background: #ffffff;
-              border: 2px solid #b2b0aeed;
-              border-radius: 12px;
-              padding: 20px;
-              margin: 30px 0;
-              page-break-inside: avoid;
-              break-inside: avoid;
+              border: 2px solid #d1d5db;
+              border-radius: 8px;
+              padding: 10px;
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
+              height: 100%;
             }
             .notes-title {
-              color: #000011;
-              font-size: 18px;
+              color: #111827;
+              font-size: 11px;
               font-weight: bold;
-              margin-bottom: 15px;
+              margin-bottom: 8px;
+              flex-shrink: 0;
             }
             .notes-content {
-              color: #000011;
-              font-size: 14px;
-              line-height: 1.6;
+              color: #374151;
+              font-size: 9px;
+              line-height: 1.5;
               white-space: pre-wrap;
+              overflow-y: auto;
+              flex-grow: 1;
             }
             .footer {
-              margin-top: 40px;
-              padding-top: 20px;
+              margin-top: 15px;
+              padding-top: 10px;
               border-top: 1px solid #e5e7eb;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              font-size: 12px;
+              text-align: center;
+              font-size: 9px;
               color: #9ca3af;
+              flex-shrink: 0;
             }
           </style>
         </head>
         <body>
+          <!-- Header -->
           <div class="header">
             <h1>📊 Comparativo EBITDA por Centro</h1>
-            <p>Usuario: ${selectedUserName || 'No seleccionado'} | Período: ${selectedPeriod || 'No seleccionado'} | Generado: ${currentDate}</p>
+            <p>Usuario: ${selectedUserName || 'N/A'} | Período: ${selectedPeriod || 'N/A'} | ${currentDate}</p>
           </div>
 
-          ${chartImageData ? `
-          <div class="chart-container">
-            <img src="${chartImageData}" alt="Gráfico Comparativo EBITDA" class="chart-image" />
-          </div>
-          ` : ''}
+          <!-- Contenedor Principal Vertical -->
+          <div class="main-container">
+            <!-- Gráfico (Ancho Completo - Arriba) -->
+            ${chartImageData ? `
+            <div class="chart-container">
+              <img src="${chartImageData}" alt="Gráfico Comparativo EBITDA" class="chart-image" />
+            </div>
+            ` : ''}
 
-          <div class="summary-section">
-            <h2 class="summary-title">📋 Resumen de Promedios EBITDA</h2>
-            <div class="summary-grid">
-              <div class="summary-card card-consolidado">
-                <div class="card-title">EBITDA Promedio Consolidado ${showPercentages ? '(%)' : '(CLP)'}</div>
-                <div class="card-value">${formatValue(consolidadoPromedio)}</div>
+            <!-- Grid Inferior: Cards verticales (40%) + Notas (60%) -->
+            <div class="bottom-grid">
+              <!-- Columna Izquierda: 3 Cards verticales -->
+              <div class="cards-container">
+                <div class="summary-card card-consolidado">
+                  <div class="card-title">EBITDA Promedio Consolidado ${showPercentages ? '(%)' : '(CLP)'}</div>
+                  <div class="card-value">${formatValue(consolidadoPromedio)}</div>
+                </div>
+                
+                <div class="summary-card card-sevilla">
+                  <div class="card-title">EBITDA Promedio Sevilla ${showPercentages ? '(%)' : '(CLP)'}</div>
+                  <div class="card-value">${formatValue(sevillaPromedio)}</div>
+                </div>
+                
+                <div class="summary-card card-labranza">
+                  <div class="card-title">EBITDA Promedio Labranza ${showPercentages ? '(%)' : '(CLP)'}</div>
+                  <div class="card-value">${formatValue(labranzaPromedio)}</div>
+                </div>
               </div>
-              <div class="summary-card card-sevilla">
-                <div class="card-title">EBITDA Promedio Sevilla ${showPercentages ? '(%)' : '(CLP)'}</div>
-                <div class="card-value">${formatValue(sevillaPromedio)}</div>
-              </div>
-              <div class="summary-card card-labranza">
-                <div class="card-title">EBITDA Promedio Labranza ${showPercentages ? '(%)' : '(CLP)'}</div>
-                <div class="card-value">${formatValue(labranzaPromedio)}</div>
+
+              <!-- Columna Derecha: Notas -->
+              <div class="notes-section">
+                <h3 class="notes-title">Notas del Comparativo</h3>
+                <div class="notes-content">${notes.trim() || 'Sin notas'}</div>
               </div>
             </div>
           </div>
-
-          ${notes.trim() ? `
-          <div class="notes-section">
-            <h3 class="notes-title">Notas del Comparativo</h3>
-            <div class="notes-content">${notes}</div>
-          </div>
-          ` : ''}
-
+          
+          <!-- Footer -->
           <div class="footer">
-            <span>BISM Dashboard - Documento generado automáticamente</span>
-            <span>Comparativo EBITDA por Centro - ${currentDate}</span>
+            BISM Dashboard - Comparativo EBITDA - ${currentDate}
           </div>
         </body>
         </html>
@@ -722,60 +741,64 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
         />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="text-blue-700 text-sm font-medium">
-            EBITDA Promedio Consolidado {showPercentages ? '(%)' : '(CLP)'}
+      {/* Summary Cards + Notes - Grid Layout */}
+      <div className="max-w-5xl">
+        <div className="grid grid-cols-1 lg:grid-cols-[40%_60%] gap-6 mb-6 items-start">
+          {/* Left Column: 3 Cards Vertical */}
+          <div className="flex flex-col gap-4">
+          <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4">
+            <div className="text-blue-700 text-sm font-semibold">
+              EBITDA Promedio Consolidado {showPercentages ? '(%)' : '(CLP)'}
+            </div>
+            <div className="text-blue-900 text-lg font-bold mt-1">
+              {showPercentages ? (
+                `${(consolidadoEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitdaPercent.length).toFixed(2)}%`
+              ) : (
+                `$${(consolidadoEbitda.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitda.length).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+              )}
+            </div>
           </div>
-          <div className="text-blue-900 text-lg font-bold">
-            {showPercentages ? (
-              `${(consolidadoEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitdaPercent.length).toFixed(2)}%`
-            ) : (
-              `$${(consolidadoEbitda.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitda.length).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-            )}
+          
+          <div className="bg-purple-50 border-l-4 border-purple-500 rounded-lg p-4">
+            <div className="text-purple-700 text-sm font-semibold">
+              EBITDA Promedio Sevilla {showPercentages ? '(%)' : '(CLP)'}
+            </div>
+            <div className="text-purple-900 text-lg font-bold mt-1">
+              {showPercentages ? (
+                `${(sevillaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitdaPercent.length).toFixed(2)}%`
+              ) : (
+                `$${(sevillaEbitda.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitda.length).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+              )}
+            </div>
+          </div>
+          
+          <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-4">
+            <div className="text-green-700 text-sm font-semibold">
+              EBITDA Promedio Labranza {showPercentages ? '(%)' : '(CLP)'}
+            </div>
+            <div className="text-green-900 text-lg font-bold mt-1">
+              {showPercentages ? (
+                `${(labranzaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitdaPercent.length).toFixed(2)}%`
+              ) : (
+                `$${(labranzaEbitda.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitda.length).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+              )}
+            </div>
           </div>
         </div>
-        
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <div className="text-purple-700 text-sm font-medium">
-            EBITDA Promedio Sevilla {showPercentages ? '(%)' : '(CLP)'}
-          </div>
-          <div className="text-purple-900 text-lg font-bold">
-            {showPercentages ? (
-              `${(sevillaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitdaPercent.length).toFixed(2)}%`
-            ) : (
-              `$${(sevillaEbitda.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitda.length).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-            )}
-          </div>
-        </div>
-        
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="text-green-700 text-sm font-medium">
-            EBITDA Promedio Labranza {showPercentages ? '(%)' : '(CLP)'}
-          </div>
-          <div className="text-green-900 text-lg font-bold">
-            {showPercentages ? (
-              `${(labranzaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitdaPercent.length).toFixed(2)}%`
-            ) : (
-              `$${(labranzaEbitda.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitda.length).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Notes Section */}
-      <div className="mt-6">
-        <label className="block text-sm font-medium text-gray-900 mb-2">
-          Notas del comparativo:
-        </label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Agrega tus observaciones sobre la evolución comparativa del EBITDA entre centros..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 resize-none"
-          rows={3}
-        />
+          {/* Right Column: Notes Section */}
+          <div className="bg-white border-2 border-gray-300 rounded-lg p-4 flex flex-col h-full">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              📝 Notas del comparativo:
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Agrega tus observaciones sobre la evolución comparativa del EBITDA entre centros..."
+              className="flex-grow w-full px-3 py-2 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900 resize-none bg-gray-50"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
