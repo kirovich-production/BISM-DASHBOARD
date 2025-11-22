@@ -142,3 +142,75 @@ export interface YearsRangeResponse {
   maxYear: number;
   years: number[];
 }
+
+// Libro de Compras - Transacciones
+export interface LibroComprasTransaction {
+  nro: number;
+  tipoDoc: string;
+  tipoCompra: string;
+  rutProveedor: string;
+  razonSocial: string;
+  unidadNegocio: string; // Centro de costo
+  cuenta: string;
+  folio: string;
+  fechaDocto: Date | string;
+  fechaRecepcion: Date | string;
+  fechaAcuse: Date | string;
+  montoExento: number;
+  montoNeto: number;
+  montoIVARecuperable: number;
+  montoIVANoRecuperable: number;
+  codigoIVANoRec: string;
+  montoTotal: number;
+  montoNetoActivoFijo: number;
+  ivaActivoFijo: number;
+  ivaUsoComun: number;
+  imptoSinDerechoCredito: number;
+  ivaNoRetenido: number;
+  tabacosPuros: number;
+  tabacosCigarrillos: number;
+  tabacosElaborados: number;
+  nceNdeSobreFactCompra: number;
+  codigoOtroImpuesto: string;
+  valorOtroImpuesto: number;
+  tasaOtroImpuesto: number;
+}
+
+export interface LibroComprasData {
+  _id?: string;
+  userId: string;
+  periodo: string; // Formato: YYYY-MM
+  periodLabel: string; // Formato: "Mes Año"
+  sucursal: string; // "pending" por ahora, luego "Sevilla" o "Labranza"
+  fileName: string;
+  transacciones: LibroComprasTransaction[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LibroComprasUploadResponse {
+  success: boolean;
+  message: string;
+  periodo: string;
+  periodLabel: string;
+  transaccionesCount: number;
+  proveedoresCount: number;
+  fileName: string;
+}
+
+// Proveedores - Clasificación (flat structure - each Excel row is one document)
+export interface Proveedor {
+  _id?: string;
+  rut: string;
+  nombre: string;
+  centroCosto: string; // CC
+  tipoCuenta: string; // CUENTA
+  observaciones: string; // OBS
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProveedoresResponse {
+  success: boolean;
+  proveedores: Proveedor[];
+}

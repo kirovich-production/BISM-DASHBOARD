@@ -418,3 +418,225 @@ export function parseConsolidado(workbook: XLSX.WorkBook): ExcelSection[] | null
 
   return sections.length > 0 ? sections : null;
 }
+
+/**
+ * Parser para hoja "LC" (Libro de Compras)
+ * Lee transacciones del libro de compras del SII
+ */
+export function parseLibroComprasSheet(workbook: XLSX.WorkBook): any[] | null {
+  const sheetName = 'LC';
+  const worksheet = workbook.Sheets[sheetName];
+  
+  if (!worksheet) {
+    console.error(`[parseLibroComprasSheet] ❌ Hoja "${sheetName}" NO encontrada`);
+    return null;
+  }
+
+  // Convertir a JSON usando la primera fila como headers
+  const rawData = XLSX.utils.sheet_to_json(worksheet, { 
+    header: 1,
+    raw: false,
+    defval: ''
+  }) as unknown[][];
+
+  if (rawData.length < 2) {
+    console.error(`[parseLibroComprasSheet] ❌ No hay datos en la hoja LC`);
+    return null;
+  }
+
+  // Primera fila son los headers
+  const headers = rawData[0] as string[];
+  const transactions: any[] = [];
+
+  // Normalizar nombres de columnas para mapeo consistente
+  const headerMap: { [key: string]: string } = {};
+  headers.forEach((header, index) => {
+    const normalized = String(header || '').trim();
+    headerMap[normalized] = normalized;
+  });
+
+  // Procesar cada fila de datos (desde la segunda fila)
+  for (let i = 1; i < rawData.length; i++) {
+    const row = rawData[i] as any[];
+    
+    // Saltar filas vacías
+    if (!row[0] || String(row[0]).trim() === '') continue;
+
+    const transaction: any = {
+      nro: parseFloat(row[0]) || 0,
+      tipoDoc: String(row[1] || '').trim(),
+      tipoCompra: String(row[2] || '').trim(),
+      rutProveedor: String(row[3] || '').trim(),
+      razonSocial: String(row[4] || '').trim(),
+      unidadNegocio: String(row[5] || '').trim(),
+      cuenta: String(row[6] || '').trim(),
+      folio: String(row[7] || '').trim(),
+      fechaDocto: row[8] || '',
+      fechaRecepcion: row[9] || '',
+      fechaAcuse: row[10] || '',
+      montoExento: parseFloat(row[11]) || 0,
+      montoNeto: parseFloat(row[12]) || 0,
+      montoIVARecuperable: parseFloat(row[13]) || 0,
+      montoIVANoRecuperable: parseFloat(row[14]) || 0,
+      codigoIVANoRec: String(row[15] || '').trim(),
+      montoTotal: parseFloat(row[16]) || 0,
+      montoNetoActivoFijo: parseFloat(row[17]) || 0,
+      ivaActivoFijo: parseFloat(row[18]) || 0,
+      ivaUsoComun: parseFloat(row[19]) || 0,
+      imptoSinDerechoCredito: parseFloat(row[20]) || 0,
+      ivaNoRetenido: parseFloat(row[21]) || 0,
+      tabacosPuros: parseFloat(row[22]) || 0,
+      tabacosCigarrillos: parseFloat(row[23]) || 0,
+      tabacosElaborados: parseFloat(row[24]) || 0,
+      nceNdeSobreFactCompra: parseFloat(row[25]) || 0,
+      codigoOtroImpuesto: String(row[26] || '').trim(),
+      valorOtroImpuesto: parseFloat(row[27]) || 0,
+      tasaOtroImpuesto: parseFloat(row[28]) || 0,
+    };
+
+    transactions.push(transaction);
+  }
+
+  console.log(`[parseLibroComprasSheet] ✅ Parseadas ${transactions.length} transacciones`);
+  return transactions;
+}
+
+/**
+ * Parser para hoja "CLASIFICACIÓN" (Proveedores)
+ * Lee catálogo de proveedores con sus clasificaciones
+ */
+export function parseClasificacionSheet(workbook: XLSX.WorkBook): any[] | null {
+  console.log('[parseClasificacionSheet] 🔍 Buscando hoja de clasificación...');
+  console.log('[parseClasificacionSheet] 📋 Hojas disponibles:', workbook.SheetNames);
+  
+  // Buscar la hoja con o sin tilde
+  let sheetName = 'CLASIFICACIÓN';
+  let worksheet = workbook.Sheets[sheetName];
+  
+  if (!worksheet) {
+    console.log('[parseClasificacionSheet] ⚠️ No se encontró "CLASIFICACIÓN" (con tilde), intentando sin tilde...');
+    // Intentar sin tilde
+    sheetName = 'CLASIFICACION';
+    worksheet = workbook.Sheets[sheetName];
+  }
+  
+  if (!worksheet) {
+    console.error(`[parseClasificacionSheet] ❌ Hoja "CLASIFICACIÓN" o "CLASIFICACION" NO encontrada`);
+    console.log('[parseClasificacionSheet] 💡 Intentando búsqueda flexible...');
+    
+    // Búsqueda flexible - cualquier hoja que contenga "clasif"
+    const foundSheet = workbook.SheetNames.find(name => 
+      name.toLowerCase().includes('clasif')
+    );
+    
+    if (foundSheet) {
+      console.log(`[parseClasificacionSheet] ✅ Encontrada hoja alternativa: "${foundSheet}"`);
+      sheetName = foundSheet;
+      worksheet = workbook.Sheets[foundSheet];
+    } else {
+      return null;
+    }
+  } else {
+    console.log(`[parseClasificacionSheet] ✅ Hoja encontrada: "${sheetName}"`);
+  }
+
+  // Convertir a JSON sin asumir headers
+  const rawData = XLSX.utils.sheet_to_json(worksheet, { 
+    header: 1,
+    raw: false,
+    defval: ''
+  }) as unknown[][];
+
+  if (rawData.length < 2) {
+    console.error(`[parseClasificacionSheet] ❌ No hay datos en la hoja CLASIFICACIÓN`);
+    return null;
+  }
+
+  // Buscar la fila de headers (buscar fila con "RUT")
+  let headerRowIndex = -1;
+  for (let i = 0; i < Math.min(10, rawData.length); i++) {
+    const row = rawData[i] as string[];
+    const hasRut = row.some(cell => {
+      const normalized = String(cell || '').trim().toUpperCase();
+      return normalized === 'RUT' || normalized.includes('RUT');
+    });
+    
+    if (hasRut) {
+      headerRowIndex = i;
+      console.log(`[parseClasificacionSheet] ✅ Fila de headers encontrada en índice ${i}`);
+      break;
+    }
+  }
+
+  if (headerRowIndex === -1) {
+    console.error(`[parseClasificacionSheet] ❌ No se encontró fila de headers con "RUT"`);
+    return null;
+  }
+
+  // Extraer headers
+  const headers = rawData[headerRowIndex] as string[];
+  const dataStartRow = headerRowIndex + 1;
+  const proveedores: any[] = [];
+
+  // Log de headers para debug
+  console.log(`[parseClasificacionSheet] 📋 Headers encontrados:`, headers.map((h, i) => `[${i}] ${h}`));
+
+  // Encontrar índices de columnas importantes (búsqueda flexible)
+  const rutIndex = headers.findIndex(h => {
+    const normalized = String(h || '').trim().toUpperCase();
+    return normalized === 'RUT' || normalized.includes('RUT');
+  });
+  
+  const nombreIndex = headers.findIndex(h => {
+    const normalized = String(h || '').trim().toUpperCase();
+    // Buscar "Columna 2", "NOMBRE", "RAZON SOCIAL" o la segunda columna si no hay match
+    return normalized.includes('COLUMNA') || normalized.includes('NOMBRE') || normalized.includes('RAZON');
+  });
+  
+  // Si no se encontró nombreIndex, usar la columna 1 (segunda columna)
+  const finalNombreIndex = nombreIndex !== -1 ? nombreIndex : 1;
+  
+  const ccIndex = headers.findIndex(h => {
+    const normalized = String(h || '').trim().toUpperCase();
+    return normalized === 'CC' || normalized.includes('CENTRO') || normalized.includes('COSTO');
+  });
+  
+  const cuentaIndex = headers.findIndex(h => {
+    const normalized = String(h || '').trim().toUpperCase();
+    return normalized === 'CUENTA' || normalized.includes('TIPO');
+  });
+  
+  const obsIndex = headers.findIndex(h => {
+    const normalized = String(h || '').trim().toUpperCase();
+    return normalized === 'OBS' || normalized.includes('OBSERV');
+  });
+
+  console.log(`[parseClasificacionSheet] 🔍 Índices: RUT=${rutIndex}, Nombre=${finalNombreIndex}, CC=${ccIndex}, Cuenta=${cuentaIndex}, OBS=${obsIndex}`);
+
+  if (rutIndex === -1) {
+    console.error(`[parseClasificacionSheet] ❌ No se encontró columna RUT`);
+    return null;
+  }
+
+  // Procesar cada fila de datos (desde después de los headers)
+  for (let i = dataStartRow; i < rawData.length; i++) {
+    const row = rawData[i] as any[];
+    
+    // Saltar filas vacías
+    const rut = String(row[rutIndex] || '').trim();
+    if (!rut || rut === '') continue;
+
+    const clasificacion = {
+      rut,
+      nombre: String(row[finalNombreIndex] || '').trim(),
+      centroCosto: ccIndex !== -1 ? String(row[ccIndex] || '').trim() : '',
+      tipoCuenta: cuentaIndex !== -1 ? String(row[cuentaIndex] || '').trim() : '',
+      observaciones: obsIndex !== -1 ? String(row[obsIndex] || '').trim() : '',
+    };
+
+    proveedores.push(clasificacion);
+  }
+
+  console.log(`[parseClasificacionSheet] ✅ Parseados ${proveedores.length} registros de proveedores`);
+  return proveedores;
+}
