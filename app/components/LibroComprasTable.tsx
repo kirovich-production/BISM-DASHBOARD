@@ -110,7 +110,7 @@ export default function LibroComprasTable({ userId, periodo, onDataLoad }: Libro
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 text-gray-900 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           
@@ -121,7 +121,7 @@ export default function LibroComprasTable({ userId, periodo, onDataLoad }: Libro
             <select
               value={filterUnidad}
               onChange={(e) => setFilterUnidad(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 text-gray-900 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Todas</option>
               {unidadesNegocio.map(u => (
@@ -137,7 +137,7 @@ export default function LibroComprasTable({ userId, periodo, onDataLoad }: Libro
             <select
               value={filterCuenta}
               onChange={(e) => setFilterCuenta(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 text-gray-900 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Todas</option>
               {cuentas.map(c => (
