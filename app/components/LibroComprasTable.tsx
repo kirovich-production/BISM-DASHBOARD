@@ -18,26 +18,21 @@ export default function LibroComprasTable({ userId, periodo, onDataLoad }: Libro
 
   const loadData = async () => {
     if (!userId || !periodo) {
-      console.log('[LibroComprasTable] ⚠️ Sin userId o periodo', { userId, periodo });
       return;
     }
     
-    console.log('[LibroComprasTable] 📥 Cargando datos...', { userId, periodo });
     setIsLoading(true);
     try {
       const response = await fetch(`/api/libro-compras?userId=${userId}&periodo=${periodo}`);
       const result = await response.json();
       
-      console.log('[LibroComprasTable] 📦 Respuesta:', result);
       
       if (result.success && result.data) {
         setData(result.data);
         onDataLoad?.(result.data);
-        console.log('[LibroComprasTable] ✅ Datos cargados:', result.data.transacciones?.length || 0, 'transacciones');
       } else {
         setData(null);
         onDataLoad?.(null);
-        console.log('[LibroComprasTable] ℹ️ No hay datos disponibles');
       }
     } catch (error) {
       console.error('[LibroComprasTable] ❌ Error al cargar datos:', error);

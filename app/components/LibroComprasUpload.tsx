@@ -95,7 +95,9 @@ export default function LibroComprasUpload({ userId, onUploadSuccess }: LibroCom
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+              bg-white text-gray-900 font-medium shadow-sm"
             disabled={isUploading}
           >
             {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
@@ -114,7 +116,9 @@ export default function LibroComprasUpload({ userId, onUploadSuccess }: LibroCom
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+              bg-white text-gray-900 font-medium shadow-sm"
             disabled={isUploading}
           >
             {monthNames.map((month, index) => (
@@ -135,7 +139,9 @@ export default function LibroComprasUpload({ userId, onUploadSuccess }: LibroCom
             type="file"
             accept=".xlsx, .xls"
             onChange={handleFileChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+              focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+              bg-white text-gray-900 font-medium shadow-sm"
             disabled={isUploading}
           />
         </div>

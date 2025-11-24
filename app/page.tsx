@@ -390,7 +390,7 @@ export default function Home() {
               {/* Header */}
               <div className="text-center mb-6 md:mb-8">
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
-                  📊 BISM Dashboard
+               BISM Dashboard
                 </h1>
                 <p className="text-sm md:text-base text-gray-600">
                   Sistema de análisis financiero - Carga y visualización de datos

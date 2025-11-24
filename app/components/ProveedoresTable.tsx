@@ -16,7 +16,7 @@ export default function ProveedoresTable() {
   const loadProveedores = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/proveedores');
+      const response = await fetch('/api/proveedores-excel');
       const result = await response.json();
       
       if (result.success) {

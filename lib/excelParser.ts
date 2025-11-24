@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { EERRData, EERRCategory, EERRRow, ExcelSection, ExcelRow } from '@/types';
+import { EERRData, EERRCategory, EERRRow, ExcelSection, ExcelRow, LibroComprasTransaction, Proveedor } from '@/types';
 
 /**
  * Parser para hojas EERR (Estado de Resultados)
@@ -423,7 +423,7 @@ export function parseConsolidado(workbook: XLSX.WorkBook): ExcelSection[] | null
  * Parser para hoja "LC" (Libro de Compras)
  * Lee transacciones del libro de compras del SII
  */
-export function parseLibroComprasSheet(workbook: XLSX.WorkBook): any[] | null {
+export function parseLibroComprasSheet(workbook: XLSX.WorkBook): LibroComprasTransaction[] | null {
   const sheetName = 'LC';
   const worksheet = workbook.Sheets[sheetName];
   
@@ -446,24 +446,24 @@ export function parseLibroComprasSheet(workbook: XLSX.WorkBook): any[] | null {
 
   // Primera fila son los headers
   const headers = rawData[0] as string[];
-  const transactions: any[] = [];
+  const transactions: LibroComprasTransaction[] = [];
 
   // Normalizar nombres de columnas para mapeo consistente
   const headerMap: { [key: string]: string } = {};
-  headers.forEach((header, index) => {
+  headers.forEach((header) => {
     const normalized = String(header || '').trim();
     headerMap[normalized] = normalized;
   });
 
   // Procesar cada fila de datos (desde la segunda fila)
   for (let i = 1; i < rawData.length; i++) {
-    const row = rawData[i] as any[];
+    const row = rawData[i] as unknown[];
     
     // Saltar filas vacías
     if (!row[0] || String(row[0]).trim() === '') continue;
 
-    const transaction: any = {
-      nro: parseFloat(row[0]) || 0,
+    const transaction: LibroComprasTransaction = {
+      nro: parseFloat(String(row[0] || '0')) || 0,
       tipoDoc: String(row[1] || '').trim(),
       tipoCompra: String(row[2] || '').trim(),
       rutProveedor: String(row[3] || '').trim(),
@@ -471,33 +471,32 @@ export function parseLibroComprasSheet(workbook: XLSX.WorkBook): any[] | null {
       unidadNegocio: String(row[5] || '').trim(),
       cuenta: String(row[6] || '').trim(),
       folio: String(row[7] || '').trim(),
-      fechaDocto: row[8] || '',
-      fechaRecepcion: row[9] || '',
-      fechaAcuse: row[10] || '',
-      montoExento: parseFloat(row[11]) || 0,
-      montoNeto: parseFloat(row[12]) || 0,
-      montoIVARecuperable: parseFloat(row[13]) || 0,
-      montoIVANoRecuperable: parseFloat(row[14]) || 0,
+      fechaDocto: String(row[8] || ''),
+      fechaRecepcion: String(row[9] || ''),
+      fechaAcuse: String(row[10] || ''),
+      montoExento: parseFloat(String(row[11] || '0')) || 0,
+      montoNeto: parseFloat(String(row[12] || '0')) || 0,
+      montoIVARecuperable: parseFloat(String(row[13] || '0')) || 0,
+      montoIVANoRecuperable: parseFloat(String(row[14] || '0')) || 0,
       codigoIVANoRec: String(row[15] || '').trim(),
-      montoTotal: parseFloat(row[16]) || 0,
-      montoNetoActivoFijo: parseFloat(row[17]) || 0,
-      ivaActivoFijo: parseFloat(row[18]) || 0,
-      ivaUsoComun: parseFloat(row[19]) || 0,
-      imptoSinDerechoCredito: parseFloat(row[20]) || 0,
-      ivaNoRetenido: parseFloat(row[21]) || 0,
-      tabacosPuros: parseFloat(row[22]) || 0,
-      tabacosCigarrillos: parseFloat(row[23]) || 0,
-      tabacosElaborados: parseFloat(row[24]) || 0,
-      nceNdeSobreFactCompra: parseFloat(row[25]) || 0,
+      montoTotal: parseFloat(String(row[16] || '0')) || 0,
+      montoNetoActivoFijo: parseFloat(String(row[17] || '0')) || 0,
+      ivaActivoFijo: parseFloat(String(row[18] || '0')) || 0,
+      ivaUsoComun: parseFloat(String(row[19] || '0')) || 0,
+      imptoSinDerechoCredito: parseFloat(String(row[20] || '0')) || 0,
+      ivaNoRetenido: parseFloat(String(row[21] || '0')) || 0,
+      tabacosPuros: parseFloat(String(row[22] || '0')) || 0,
+      tabacosCigarrillos: parseFloat(String(row[23] || '0')) || 0,
+      tabacosElaborados: parseFloat(String(row[24] || '0')) || 0,
+      nceNdeSobreFactCompra: parseFloat(String(row[25] || '0')) || 0,
       codigoOtroImpuesto: String(row[26] || '').trim(),
-      valorOtroImpuesto: parseFloat(row[27]) || 0,
-      tasaOtroImpuesto: parseFloat(row[28]) || 0,
+      valorOtroImpuesto: parseFloat(String(row[27] || '0')) || 0,
+      tasaOtroImpuesto: parseFloat(String(row[28] || '0')) || 0,
     };
 
     transactions.push(transaction);
   }
 
-  console.log(`[parseLibroComprasSheet] ✅ Parseadas ${transactions.length} transacciones`);
   return transactions;
 }
 
@@ -505,16 +504,13 @@ export function parseLibroComprasSheet(workbook: XLSX.WorkBook): any[] | null {
  * Parser para hoja "CLASIFICACIÓN" (Proveedores)
  * Lee catálogo de proveedores con sus clasificaciones
  */
-export function parseClasificacionSheet(workbook: XLSX.WorkBook): any[] | null {
-  console.log('[parseClasificacionSheet] 🔍 Buscando hoja de clasificación...');
-  console.log('[parseClasificacionSheet] 📋 Hojas disponibles:', workbook.SheetNames);
+export function parseClasificacionSheet(workbook: XLSX.WorkBook): Omit<Proveedor, '_id' | 'createdAt' | 'updatedAt'>[] | null {
   
   // Buscar la hoja con o sin tilde
   let sheetName = 'CLASIFICACIÓN';
   let worksheet = workbook.Sheets[sheetName];
   
   if (!worksheet) {
-    console.log('[parseClasificacionSheet] ⚠️ No se encontró "CLASIFICACIÓN" (con tilde), intentando sin tilde...');
     // Intentar sin tilde
     sheetName = 'CLASIFICACION';
     worksheet = workbook.Sheets[sheetName];
@@ -522,7 +518,6 @@ export function parseClasificacionSheet(workbook: XLSX.WorkBook): any[] | null {
   
   if (!worksheet) {
     console.error(`[parseClasificacionSheet] ❌ Hoja "CLASIFICACIÓN" o "CLASIFICACION" NO encontrada`);
-    console.log('[parseClasificacionSheet] 💡 Intentando búsqueda flexible...');
     
     // Búsqueda flexible - cualquier hoja que contenga "clasif"
     const foundSheet = workbook.SheetNames.find(name => 
@@ -530,14 +525,11 @@ export function parseClasificacionSheet(workbook: XLSX.WorkBook): any[] | null {
     );
     
     if (foundSheet) {
-      console.log(`[parseClasificacionSheet] ✅ Encontrada hoja alternativa: "${foundSheet}"`);
       sheetName = foundSheet;
       worksheet = workbook.Sheets[foundSheet];
     } else {
       return null;
     }
-  } else {
-    console.log(`[parseClasificacionSheet] ✅ Hoja encontrada: "${sheetName}"`);
   }
 
   // Convertir a JSON sin asumir headers
@@ -563,7 +555,6 @@ export function parseClasificacionSheet(workbook: XLSX.WorkBook): any[] | null {
     
     if (hasRut) {
       headerRowIndex = i;
-      console.log(`[parseClasificacionSheet] ✅ Fila de headers encontrada en índice ${i}`);
       break;
     }
   }
@@ -576,10 +567,9 @@ export function parseClasificacionSheet(workbook: XLSX.WorkBook): any[] | null {
   // Extraer headers
   const headers = rawData[headerRowIndex] as string[];
   const dataStartRow = headerRowIndex + 1;
-  const proveedores: any[] = [];
+  const proveedores: Omit<Proveedor, '_id' | 'createdAt' | 'updatedAt'>[] = [];
 
   // Log de headers para debug
-  console.log(`[parseClasificacionSheet] 📋 Headers encontrados:`, headers.map((h, i) => `[${i}] ${h}`));
 
   // Encontrar índices de columnas importantes (búsqueda flexible)
   const rutIndex = headers.findIndex(h => {
@@ -611,7 +601,6 @@ export function parseClasificacionSheet(workbook: XLSX.WorkBook): any[] | null {
     return normalized === 'OBS' || normalized.includes('OBSERV');
   });
 
-  console.log(`[parseClasificacionSheet] 🔍 Índices: RUT=${rutIndex}, Nombre=${finalNombreIndex}, CC=${ccIndex}, Cuenta=${cuentaIndex}, OBS=${obsIndex}`);
 
   if (rutIndex === -1) {
     console.error(`[parseClasificacionSheet] ❌ No se encontró columna RUT`);
@@ -620,7 +609,7 @@ export function parseClasificacionSheet(workbook: XLSX.WorkBook): any[] | null {
 
   // Procesar cada fila de datos (desde después de los headers)
   for (let i = dataStartRow; i < rawData.length; i++) {
-    const row = rawData[i] as any[];
+    const row = rawData[i] as unknown[];
     
     // Saltar filas vacías
     const rut = String(row[rutIndex] || '').trim();
@@ -636,7 +625,5 @@ export function parseClasificacionSheet(workbook: XLSX.WorkBook): any[] | null {
 
     proveedores.push(clasificacion);
   }
-
-  console.log(`[parseClasificacionSheet] ✅ Parseados ${proveedores.length} registros de proveedores`);
   return proveedores;
 }

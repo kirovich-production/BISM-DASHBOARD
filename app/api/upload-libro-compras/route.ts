@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     const workbook = XLSX.read(buffer, { type: 'buffer' });
 
-    console.log(`[upload-libro-compras] 📄 Hojas disponibles: ${workbook.SheetNames.join(', ')}`);
 
     // ========================================
     // PASO 1: Parsear hoja "LC" (Libro de Compras)
@@ -40,14 +39,11 @@ export async function POST(request: NextRequest) {
     // ========================================
     // PASO 2: Parsear hoja "CLASIFICACIÓN" (Proveedores)
     // ========================================
-    console.log('[upload-libro-compras] 🔍 Iniciando parseo de hoja CLASIFICACIÓN...');
     const proveedoresRaw = parseClasificacionSheet(workbook);
     
     if (!proveedoresRaw || proveedoresRaw.length === 0) {
       console.warn('[upload-libro-compras] ⚠️ No se encontraron proveedores en la hoja "CLASIFICACIÓN"');
       console.warn('[upload-libro-compras] 📋 Hojas disponibles en el Excel:', workbook.SheetNames);
-    } else {
-      console.log(`[upload-libro-compras] ✅ Se encontraron ${proveedoresRaw.length} registros de proveedores`);
     }
 
     // ========================================
@@ -60,7 +56,7 @@ export async function POST(request: NextRequest) {
     // ========================================
     const { db } = await connectToDatabase();
 
-    // 4.1: Guardar Proveedores (cada fila como documento independiente)
+    // 4.1: Guardar Proveedores en colección 'proveedores' (cada fila como documento independiente)
     let proveedoresCount = 0;
     if (proveedores.length > 0) {
       const proveedoresCollection = db.collection('proveedores');
