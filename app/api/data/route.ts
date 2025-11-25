@@ -61,11 +61,25 @@ export async function GET(request: NextRequest) {
         });
       }
       
+      // Obtener valores manuales (como Ventas)
+      const valoresManualesCollection = db.collection('valoresManuales');
+      const valoresManualesDoc = await valoresManualesCollection.find({
+        userId,
+        periodo: period,
+        sucursal
+      }).toArray();
+      
+      const valoresManuales: { [cuenta: string]: number } = {};
+      valoresManualesDoc.forEach(v => {
+        valoresManuales[v.cuenta] = v.monto;
+      });
+      
       // Transformar transacciones a formato EERRData
       const libroCompras = libroComprasDoc as unknown as LibroComprasData;
       const eerrData = aggregateLibroComprasToEERR(
         libroCompras.transacciones,
-        libroCompras.periodo
+        libroCompras.periodo,
+        valoresManuales
       );
       
       // Devolver estructura compatible con UploadedDocument

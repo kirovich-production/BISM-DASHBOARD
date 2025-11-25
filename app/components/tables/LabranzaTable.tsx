@@ -2,15 +2,19 @@
 
 import React, { useState, useRef } from 'react';
 import { EERRData, EERRCategory, EERRRow } from '@/types';
+import EditableCell from '../EditableCell';
 
 interface LabranzaTableProps {
   data: EERRData | null;
   periodLabel: string;
   version?: number;
   uploadedAt?: string | Date;
+  userId?: string;
+  periodo?: string;
+  onDataRefresh?: () => void;
 }
 
-export default function LabranzaTable({ data, periodLabel, version, uploadedAt }: LabranzaTableProps) {
+export default function LabranzaTable({ data, periodLabel, version, uploadedAt, userId, periodo, onDataRefresh }: LabranzaTableProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   
@@ -467,7 +471,25 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt }
                     {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
                       <React.Fragment key={monthIdx}>
                         <td className="px-3 py-3 text-sm text-gray-700 text-right whitespace-nowrap border-r border-gray-100">
-                          {formatNumber(row[`${month} Monto`])}
+                          {row.Item === 'Ventas' && userId && periodo ? (
+                            <EditableCell
+                              value={(() => {
+                                const val = row[`${month} Monto`];
+                                return typeof val === 'number' ? val : 0;
+                              })()}
+                              userId={userId}
+                              periodo={periodo}
+                              sucursal="Labranza"
+                              cuenta="Ventas"
+                              onValueChange={(newValue) => {
+                                if (onDataRefresh) {
+                                  onDataRefresh();
+                                }
+                              }}
+                            />
+                          ) : (
+                            formatNumber(row[`${month} Monto`])
+                          )}
                         </td>
                         <td className="px-3 py-3 text-sm text-gray-700 text-right whitespace-nowrap border-r border-gray-100">
                           {formatPercentage(row[`${month} %`])}

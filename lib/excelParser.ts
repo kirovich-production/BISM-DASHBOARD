@@ -423,6 +423,26 @@ export function parseConsolidado(workbook: XLSX.WorkBook): ExcelSection[] | null
  * Parser para hoja "LC" (Libro de Compras)
  * Lee transacciones del libro de compras del SII
  */
+/**
+ * Parsea números en formato chileno (punto como separador de miles, coma como decimal)
+ * Ejemplos: "26.993.918" → 26993918, "1.234,56" → 1234.56
+ */
+function parseChileanNumber(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (value === undefined || value === null) return 0;
+  
+  const str = String(value).trim();
+  
+  // Si está vacío, retornar 0
+  if (str === '' || str === '-') return 0;
+  
+  // Remover puntos (separadores de miles) y reemplazar coma por punto (decimal)
+  const normalized = str.replace(/\./g, '').replace(',', '.');
+  
+  const result = parseFloat(normalized);
+  return isNaN(result) ? 0 : result;
+}
+
 export function parseLibroComprasSheet(workbook: XLSX.WorkBook): LibroComprasTransaction[] | null {
   const sheetName = 'LC';
   const worksheet = workbook.Sheets[sheetName];
@@ -463,7 +483,7 @@ export function parseLibroComprasSheet(workbook: XLSX.WorkBook): LibroComprasTra
     if (!row[0] || String(row[0]).trim() === '') continue;
 
     const transaction: LibroComprasTransaction = {
-      nro: parseFloat(String(row[0] || '0')) || 0,
+      nro: parseChileanNumber(row[0]),
       tipoDoc: String(row[1] || '').trim(),
       tipoCompra: String(row[2] || '').trim(),
       rutProveedor: String(row[3] || '').trim(),
@@ -474,24 +494,24 @@ export function parseLibroComprasSheet(workbook: XLSX.WorkBook): LibroComprasTra
       fechaDocto: String(row[8] || ''),
       fechaRecepcion: String(row[9] || ''),
       fechaAcuse: String(row[10] || ''),
-      montoExento: parseFloat(String(row[11] || '0')) || 0,
-      montoNeto: parseFloat(String(row[12] || '0')) || 0,
-      montoIVARecuperable: parseFloat(String(row[13] || '0')) || 0,
-      montoIVANoRecuperable: parseFloat(String(row[14] || '0')) || 0,
+      montoExento: parseChileanNumber(row[11]),
+      montoNeto: parseChileanNumber(row[12]),
+      montoIVARecuperable: parseChileanNumber(row[13]),
+      montoIVANoRecuperable: parseChileanNumber(row[14]),
       codigoIVANoRec: String(row[15] || '').trim(),
-      montoTotal: parseFloat(String(row[16] || '0')) || 0,
-      montoNetoActivoFijo: parseFloat(String(row[17] || '0')) || 0,
-      ivaActivoFijo: parseFloat(String(row[18] || '0')) || 0,
-      ivaUsoComun: parseFloat(String(row[19] || '0')) || 0,
-      imptoSinDerechoCredito: parseFloat(String(row[20] || '0')) || 0,
-      ivaNoRetenido: parseFloat(String(row[21] || '0')) || 0,
-      tabacosPuros: parseFloat(String(row[22] || '0')) || 0,
-      tabacosCigarrillos: parseFloat(String(row[23] || '0')) || 0,
-      tabacosElaborados: parseFloat(String(row[24] || '0')) || 0,
-      nceNdeSobreFactCompra: parseFloat(String(row[25] || '0')) || 0,
+      montoTotal: parseChileanNumber(row[16]),
+      montoNetoActivoFijo: parseChileanNumber(row[17]),
+      ivaActivoFijo: parseChileanNumber(row[18]),
+      ivaUsoComun: parseChileanNumber(row[19]),
+      imptoSinDerechoCredito: parseChileanNumber(row[20]),
+      ivaNoRetenido: parseChileanNumber(row[21]),
+      tabacosPuros: parseChileanNumber(row[22]),
+      tabacosCigarrillos: parseChileanNumber(row[23]),
+      tabacosElaborados: parseChileanNumber(row[24]),
+      nceNdeSobreFactCompra: parseChileanNumber(row[25]),
       codigoOtroImpuesto: String(row[26] || '').trim(),
-      valorOtroImpuesto: parseFloat(String(row[27] || '0')) || 0,
-      tasaOtroImpuesto: parseFloat(String(row[28] || '0')) || 0,
+      valorOtroImpuesto: parseChileanNumber(row[27]),
+      tasaOtroImpuesto: parseChileanNumber(row[28]),
     };
 
     transactions.push(transaction);

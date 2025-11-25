@@ -14,7 +14,7 @@ const MESES = [
 const ESTRUCTURA_EERR = [
   {
     name: 'INGRESOS OPERACIONALES',
-    items: ['Ventas', 'Costo de ventas', 'Transbank', 'Bonificacion por tramo']
+    items: ['Ventas', 'Costo de venta', 'Transbank', 'Bonificacion por tramo']
   },
   {
     name: 'MARGEN BRUTO OPERACIONAL',
@@ -91,16 +91,78 @@ const ESTRUCTURA_EERR = [
 ];
 
 /**
+ * Clasifica una cuenta del LC en una categoría EERR según keywords
+ */
+function clasificarCuenta(cuenta: string): string {
+  const cuentaLower = cuenta.toLowerCase();
+  
+  // INGRESOS OPERACIONALES
+  if (cuentaLower.includes('venta') || cuentaLower.includes('ingreso') || 
+      cuentaLower.includes('revenue') || cuentaLower.includes('transbank') ||
+      cuentaLower.includes('bonificacion')) {
+    return 'INGRESOS OPERACIONALES';
+  }
+  
+  // GASTOS DE REMUNERACION
+  if (cuentaLower.includes('sueldo') || cuentaLower.includes('honorario') || 
+      cuentaLower.includes('remuneracion') || cuentaLower.includes('seguro') ||
+      cuentaLower.includes('finiquito') || cuentaLower.includes('vacaciones') ||
+      cuentaLower.includes('gratificacion') || cuentaLower.includes('bono') ||
+      cuentaLower.includes('cesantia') || cuentaLower.includes('accidente') ||
+      cuentaLower.includes('invalidez') || cuentaLower.includes('sobrevivencia') ||
+      cuentaLower.includes('provision')) {
+    return 'GASTOS DE REMUNERACION';
+  }
+  
+  // GASTOS DE OPERACION
+  if (cuentaLower.includes('electricidad') || cuentaLower.includes('agua') || 
+      cuentaLower.includes('luz') || cuentaLower.includes('comunicacion') ||
+      cuentaLower.includes('aseo') || cuentaLower.includes('mantencion') ||
+      cuentaLower.includes('reparacion') || cuentaLower.includes('servicio') ||
+      cuentaLower.includes('caja chica') || cuentaLower.includes('general')) {
+    return 'GASTOS DE OPERACION';
+  }
+  
+  // GASTOS DE ADMINISTRACION
+  if (cuentaLower.includes('oficina') || cuentaLower.includes('publicidad') || 
+      cuentaLower.includes('licencia') || cuentaLower.includes('software') ||
+      cuentaLower.includes('notarial') || cuentaLower.includes('bancario') ||
+      cuentaLower.includes('contribucion') || cuentaLower.includes('patente') ||
+      cuentaLower.includes('recaudacion') || cuentaLower.includes('propaganda') ||
+      cuentaLower.includes('materiales') || cuentaLower.includes('utiles')) {
+    return 'GASTOS DE ADMINISTRACION';
+  }
+  
+  // OTROS GASTOS
+  if (cuentaLower.includes('arriendo') || cuentaLower.includes('gestion') || 
+      cuentaLower.includes('supervisor')) {
+    return 'OTROS GASTOS';
+  }
+  
+  // OTROS EGRESOS FUERA DE EXPLOTACION
+  if (cuentaLower.includes('leasing') || cuentaLower.includes('credito') || 
+      cuentaLower.includes('prestamo') || cuentaLower.includes('directorio') ||
+      cuentaLower.includes('interes') || cuentaLower.includes('cuota')) {
+    return 'OTROS EGRESOS FUERA DE EXPLOTACION';
+  }
+  
+  // Default: GASTOS DE OPERACION
+  return 'GASTOS DE OPERACION';
+}
+
+/**
  * Convierte transacciones de Libro de Compras a formato EERRData
- * manteniendo la estructura predefinida de cuentas.
+ * manteniendo la estructura predefinida de cuentas y agregando cuentas del LC automáticamente.
  * 
  * @param transacciones - Array de transacciones del Libro de Compras
  * @param periodo - Período en formato "YYYY-MM"
+ * @param valoresManuales - Valores ingresados manualmente por el usuario (ej: Ventas)
  * @returns Estructura EERRData compatible con SevillaTable/LabranzaTable
  */
 export function aggregateLibroComprasToEERR(
   transacciones: LibroComprasTransaction[],
-  periodo: string
+  periodo: string,
+  valoresManuales: { [cuenta: string]: number } = {}
 ): EERRData {
   // Extraer año y mes del período (YYYY-MM)
   const [year, mesStr] = periodo.split('-');
@@ -113,19 +175,12 @@ export function aggregateLibroComprasToEERR(
   // Agregar CONSOLIDADO al final
   const allMonths = [...months, 'CONSOLIDADO'];
   
-  // Agrupar transacciones por cuenta (normalizar nombres)
+  // Agrupar transacciones por cuenta exacta
+  // TODAS las transacciones del documento ya pertenecen al período asignado
+  // No filtrar por fechaDocto porque el archivo completo es del período
   const transaccionesPorCuenta = new Map<string, number>();
   
   transacciones.forEach(tx => {
-    const fechaDocto = new Date(tx.fechaDocto);
-    const mesTransaccion = fechaDocto.getMonth() + 1; // 1-12
-    const añoTransaccion = fechaDocto.getFullYear().toString();
-    
-    // Solo considerar transacciones del período exacto
-    if (añoTransaccion !== year || mesTransaccion !== periodoMes) {
-      return;
-    }
-    
     const cuenta = (tx.cuenta || 'Sin Clasificar').trim();
     const monto = tx.montoTotal || 0;
     
@@ -133,39 +188,74 @@ export function aggregateLibroComprasToEERR(
     transaccionesPorCuenta.set(cuenta, montoActual + monto);
   });
   
+  // Rastrear qué cuentas del LC ya fueron mapeadas
+  const cuentasMapeadas = new Set<string>();
+  
   // Construir categorías con estructura predefinida
   const categories: EERRCategory[] = [];
   
   ESTRUCTURA_EERR.forEach(estructuraCategoria => {
     const rows: EERRRow[] = [];
     
-    // Agregar items de la categoría
+    // Agregar items predefinidos de la categoría
     estructuraCategoria.items.forEach(itemName => {
       const row: EERRRow = { Item: itemName };
       
-      // Buscar monto en transacciones (con búsqueda flexible)
-      let monto = 0;
-      for (const [cuentaTx, montoTx] of transaccionesPorCuenta.entries()) {
-        // Normalizar y comparar (case-insensitive, sin espacios extra)
-        const cuentaNormalizada = cuentaTx.toLowerCase().trim();
+      // Primero verificar si hay valor manual para esta cuenta
+      let monto = valoresManuales[itemName] || 0;
+      
+      // Si no hay valor manual, buscar en transacciones del LC
+      if (monto === 0) {
         const itemNormalizado = itemName.toLowerCase().trim();
         
-        if (cuentaNormalizada.includes(itemNormalizado) || itemNormalizado.includes(cuentaNormalizada)) {
-          monto += montoTx;
+        for (const [cuentaTx, montoTx] of transaccionesPorCuenta.entries()) {
+          const cuentaNormalizada = cuentaTx.toLowerCase().trim();
+          
+          // Match exacto o case-insensitive
+          if (cuentaTx === itemName || cuentaNormalizada === itemNormalizado) {
+            monto = montoTx;
+            cuentasMapeadas.add(cuentaTx);
+            break;
+          }
         }
       }
       
       // Agregar valores por mes
       row[`${mesNombre} Monto`] = monto;
-      row[`${mesNombre} %`] = 0;
+      row[`${mesNombre} %`] = 0; // Se calcula después basado en Ventas
       
       // CONSOLIDADO
       row['CONSOLIDADO Monto'] = monto;
-      row['CONSOLIDADO %'] = 0;
+      row['CONSOLIDADO %'] = 0; // Se calcula después basado en Ventas
       row['CONSOLIDADO Promedio'] = monto;
       
       rows.push(row);
     });
+    
+    // Agregar cuentas adicionales del LC que pertenecen a esta categoría
+    if (!estructuraCategoria.isCalculated) {
+      for (const [cuentaTx, montoTx] of transaccionesPorCuenta.entries()) {
+        // Si ya fue mapeada, skip
+        if (cuentasMapeadas.has(cuentaTx)) continue;
+        
+        // Clasificar la cuenta
+        const categoriaClasificada = clasificarCuenta(cuentaTx);
+        
+        // Si pertenece a esta categoría, agregarla
+        if (categoriaClasificada === estructuraCategoria.name) {
+          const row: EERRRow = { Item: cuentaTx };
+          
+          row[`${mesNombre} Monto`] = montoTx;
+          row[`${mesNombre} %`] = 0;
+          row['CONSOLIDADO Monto'] = montoTx;
+          row['CONSOLIDADO %'] = 0;
+          row['CONSOLIDADO Promedio'] = montoTx;
+          
+          rows.push(row);
+          cuentasMapeadas.add(cuentaTx);
+        }
+      }
+    }
     
     // Calcular total de categoría (si no es calculada)
     let totalRow: EERRRow | undefined;
@@ -191,6 +281,49 @@ export function aggregateLibroComprasToEERR(
       total: totalRow
     });
   });
+  
+  // Calcular porcentajes basados en Ventas
+  // Ventas = 100%, todas las demás cuentas se calculan como: (monto / ventas) * 100
+  let montoVentas = 0;
+  
+  // Buscar el monto de Ventas
+  categories.forEach(cat => {
+    const ventasRow = cat.rows.find(r => r.Item === 'Ventas');
+    if (ventasRow) {
+      const montoVentasMes = ventasRow[`${mesNombre} Monto`];
+      montoVentas = typeof montoVentasMes === 'number' ? montoVentasMes : 0;
+    }
+  });
+  
+  // Si hay ventas, calcular porcentajes
+  if (montoVentas > 0) {
+    categories.forEach(cat => {
+      // Calcular % para cada fila
+      cat.rows.forEach(row => {
+        const montoMes = row[`${mesNombre} Monto`];
+        const montoConsolidado = row['CONSOLIDADO Monto'];
+        
+        if (typeof montoMes === 'number' && typeof montoConsolidado === 'number') {
+          const porcentajeMes = (montoMes / montoVentas) * 100;
+          const porcentajeConsolidado = (montoConsolidado / montoVentas) * 100;
+          
+          row[`${mesNombre} %`] = porcentajeMes;
+          row['CONSOLIDADO %'] = porcentajeConsolidado;
+        }
+      });
+      
+      // Calcular % para total de categoría
+      if (cat.total) {
+        const totalMontoMes = cat.total[`${mesNombre} Monto`];
+        const totalMontoConsolidado = cat.total['CONSOLIDADO Monto'];
+        
+        if (typeof totalMontoMes === 'number' && typeof totalMontoConsolidado === 'number') {
+          cat.total[`${mesNombre} %`] = (totalMontoMes / montoVentas) * 100;
+          cat.total['CONSOLIDADO %'] = (totalMontoConsolidado / montoVentas) * 100;
+        }
+      }
+    });
+  }
   
   return {
     sheetName: `Libro de Compras - ${periodo}`,

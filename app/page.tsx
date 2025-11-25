@@ -190,15 +190,15 @@ export default function Home() {
     }
   };
 
-  const fetchData = async (period?: string, sucursal?: 'Sevilla' | 'Labranza') => {
+  const fetchData = async (period?: string, sucursal?: 'Sevilla' | 'Labranza', forceReload = false) => {
     // Cancelar request anterior si existe
     if (abortControllers.current.data) {
       abortControllers.current.data.abort();
     }
 
-    // Prevenir llamadas duplicadas al mismo período
+    // Prevenir llamadas duplicadas al mismo período (a menos que sea forzado)
     const cacheKey = `${period}-${selectedUserName}-${sucursal || ''}`;
-    if (fetchDataInProgress.current || lastFetchedPeriod.current === cacheKey) {
+    if (!forceReload && (fetchDataInProgress.current || lastFetchedPeriod.current === cacheKey)) {
       return;
     }
 
@@ -358,6 +358,9 @@ export default function Home() {
                   periodLabel={excelData.periodLabel}
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}
+                  userId={selectedUserId || undefined}
+                  periodo={selectedPeriod || undefined}
+                  onDataRefresh={() => selectedPeriod && fetchData(selectedPeriod, 'Sevilla', true)}
                 />
               ) : activeView === 'labranza' ? (
                 <LabranzaTable
@@ -365,6 +368,9 @@ export default function Home() {
                   periodLabel={excelData.periodLabel}
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}
+                  userId={selectedUserId || undefined}
+                  periodo={selectedPeriod || undefined}
+                  onDataRefresh={() => selectedPeriod && fetchData(selectedPeriod, 'Labranza', true)}
                 />
               ) : activeView === 'consolidado' ? (
                 <TableView
@@ -417,15 +423,7 @@ export default function Home() {
                 <p className="text-gray-500 mb-6">
                   Primero debes cargar un archivo desde la sección &quot;Cargar Datos&quot;
                 </p>
-                <button
-                  onClick={() => setActiveView('upload')}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  Ir a Cargar Datos
-                </button>
+                
               </div>
             </div>
           )
