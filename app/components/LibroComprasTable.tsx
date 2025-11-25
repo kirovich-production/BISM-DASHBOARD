@@ -6,10 +6,11 @@ import { LibroComprasData } from '@/types';
 interface LibroComprasTableProps {
   userId: string;
   periodo: string;
+  sucursal: string;
   onDataLoad?: (data: LibroComprasData | null) => void;
 }
 
-export default function LibroComprasTable({ userId, periodo, onDataLoad }: LibroComprasTableProps) {
+export default function LibroComprasTable({ userId, periodo, sucursal, onDataLoad }: LibroComprasTableProps) {
   const [data, setData] = useState<LibroComprasData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,13 +18,13 @@ export default function LibroComprasTable({ userId, periodo, onDataLoad }: Libro
   const [filterCuenta, setFilterCuenta] = useState('');
 
   const loadData = async () => {
-    if (!userId || !periodo) {
+    if (!userId || !periodo || !sucursal) {
       return;
     }
     
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/libro-compras?userId=${userId}&periodo=${periodo}`);
+      const response = await fetch(`/api/libro-compras?userId=${userId}&periodo=${periodo}&sucursal=${sucursal}`);
       const result = await response.json();
       
       
@@ -42,11 +43,11 @@ export default function LibroComprasTable({ userId, periodo, onDataLoad }: Libro
     }
   };
 
-  // Cargar datos cuando cambien userId o periodo
+  // Cargar datos cuando cambien userId, periodo o sucursal
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, periodo]);
+  }, [userId, periodo, sucursal]);
 
   // Obtener valores únicos para filtros
   const unidadesNegocio = useMemo(() => {

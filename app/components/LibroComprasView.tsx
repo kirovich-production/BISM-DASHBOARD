@@ -13,12 +13,14 @@ interface LibroComprasViewProps {
 interface PeriodoLC {
   periodo: string;
   periodLabel: string;
+  sucursal: string;
 }
 
 export default function LibroComprasView({ userId }: LibroComprasViewProps) {
   const [activeTab, setActiveTab] = useState<'lc' | 'proveedores' | 'mantenedor'>('lc');
   const [periodos, setPeriodos] = useState<PeriodoLC[]>([]);
   const [selectedPeriodo, setSelectedPeriodo] = useState<string | null>(null);
+  const [selectedSucursal, setSelectedSucursal] = useState<string | null>(null);
   const [isLoadingPeriods, setIsLoadingPeriods] = useState(false);
 
   // Cargar períodos disponibles de Libro de Compras
@@ -36,6 +38,7 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
           // Seleccionar el primer período si existe
           if (result.periods.length > 0 && !selectedPeriodo) {
             setSelectedPeriodo(result.periods[0].periodo);
+            setSelectedSucursal(result.periods[0].sucursal);
           }
         }
       } catch (error) {
@@ -63,13 +66,19 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
                 <label className="text-sm text-gray-600">Período:</label>
                 <select
                   value={selectedPeriodo || ''}
-                  onChange={(e) => setSelectedPeriodo(e.target.value)}
+                  onChange={(e) => {
+                    const selected = periodos.find(p => p.periodo === e.target.value);
+                    if (selected) {
+                      setSelectedPeriodo(selected.periodo);
+                      setSelectedSucursal(selected.sucursal);
+                    }
+                  }}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   disabled={isLoadingPeriods}
                 >
                   {periodos.map((p) => (
-                    <option key={p.periodo} value={p.periodo}>
-                      {p.periodLabel}
+                    <option key={`${p.periodo}-${p.sucursal}`} value={p.periodo}>
+                      {p.periodLabel} - {p.sucursal}
                     </option>
                   ))}
                 </select>
@@ -145,11 +154,12 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
         <div>
           {activeTab === 'lc' && (
             <div>
-              {userId && selectedPeriodo ? (
+              {userId && selectedPeriodo && selectedSucursal ? (
                 <LibroComprasTable 
-                  key={`${userId}-${selectedPeriodo}`}
+                  key={`${userId}-${selectedPeriodo}-${selectedSucursal}`}
                   userId={userId}
                   periodo={selectedPeriodo}
+                  sucursal={selectedSucursal}
                 />
               ) : userId && periodos.length === 0 && !isLoadingPeriods ? (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">

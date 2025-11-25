@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 
-// GET: Obtener libro de compras por período y usuario
+// GET: Obtener libro de compras por período, usuario y sucursal
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const periodo = searchParams.get('periodo');
+    const sucursal = searchParams.get('sucursal');
 
-    if (!userId || !periodo) {
+    if (!userId || !periodo || !sucursal) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan parámetros requeridos: userId, periodo',
+        message: 'Faltan parámetros requeridos: userId, periodo, sucursal',
       }, { status: 400 });
     }
 
@@ -20,7 +21,8 @@ export async function GET(request: NextRequest) {
 
     const document = await libroComprasCollection.findOne({
       userId,
-      periodo
+      periodo,
+      sucursal
     });
 
     if (!document) {
@@ -49,12 +51,12 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, periodo, transaccionIndex, transaccion } = body;
+    const { userId, periodo, sucursal, transaccionIndex, transaccion } = body;
 
-    if (!userId || !periodo || transaccionIndex === undefined || !transaccion) {
+    if (!userId || !periodo || !sucursal || transaccionIndex === undefined || !transaccion) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan datos requeridos: userId, periodo, transaccionIndex, transaccion',
+        message: 'Faltan datos requeridos: userId, periodo, sucursal, transaccionIndex, transaccion',
       }, { status: 400 });
     }
 
@@ -65,7 +67,7 @@ export async function PUT(request: NextRequest) {
     const updateKey = `transacciones.${transaccionIndex}`;
     
     const result = await libroComprasCollection.updateOne(
-      { userId, periodo },
+      { userId, periodo, sucursal },
       {
         $set: {
           [updateKey]: transaccion,
@@ -95,17 +97,18 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE: Eliminar libro de compras por período
+// DELETE: Eliminar libro de compras por período y sucursal
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const periodo = searchParams.get('periodo');
+    const sucursal = searchParams.get('sucursal');
 
-    if (!userId || !periodo) {
+    if (!userId || !periodo || !sucursal) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan parámetros requeridos: userId, periodo',
+        message: 'Faltan parámetros requeridos: userId, periodo, sucursal',
       }, { status: 400 });
     }
 
@@ -114,7 +117,8 @@ export async function DELETE(request: NextRequest) {
 
     const result = await libroComprasCollection.deleteOne({
       userId,
-      periodo
+      periodo,
+      sucursal
     });
 
     if (result.deletedCount === 0) {

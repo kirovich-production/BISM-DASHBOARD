@@ -186,14 +186,14 @@ export default function DashboardView({
     };
   };
 
-  // Card de carga de datos (siempre disponible)
-  const uploadCard = {
-    id: 'upload',
-    title: 'Cargar Datos',
-    description: 'Subir nuevos períodos financieros',
+  // Card de Libro de Compras (reemplaza carga de datos antigua)
+  const libroComprasCard = {
+    id: 'libro-compras',
+    title: 'Libro de Compras',
+    description: 'Gestionar libro de compras y proveedores',
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     ),
     color: 'from-orange-500 to-amber-600',
@@ -201,7 +201,7 @@ export default function DashboardView({
     iconColor: 'text-orange-600',
   };
 
-  // Construir array final de cards: secciones + consolidado + mes-anual + comparativo-ebitda + combo + trimestral (si existen) + upload
+  // Construir array final de cards: libro-compras + secciones + consolidado + charts (si existen)
   const sectionCards = generateSectionCards();
   const consolidadoCard = getConsolidadoCard();
   const mesAnualCard = getMesAnualCard();
@@ -210,13 +210,13 @@ export default function DashboardView({
   const trimestralCard = getTrimestralAnalysisCard();
   
   const cards = [];
+  cards.push(libroComprasCard); // Libro de Compras primero
   cards.push(...sectionCards);
   if (consolidadoCard) cards.push(consolidadoCard);
   if (mesAnualCard) cards.push(mesAnualCard);
   if (waterfallCard) cards.push(waterfallCard);
   if (ebidtaComboCard) cards.push(ebidtaComboCard);
   if (trimestralCard) cards.push(trimestralCard);
-  cards.push(uploadCard);
 
   // Navegación dinámica basada en el id de la card
   const handleCardClick = (cardId: string) => {

@@ -12,6 +12,7 @@ export default function LibroComprasUpload({ userId, onUploadSuccess }: LibroCom
   const [file, setFile] = useState<File | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedSucursal, setSelectedSucursal] = useState<'Sevilla' | 'Labranza'>('Sevilla');
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -41,6 +42,7 @@ export default function LibroComprasUpload({ userId, onUploadSuccess }: LibroCom
       const formData = new FormData();
       formData.append('file', file);
       formData.append('userId', userId);
+      formData.append('sucursal', selectedSucursal);
       
       // Formato: YYYY-MM
       const periodo = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
@@ -86,6 +88,37 @@ export default function LibroComprasUpload({ userId, onUploadSuccess }: LibroCom
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Cargar Libro de Compras</h2>
       
+      {/* Selector de Sucursal */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Sucursal
+        </label>
+        <div className="flex gap-4">
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              value="Sevilla"
+              checked={selectedSucursal === 'Sevilla'}
+              onChange={(e) => setSelectedSucursal(e.target.value as 'Sevilla' | 'Labranza')}
+              className="mr-2 w-4 h-4 text-blue-600"
+              disabled={isUploading}
+            />
+            <span className="text-sm font-medium text-gray-700">Sevilla</span>
+          </label>
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              value="Labranza"
+              checked={selectedSucursal === 'Labranza'}
+              onChange={(e) => setSelectedSucursal(e.target.value as 'Sevilla' | 'Labranza')}
+              className="mr-2 w-4 h-4 text-blue-600"
+              disabled={isUploading}
+            />
+            <span className="text-sm font-medium text-gray-700">Labranza</span>
+          </label>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         {/* Selector de Año */}
         <div>
@@ -150,7 +183,8 @@ export default function LibroComprasUpload({ userId, onUploadSuccess }: LibroCom
       {/* Información del período seleccionado */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
         <p className="text-sm text-blue-800">
-          <span className="font-semibold">Período seleccionado:</span>{' '}
+          <span className="font-semibold">Sucursal:</span> {selectedSucursal} | 
+          <span className="font-semibold ml-2">Período:</span>{' '}
           {monthNames[selectedMonth - 1]} {selectedYear}
         </p>
       </div>

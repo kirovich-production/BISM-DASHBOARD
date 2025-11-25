@@ -25,13 +25,9 @@ export async function GET() {
 
     const results = [];
 
-    // Eliminar colecciones específicas
-    const collectionsToDelete = [
-      'sessions',
-      'excel_agua_nieves',
-      'excel_prueba1',
-      'excel_prueba22'
-    ];
+    // Eliminar TODAS las colecciones
+    const allCollections = await db.listCollections().toArray();
+    const collectionsToDelete = allCollections.map(c => c.name);
 
     for (const collectionName of collectionsToDelete) {
       try {

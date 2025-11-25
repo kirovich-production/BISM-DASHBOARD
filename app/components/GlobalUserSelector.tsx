@@ -19,11 +19,17 @@ export default function GlobalUserSelector({ onUserChange, selectedUserId }: Glo
       const result = await response.json();
       
       if (result.success && result.users) {
-        setUsers(result.users);
+        // Mapear _id a id para compatibilidad con el tipo User
+        const mappedUsers = result.users.map((u: any) => ({
+          id: u._id || u.id,
+          name: u.name,
+          createdAt: u.createdAt
+        }));
+        setUsers(mappedUsers);
         
         // Si no hay usuario seleccionado y hay usuarios, seleccionar el primero
-        if (!selectedUserId && result.users.length > 0) {
-          const firstUser = result.users[0];
+        if (!selectedUserId && mappedUsers.length > 0) {
+          const firstUser = mappedUsers[0];
           onUserChange(firstUser.id, firstUser.name);
         }
       }

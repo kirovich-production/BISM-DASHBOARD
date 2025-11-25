@@ -8,13 +8,21 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const userId = formData.get('userId') as string;
+    const sucursal = formData.get('sucursal') as string; // 'Sevilla' o 'Labranza'
     const periodo = formData.get('periodo') as string; // Formato: YYYY-MM
     const periodLabel = formData.get('periodLabel') as string; // Formato: "Mes Año"
 
-    if (!file || !userId || !periodo || !periodLabel) {
+    if (!file || !userId || !sucursal || !periodo || !periodLabel) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan datos requeridos: file, userId, periodo, periodLabel',
+        message: 'Faltan datos requeridos: file, userId, sucursal, periodo, periodLabel',
+      }, { status: 400 });
+    }
+
+    if (sucursal !== 'Sevilla' && sucursal !== 'Labranza') {
+      return NextResponse.json({
+        success: false,
+        message: 'Sucursal debe ser "Sevilla" o "Labranza"',
       }, { status: 400 });
     }
 
@@ -84,17 +92,18 @@ export async function POST(request: NextRequest) {
     // 4.2: Guardar Libro de Compras
     const libroComprasCollection = db.collection('libroCompras');
     
-    // Verificar si ya existe un documento para este período y usuario
+    // Verificar si ya existe un documento para este período, usuario Y sucursal
     const existingDoc = await libroComprasCollection.findOne({
       userId,
-      periodo
+      periodo,
+      sucursal
     });
 
     const libroComprasData = {
       userId,
       periodo,
       periodLabel,
-      sucursal: 'pending', // Por ahora
+      sucursal, // 'Sevilla' o 'Labranza'
       fileName: file.name,
       transacciones,
       updatedAt: new Date()
@@ -103,7 +112,7 @@ export async function POST(request: NextRequest) {
     if (existingDoc) {
       // Actualizar documento existente
       await libroComprasCollection.updateOne(
-        { userId, periodo },
+        { userId, periodo, sucursal },
         { $set: libroComprasData }
       );
     } else {
