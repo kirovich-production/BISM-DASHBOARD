@@ -14,12 +14,8 @@ const MESES = [
 const ESTRUCTURA_EERR = [
   {
     name: 'INGRESOS OPERACIONALES',
-    items: ['Ventas', 'Costo de venta', 'Transbank', 'Bonificacion por tramo']
-  },
-  {
-    name: 'MARGEN BRUTO OPERACIONAL',
-    items: [],
-    isCalculated: true
+    items: ['Ventas', 'Costo de venta', 'Transbank', 'Bonificacion por tramo'],
+    hasMargenBruto: true
   },
   {
     name: 'GASTOS DE REMUNERACION',
@@ -53,13 +49,13 @@ const ESTRUCTURA_EERR = [
       'Materiales y Utiles de Oficina',
       'Publicidad y Propaganda BSM',
       'Licencias y Software',
-      'Seguros',
       'Gastos Notariales',
       'Gastos Bancarios',
       'Contribuciones',
       'Patentes Municipales',
       'Gastos generales',
-      'Recaudacion y Sencillo'
+      'Recaudacion y Sencillo',
+      'Seguros'
     ]
   },
   {
@@ -105,7 +101,7 @@ function clasificarCuenta(cuenta: string): string {
   
   // GASTOS DE REMUNERACION
   if (cuentaLower.includes('sueldo') || cuentaLower.includes('honorario') || 
-      cuentaLower.includes('remuneracion') || cuentaLower.includes('seguro') ||
+      cuentaLower.includes('remuneracion') || 
       cuentaLower.includes('finiquito') || cuentaLower.includes('vacaciones') ||
       cuentaLower.includes('gratificacion') || cuentaLower.includes('bono') ||
       cuentaLower.includes('cesantia') || cuentaLower.includes('accidente') ||
@@ -129,7 +125,8 @@ function clasificarCuenta(cuenta: string): string {
       cuentaLower.includes('notarial') || cuentaLower.includes('bancario') ||
       cuentaLower.includes('contribucion') || cuentaLower.includes('patente') ||
       cuentaLower.includes('recaudacion') || cuentaLower.includes('propaganda') ||
-      cuentaLower.includes('materiales') || cuentaLower.includes('utiles')) {
+      cuentaLower.includes('materiales') || cuentaLower.includes('utiles') ||
+      cuentaLower.includes('seguro')) {
     return 'GASTOS DE ADMINISTRACION';
   }
   
@@ -257,10 +254,37 @@ export function aggregateLibroComprasToEERR(
       }
     }
     
-    // Calcular total de categoría (si no es calculada)
+    // Calcular total de categoría o MARGEN BRUTO OPERACIONAL
     let totalRow: EERRRow | undefined;
     
-    if (!estructuraCategoria.isCalculated) {
+    if (estructuraCategoria.hasMargenBruto) {
+      // Calcular MARGEN BRUTO OPERACIONAL
+      // Fórmula: Ventas - Costo de venta + Bonificacion por tramo - Transbank
+      const ventasRow = rows.find(r => r.Item === 'Ventas');
+      const costoVentaRow = rows.find(r => r.Item === 'Costo de venta');
+      const transbankRow = rows.find(r => r.Item === 'Transbank');
+      const bonificacionRow = rows.find(r => r.Item === 'Bonificacion por tramo');
+      
+      const ventasMonto = ventasRow?.[`${mesNombre} Monto`];
+      const costoVentaMonto = costoVentaRow?.[`${mesNombre} Monto`];
+      const transbankMonto = transbankRow?.[`${mesNombre} Monto`];
+      const bonificacionMonto = bonificacionRow?.[`${mesNombre} Monto`];
+      
+      const ventas = typeof ventasMonto === 'number' ? ventasMonto : 0;
+      const costoVenta = typeof costoVentaMonto === 'number' ? costoVentaMonto : 0;
+      const transbank = typeof transbankMonto === 'number' ? transbankMonto : 0;
+      const bonificacion = typeof bonificacionMonto === 'number' ? bonificacionMonto : 0;
+      
+      const margenBrutoMonto = ventas - costoVenta + bonificacion - transbank;
+      
+      totalRow = { Item: 'MARGEN BRUTO OPERACIONAL' };
+      totalRow[`${mesNombre} Monto`] = margenBrutoMonto;
+      totalRow[`${mesNombre} %`] = 0; // Se calcula después
+      totalRow['CONSOLIDADO Monto'] = margenBrutoMonto;
+      totalRow['CONSOLIDADO %'] = 0; // Se calcula después
+      totalRow['CONSOLIDADO Promedio'] = margenBrutoMonto;
+      
+    } else if (!estructuraCategoria.isCalculated) {
       totalRow = { Item: `TOTAL ${estructuraCategoria.name}` };
       
       const totalMonto = rows.reduce((sum, row) => {
@@ -273,6 +297,9 @@ export function aggregateLibroComprasToEERR(
       totalRow['CONSOLIDADO Monto'] = totalMonto;
       totalRow['CONSOLIDADO %'] = 0;
       totalRow['CONSOLIDADO Promedio'] = totalMonto;
+    } else if (estructuraCategoria.name === 'EBIDTA') {
+      // Calcular EBITDA después de que todas las categorías estén construidas
+      // Se calculará al final
     }
     
     categories.push({
@@ -281,6 +308,75 @@ export function aggregateLibroComprasToEERR(
       total: totalRow
     });
   });
+  
+  // Calcular EBITDA: MARGEN BRUTO - TOTAL GASTOS REMUNERACION - TOTAL GASTOS OPERACION - TOTAL GASTOS ADMIN - TOTAL OTROS GASTOS
+  const ebitdaCategory = categories.find(cat => cat.name === 'EBIDTA');
+  if (ebitdaCategory) {
+    const margenBrutoCategory = categories.find(cat => cat.name === 'INGRESOS OPERACIONALES');
+    const gastosRemuneracionCategory = categories.find(cat => cat.name === 'GASTOS DE REMUNERACION');
+    const gastosOperacionCategory = categories.find(cat => cat.name === 'GASTOS DE OPERACION');
+    const gastosAdminCategory = categories.find(cat => cat.name === 'GASTOS DE ADMINISTRACION');
+    const otrosGastosCategory = categories.find(cat => cat.name === 'OTROS GASTOS');
+    
+    const margenBrutoMonto = margenBrutoCategory?.total?.[`${mesNombre} Monto`];
+    const gastosRemuneracionMonto = gastosRemuneracionCategory?.total?.[`${mesNombre} Monto`];
+    const gastosOperacionMonto = gastosOperacionCategory?.total?.[`${mesNombre} Monto`];
+    const gastosAdminMonto = gastosAdminCategory?.total?.[`${mesNombre} Monto`];
+    const otrosGastosMonto = otrosGastosCategory?.total?.[`${mesNombre} Monto`];
+    
+    const margenBruto = typeof margenBrutoMonto === 'number' ? margenBrutoMonto : 0;
+    const gastosRemuneracion = typeof gastosRemuneracionMonto === 'number' ? gastosRemuneracionMonto : 0;
+    const gastosOperacion = typeof gastosOperacionMonto === 'number' ? gastosOperacionMonto : 0;
+    const gastosAdmin = typeof gastosAdminMonto === 'number' ? gastosAdminMonto : 0;
+    const otrosGastos = typeof otrosGastosMonto === 'number' ? otrosGastosMonto : 0;
+    
+    const ebitdaMonto = margenBruto - gastosRemuneracion - gastosOperacion - gastosAdmin - otrosGastos;
+    
+    const ebitdaRow: EERRRow = { Item: 'EBIDTA' };
+    ebitdaRow[`${mesNombre} Monto`] = ebitdaMonto;
+    ebitdaRow[`${mesNombre} %`] = 0; // Se calcula después
+    ebitdaRow['CONSOLIDADO Monto'] = ebitdaMonto;
+    ebitdaRow['CONSOLIDADO %'] = 0; // Se calcula después
+    ebitdaRow['CONSOLIDADO Promedio'] = ebitdaMonto;
+    
+    ebitdaCategory.rows = [ebitdaRow];
+  }
+  
+  // Calcular RESULTADO NETO: MARGEN BRUTO - TOTAL GASTOS REMUNERACION - TOTAL GASTOS OPERACION - TOTAL GASTOS ADMIN - TOTAL OTROS GASTOS - OTROS EGRESOS
+  const resultadoNetoCategory = categories.find(cat => cat.name === 'RESULTADO NETO');
+  if (resultadoNetoCategory) {
+    const margenBrutoCategory = categories.find(cat => cat.name === 'INGRESOS OPERACIONALES');
+    const gastosRemuneracionCategory = categories.find(cat => cat.name === 'GASTOS DE REMUNERACION');
+    const gastosOperacionCategory = categories.find(cat => cat.name === 'GASTOS DE OPERACION');
+    const gastosAdminCategory = categories.find(cat => cat.name === 'GASTOS DE ADMINISTRACION');
+    const otrosGastosCategory = categories.find(cat => cat.name === 'OTROS GASTOS');
+    const otrosEgresosCategory = categories.find(cat => cat.name === 'OTROS EGRESOS FUERA DE EXPLOTACION');
+    
+    const margenBrutoMonto = margenBrutoCategory?.total?.[`${mesNombre} Monto`];
+    const gastosRemuneracionMonto = gastosRemuneracionCategory?.total?.[`${mesNombre} Monto`];
+    const gastosOperacionMonto = gastosOperacionCategory?.total?.[`${mesNombre} Monto`];
+    const gastosAdminMonto = gastosAdminCategory?.total?.[`${mesNombre} Monto`];
+    const otrosGastosMonto = otrosGastosCategory?.total?.[`${mesNombre} Monto`];
+    const otrosEgresosMonto = otrosEgresosCategory?.total?.[`${mesNombre} Monto`];
+    
+    const margenBruto = typeof margenBrutoMonto === 'number' ? margenBrutoMonto : 0;
+    const gastosRemuneracion = typeof gastosRemuneracionMonto === 'number' ? gastosRemuneracionMonto : 0;
+    const gastosOperacion = typeof gastosOperacionMonto === 'number' ? gastosOperacionMonto : 0;
+    const gastosAdmin = typeof gastosAdminMonto === 'number' ? gastosAdminMonto : 0;
+    const otrosGastos = typeof otrosGastosMonto === 'number' ? otrosGastosMonto : 0;
+    const otrosEgresos = typeof otrosEgresosMonto === 'number' ? otrosEgresosMonto : 0;
+    
+    const resultadoNetoMonto = margenBruto - gastosRemuneracion - gastosOperacion - gastosAdmin - otrosGastos - otrosEgresos;
+    
+    const resultadoNetoRow: EERRRow = { Item: 'RESULTADO NETO' };
+    resultadoNetoRow[`${mesNombre} Monto`] = resultadoNetoMonto;
+    resultadoNetoRow[`${mesNombre} %`] = 0; // Se calcula después
+    resultadoNetoRow['CONSOLIDADO Monto'] = resultadoNetoMonto;
+    resultadoNetoRow['CONSOLIDADO %'] = 0; // Se calcula después
+    resultadoNetoRow['CONSOLIDADO Promedio'] = resultadoNetoMonto;
+    
+    resultadoNetoCategory.rows = [resultadoNetoRow];
+  }
   
   // Calcular porcentajes basados en Ventas
   // Ventas = 100%, todas las demás cuentas se calculan como: (monto / ventas) * 100
@@ -312,12 +408,13 @@ export function aggregateLibroComprasToEERR(
         }
       });
       
-      // Calcular % para total de categoría
+      // Calcular % para total de categoría (incluye MARGEN BRUTO OPERACIONAL)
       if (cat.total) {
         const totalMontoMes = cat.total[`${mesNombre} Monto`];
         const totalMontoConsolidado = cat.total['CONSOLIDADO Monto'];
         
         if (typeof totalMontoMes === 'number' && typeof totalMontoConsolidado === 'number') {
+          // Para MARGEN BRUTO OPERACIONAL: % = (margenBruto / ventas) * 100
           cat.total[`${mesNombre} %`] = (totalMontoMes / montoVentas) * 100;
           cat.total['CONSOLIDADO %'] = (totalMontoConsolidado / montoVentas) * 100;
         }
