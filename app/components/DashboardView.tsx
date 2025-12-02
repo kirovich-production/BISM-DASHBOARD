@@ -18,8 +18,8 @@ export default function DashboardView({
   availableSections = []
 }: DashboardViewProps) {
 
-  // Si no hay usuario seleccionado o no hay datos, mostrar vista inicial
-  if (!selectedUserName || !hasData) {
+  // Si no hay usuario seleccionado, mostrar vista inicial
+  if (!selectedUserName) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
         <div className="text-center">
@@ -36,154 +36,112 @@ export default function DashboardView({
             BISM
           </h1>
           <p className="text-xl text-gray-600 mb-2">Dashboard</p>
+          <p className="text-sm text-gray-500 mt-4">Selecciona un usuario en &quot;Cargar Datos&quot; para comenzar</p>
         </div>
       </div>
     );
   }
 
-  // Generar cards dinámicamente desde availableSections
-  const generateSectionCards = () => {
-    const colors = [
-      { gradient: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-50', icon: 'text-indigo-600' },
-      { gradient: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50', icon: 'text-emerald-600' },
-      { gradient: 'from-amber-500 to-amber-600', bg: 'bg-amber-50', icon: 'text-amber-600' },
-      { gradient: 'from-rose-500 to-rose-600', bg: 'bg-rose-50', icon: 'text-rose-600' },
-      { gradient: 'from-cyan-500 to-cyan-600', bg: 'bg-cyan-50', icon: 'text-cyan-600' },
-    ];
-
-    return availableSections
-      .filter(section => !['consolidado', 'consolidados'].includes(section.toLowerCase()))
-      .map((section, index) => {
-        const colorScheme = colors[index % colors.length];
-        return {
-          id: section.toLowerCase(),
-          title: `EERR ${section.charAt(0).toUpperCase() + section.slice(1)}`,
-          description: `Estado de resultados detallado de ${section}`,
-          icon: (
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          ),
-          color: colorScheme.gradient,
-          bgColor: colorScheme.bg,
-          iconColor: colorScheme.icon,
-        };
-      });
-  };
-
-  // Card de consolidado (si existe)
-  const getConsolidadoCard = () => {
-    const hasConsolidado = availableSections.some(s => 
-      ['consolidado', 'consolidados'].includes(s.toLowerCase())
-    );
-    
-    if (!hasConsolidado) return null;
-
-    return {
-      id: 'consolidado',
-      title: 'Consolidado',
-      description: 'Vista consolidada por secciones',
+  // Cards estáticas para Libro de Compras (Sevilla y Labranza)
+  const libroComprasSectionCards = [
+    {
+      id: 'sevilla',
+      title: 'EERR Sevilla',
+      description: 'Estado de resultados detallado de Sevilla',
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
       ),
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-    };
-  };
-
-  // Card de comparación Mes-Anual (si hay datos consolidados)
-  const getMesAnualCard = () => {
-    const hasConsolidado = availableSections.some(s => 
-      ['consolidado', 'consolidados'].includes(s.toLowerCase())
-    );
-    
-    if (!hasConsolidado) return null;
-
-    return {
-      id: 'mes-anual',
-      title: 'Comparación Mes-Anual',
-      description: 'Análisis comparativo mensual vs anual',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-        </svg>
-      ),
-      color: 'from-teal-500 to-teal-600',
-      bgColor: 'bg-teal-50',
-      iconColor: 'text-teal-600',
-    };
-  };
-
-  // Card de Comparativo EBITDA (si hay datos consolidados)
-  const getWaterfallCard = () => {
-    const hasConsolidado = availableSections.some(s => 
-      ['consolidado', 'consolidados'].includes(s.toLowerCase())
-    );
-    
-    if (!hasConsolidado) return null;
-
-    return {
-      id: 'waterfall-charts',
-      title: 'Comparativo EBITDA',
-      description: 'Evolución comparativa: Consolidado vs. Sevilla vs. Labranza',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-        </svg>
-      ),
-      color: 'from-cyan-500 to-blue-600',
-      bgColor: 'bg-cyan-50',
-      iconColor: 'text-cyan-600',
-    };
-  };
-
-  // Card de EBITDA Combo (si hay datos consolidados)
-  const getEbidtaComboCard = () => {
-    const hasConsolidado = availableSections.some(s => 
-      ['consolidado', 'consolidados'].includes(s.toLowerCase())
-    );
-    
-    if (!hasConsolidado) return null;
-
-    return {
-      id: 'ebitda-combo',
-      title: 'EBITDA Combo',
-      description: 'EBITDA mensual (barras) + % margen EBITDA (línea)',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      ),
-      color: 'from-indigo-500 to-purple-600',
+      color: 'from-indigo-500 to-indigo-600',
       bgColor: 'bg-indigo-50',
       iconColor: 'text-indigo-600',
-    };
-  };
-
-  // Card de Análisis Trimestral (si hay datos consolidados)
-  const getTrimestralAnalysisCard = () => {
-    const hasConsolidado = availableSections.some(s => 
-      ['consolidado', 'consolidados'].includes(s.toLowerCase())
-    );
-    
-    if (!hasConsolidado) return null;
-
-    return {
-      id: 'analisis-trimestral',
-      title: 'Análisis Trimestral',
-      description: 'Comparación por trimestres Q1, Q2, Q3, Q4',
+    },
+    {
+      id: 'labranza',
+      title: 'EERR Labranza',
+      description: 'Estado de resultados detallado de Labranza',
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
       ),
-      color: 'from-purple-500 to-violet-600',
-      bgColor: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-    };
+      color: 'from-emerald-500 to-emerald-600',
+      bgColor: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+    },
+  ];
+
+  // Card de consolidado (estática)
+  const consolidadoCard = {
+    id: 'consolidado',
+    title: 'Consolidado',
+    description: 'Vista consolidada Sevilla + Labranza',
+    icon: (
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+    color: 'from-purple-500 to-purple-600',
+    bgColor: 'bg-purple-50',
+    iconColor: 'text-purple-600',
+  };
+
+  // Cards de análisis estáticas
+  const mesAnualCard = {
+    id: 'mes-anual',
+    title: 'Comparación Mes-Anual',
+    description: 'Análisis comparativo mensual vs anual',
+    icon: (
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+      </svg>
+    ),
+    color: 'from-teal-500 to-teal-600',
+    bgColor: 'bg-teal-50',
+    iconColor: 'text-teal-600',
+  };
+
+  const waterfallCard = {
+    id: 'waterfall-charts',
+    title: 'Comparativo EBITDA',
+    description: 'Evolución comparativa: Consolidado vs. Sevilla vs. Labranza',
+    icon: (
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+      </svg>
+    ),
+    color: 'from-cyan-500 to-blue-600',
+    bgColor: 'bg-cyan-50',
+    iconColor: 'text-cyan-600',
+  };
+
+  const ebidtaComboCard = {
+    id: 'ebitda-combo',
+    title: 'EBITDA Combo',
+    description: 'EBITDA mensual (barras) + % margen EBITDA (línea)',
+    icon: (
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+    color: 'from-indigo-500 to-purple-600',
+    bgColor: 'bg-indigo-50',
+    iconColor: 'text-indigo-600',
+  };
+
+  const trimestralCard = {
+    id: 'analisis-trimestral',
+    title: 'Análisis Trimestral',
+    description: 'Comparación por trimestres Q1, Q2, Q3, Q4',
+    icon: (
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+    color: 'from-purple-500 to-violet-600',
+    bgColor: 'bg-purple-50',
+    iconColor: 'text-purple-600',
   };
 
   // Card de Libro de Compras (reemplaza carga de datos antigua)
@@ -201,22 +159,16 @@ export default function DashboardView({
     iconColor: 'text-orange-600',
   };
 
-  // Construir array final de cards: libro-compras + secciones + consolidado + charts (si existen)
-  const sectionCards = generateSectionCards();
-  const consolidadoCard = getConsolidadoCard();
-  const mesAnualCard = getMesAnualCard();
-  const waterfallCard = getWaterfallCard();
-  const ebidtaComboCard = getEbidtaComboCard();
-  const trimestralCard = getTrimestralAnalysisCard();
-  
-  const cards = [];
-  cards.push(libroComprasCard); // Libro de Compras primero
-  cards.push(...sectionCards);
-  if (consolidadoCard) cards.push(consolidadoCard);
-  if (mesAnualCard) cards.push(mesAnualCard);
-  if (waterfallCard) cards.push(waterfallCard);
-  if (ebidtaComboCard) cards.push(ebidtaComboCard);
-  if (trimestralCard) cards.push(trimestralCard);
+  // Construir array final de cards: todas estáticas para Libro de Compras
+  const cards = [
+    libroComprasCard, // Libro de Compras primero
+    ...libroComprasSectionCards, // Sevilla y Labranza
+    consolidadoCard, // Consolidado
+    mesAnualCard, // Comparación Mes-Anual
+    waterfallCard, // Comparativo EBITDA
+    ebidtaComboCard, // EBITDA Combo
+    trimestralCard // Análisis Trimestral
+  ];
 
   // Navegación dinámica basada en el id de la card
   const handleCardClick = (cardId: string) => {

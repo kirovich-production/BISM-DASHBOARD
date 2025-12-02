@@ -10,11 +10,11 @@ interface LabranzaTableProps {
   version?: number;
   uploadedAt?: string | Date;
   userId?: string;
-  periodo?: string;
+  periodo?: string; // Mantenido para compatibilidad, ahora se usa data.monthToPeriod
   onDataRefresh?: () => void;
 }
 
-export default function LabranzaTable({ data, periodLabel, version, uploadedAt, userId, periodo, onDataRefresh }: LabranzaTableProps) {
+export default function LabranzaTable({ data, periodLabel, version, uploadedAt, userId, onDataRefresh }: LabranzaTableProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   
@@ -349,6 +349,10 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt, 
     }
   };
 
+  // Detectar si existe CONSOLIDADO o ANUAL
+  const consolidadoColumn = data.months.find(m => m.toUpperCase().includes('CONSOLIDADO') || m.toUpperCase().includes('ANUAL')) || 'CONSOLIDADO';
+  const regularMonths = data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO') && !m.toUpperCase().includes('ANUAL'));
+
   return (
     <div className="h-full flex flex-col bg-gray-50" ref={contentRef}>
       {/* Header fijo */}
@@ -399,7 +403,7 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt, 
                 <th scope="col" className="sticky left-0 z-40 px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider border-r border-green-500 bg-green-600 shadow-lg">
                   Concepto
                 </th>
-                {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
+                {regularMonths.map((month: string, monthIdx: number) => (
                   <th
                     key={monthIdx}
                     scope="col"
@@ -409,18 +413,18 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt, 
                     {month}
                   </th>
                 ))}
-                {/* CONSOLIDADO al final */}
+                {/* Columna consolidada (CONSOLIDADO o ANUAL) al final */}
                 <th
                   scope="col"
                   colSpan={3}
                   className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider border-r border-green-500 bg-green-700"
                 >
-                  CONSOLIDADO
+                  {consolidadoColumn.toUpperCase()}
                 </th>
               </tr>
               <tr>
                 <th scope="col" className="sticky left-0 z-40 px-6 py-2 bg-green-700 border-r border-green-500 shadow-lg"></th>
-                {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
+                {regularMonths.map((month: string, monthIdx: number) => (
                   <React.Fragment key={monthIdx}>
                     <th className="px-3 py-2 text-center text-xs font-medium text-white bg-green-700 border-r border-green-600">
                       Monto
@@ -430,7 +434,7 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt, 
                     </th>
                   </React.Fragment>
                 ))}
-                {/* Sub-headers CONSOLIDADO */}
+                {/* Sub-headers columna consolidada */}
                 <th className="px-3 py-2 text-center text-xs font-medium text-white bg-green-800 border-r border-green-600">
                   Monto
                 </th>
@@ -452,7 +456,7 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt, 
                     {category.name}
                   </td>
                   <td
-                    colSpan={(data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).length * 2) + 3}
+                    colSpan={(regularMonths.length * 2) + 3}
                     className="px-6 py-3 text-sm font-bold text-green-900 uppercase tracking-wide bg-gradient-to-r from-green-100 to-green-50"
                   >
                   </td>
@@ -468,20 +472,20 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt, 
                       {row.Item}
                     </td>
                     {/* Meses normales (solo Monto y %) */}
-                    {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
+                    {regularMonths.map((month: string, monthIdx: number) => (
                       <React.Fragment key={monthIdx}>
                         <td className="px-3 py-3 text-sm text-gray-700 text-right whitespace-nowrap border-r border-gray-100">
-                          {row.Item === 'Ventas' && userId && periodo ? (
+                          {row.Item === 'Ventas' && userId && data.monthToPeriod?.[month] ? (
                             <EditableCell
                               value={(() => {
                                 const val = row[`${month} Monto`];
                                 return typeof val === 'number' ? val : 0;
                               })()}
                               userId={userId}
-                              periodo={periodo}
+                              periodo={data.monthToPeriod[month]}
                               sucursal="Labranza"
                               cuenta="Ventas"
-                              onValueChange={(newValue) => {
+                              onValueChange={() => {
                                 if (onDataRefresh) {
                                   onDataRefresh();
                                 }
@@ -496,15 +500,15 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt, 
                         </td>
                       </React.Fragment>
                     ))}
-                    {/* CONSOLIDADO (Monto, %, Promedio) */}
+                    {/* Columna consolidada (Monto, %, Promedio) */}
                     <td className="px-3 py-3 text-sm text-gray-900 font-semibold text-right whitespace-nowrap border-r border-gray-100 bg-green-50">
-                      {formatNumber(row['CONSOLIDADO Monto'])}
+                      {formatNumber(row[`${consolidadoColumn} Monto`])}
                     </td>
                     <td className="px-3 py-3 text-sm text-gray-900 font-semibold text-right whitespace-nowrap border-r border-gray-100 bg-green-50">
-                      {formatPercentage(row['CONSOLIDADO %'])}
+                      {formatPercentage(row[`${consolidadoColumn} %`])}
                     </td>
                     <td className="px-3 py-3 text-sm text-gray-900 font-semibold text-right whitespace-nowrap border-r border-gray-100 bg-green-50">
-                      {formatNumber(row['CONSOLIDADO Promedio'])}
+                      {formatNumber(row[`${consolidadoColumn} Promedio`])}
                     </td>
                   </tr>
                 )),
@@ -519,7 +523,7 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt, 
                       {category.total.Item}
                     </td>
                     {/* Meses normales (solo Monto y %) */}
-                    {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
+                    {regularMonths.map((month: string, monthIdx: number) => (
                       <React.Fragment key={monthIdx}>
                         <td className="px-3 py-3 text-sm text-green-900 font-bold text-right whitespace-nowrap border-r border-green-100">
                           {formatNumber(category.total![`${month} Monto`])}
@@ -529,15 +533,15 @@ export default function LabranzaTable({ data, periodLabel, version, uploadedAt, 
                         </td>
                       </React.Fragment>
                     ))}
-                    {/* CONSOLIDADO (Monto, %, Promedio) */}
+                    {/* Columna consolidada (Monto, %, Promedio) */}
                     <td className="px-3 py-3 text-sm text-green-900 font-bold text-right whitespace-nowrap border-r border-green-100 bg-green-100">
-                      {formatNumber(category.total!['CONSOLIDADO Monto'])}
+                      {formatNumber(category.total![`${consolidadoColumn} Monto`])}
                     </td>
                     <td className="px-3 py-3 text-sm text-green-900 font-bold text-right whitespace-nowrap border-r border-green-100 bg-green-100">
-                      {formatPercentage(category.total!['CONSOLIDADO %'])}
+                      {formatPercentage(category.total![`${consolidadoColumn} %`])}
                     </td>
                     <td className="px-3 py-3 text-sm text-green-900 font-bold text-right whitespace-nowrap border-r border-green-100 bg-green-100">
-                      {formatNumber(category.total!['CONSOLIDADO Promedio'])}
+                      {formatNumber(category.total![`${consolidadoColumn} Promedio`])}
                     </td>
                   </tr>
                 ] : [])

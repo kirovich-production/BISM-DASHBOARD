@@ -19,26 +19,47 @@ interface PeriodoLC {
 export default function LibroComprasView({ userId }: LibroComprasViewProps) {
   const [activeTab, setActiveTab] = useState<'lc' | 'proveedores' | 'mantenedor'>('lc');
   const [periodos, setPeriodos] = useState<PeriodoLC[]>([]);
-  const [selectedPeriodo, setSelectedPeriodo] = useState<string | null>(null);
   const [selectedSucursal, setSelectedSucursal] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [selectedPeriodo, setSelectedPeriodo] = useState<string | null>(null);
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [availableMonths, setAvailableMonths] = useState<PeriodoLC[]>([]);
   const [isLoadingPeriods, setIsLoadingPeriods] = useState(false);
 
-  // Cargar períodos disponibles de Libro de Compras
+  // Cargar períodos disponibles de Libro de Compras cuando se selecciona una sucursal
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !selectedSucursal) {
+      setPeriodos([]);
+      setAvailableYears([]);
+      setAvailableMonths([]);
+      setSelectedYear(null);
+      setSelectedMonth(null);
+      setSelectedPeriodo(null);
+      return;
+    }
     
     const fetchPeriods = async () => {
       setIsLoadingPeriods(true);
       try {
-        const response = await fetch(`/api/libro-compras/periods?userId=${userId}`);
+        const response = await fetch(`/api/libro-compras/periods?userId=${userId}&sucursal=${selectedSucursal}`);
         const result = await response.json();
         
         if (result.success && result.periods) {
           setPeriodos(result.periods);
-          // Seleccionar el primer período si existe
-          if (result.periods.length > 0 && !selectedPeriodo) {
-            setSelectedPeriodo(result.periods[0].periodo);
-            setSelectedSucursal(result.periods[0].sucursal);
+          
+          // Extraer años únicos
+          const years = [...new Set(result.periods.map((p: PeriodoLC) => {
+            // Extraer año del periodo (formato: "YYYYMM" o "YYYY-MM")
+            const yearMatch = p.periodo.match(/^(\d{4})/);
+            return yearMatch ? yearMatch[1] : null;
+          }).filter(Boolean))].sort().reverse();
+          
+          setAvailableYears(years as string[]);
+          
+          // Auto-seleccionar primer año si existe
+          if (years.length > 0) {
+            setSelectedYear(years[0] as string);
           }
         }
       } catch (error) {
@@ -49,8 +70,26 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
     };
     
     fetchPeriods();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, selectedSucursal]);
+
+  // Filtrar meses disponibles cuando se selecciona un año
+  useEffect(() => {
+    if (!selectedYear || periodos.length === 0) {
+      setAvailableMonths([]);
+      setSelectedMonth(null);
+      setSelectedPeriodo(null);
+      return;
+    }
+
+    const monthsForYear = periodos.filter(p => p.periodo.startsWith(selectedYear));
+    setAvailableMonths(monthsForYear);
+    
+    // Auto-seleccionar primer mes si existe
+    if (monthsForYear.length > 0) {
+      setSelectedMonth(monthsForYear[0].periodo);
+      setSelectedPeriodo(monthsForYear[0].periodo);
+    }
+  }, [selectedYear, periodos]);
 
   return (
     <div className="bg-white h-full overflow-auto">
@@ -60,28 +99,65 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-bold text-gray-800">Libro de Compras</h2>
             
-            {/* Selector de Período */}
-            {userId && periodos.length > 0 && (
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Período:</label>
-                <select
-                  value={selectedPeriodo || ''}
-                  onChange={(e) => {
-                    const selected = periodos.find(p => p.periodo === e.target.value);
-                    if (selected) {
-                      setSelectedPeriodo(selected.periodo);
-                      setSelectedSucursal(selected.sucursal);
-                    }
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  disabled={isLoadingPeriods}
-                >
-                  {periodos.map((p) => (
-                    <option key={`${p.periodo}-${p.sucursal}`} value={p.periodo}>
-                      {p.periodLabel} - {p.sucursal}
-                    </option>
-                  ))}
-                </select>
+            {/* Selectores en Cascada: Sucursal → Año → Mes */}
+            {userId && (
+              <div className="flex items-center gap-3">
+                {/* 1. Selector de Sucursal */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600 font-medium">Sucursal:</label>
+                  <select
+                    value={selectedSucursal || ''}
+                    onChange={(e) => setSelectedSucursal(e.target.value || null)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px]"
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="Sevilla">Sevilla</option>
+                    <option value="Labranza">Labranza</option>
+                  </select>
+                </div>
+
+                {/* 2. Selector de Año (solo si hay sucursal seleccionada) */}
+                {selectedSucursal && availableYears.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600 font-medium">Año:</label>
+                    <select
+                      value={selectedYear || ''}
+                      onChange={(e) => setSelectedYear(e.target.value || null)}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 min-w-[100px]"
+                      disabled={isLoadingPeriods}
+                    >
+                      <option value="">Seleccionar...</option>
+                      {availableYears.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* 3. Selector de Mes (solo si hay año seleccionado) */}
+                {selectedYear && availableMonths.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600 font-medium">Mes:</label>
+                    <select
+                      value={selectedMonth || ''}
+                      onChange={(e) => {
+                        setSelectedMonth(e.target.value || null);
+                        setSelectedPeriodo(e.target.value || null);
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-w-[140px]"
+                      disabled={isLoadingPeriods}
+                    >
+                      <option value="">Seleccionar...</option>
+                      {availableMonths.map((p) => (
+                        <option key={p.periodo} value={p.periodo}>
+                          {p.periodLabel}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -161,19 +237,7 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
                   periodo={selectedPeriodo}
                   sucursal={selectedSucursal}
                 />
-              ) : userId && periodos.length === 0 && !isLoadingPeriods ? (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                  <svg className="mx-auto h-12 w-12 text-blue-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <p className="text-sm text-blue-700 font-medium mb-2">
-                    No hay períodos cargados
-                  </p>
-                  <p className="text-xs text-blue-600">
-                    Dirígete a &quot;Cargar Datos&quot; para subir un archivo de Libro de Compras
-                  </p>
-                </div>
-              ) : (
+              ) : !userId ? (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
                   <svg className="mx-auto h-12 w-12 text-yellow-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -182,7 +246,55 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
                     Selecciona un usuario para visualizar el libro de compras
                   </p>
                 </div>
-              )}
+              ) : !selectedSucursal ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                  <svg className="mx-auto h-12 w-12 text-blue-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <p className="text-sm text-blue-700 font-medium mb-2">
+                    Selecciona una sucursal
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    Elige Sevilla o Labranza para ver los períodos disponibles
+                  </p>
+                </div>
+              ) : !selectedYear ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                  <svg className="mx-auto h-12 w-12 text-green-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm text-green-700 font-medium mb-2">
+                    Selecciona un año
+                  </p>
+                  <p className="text-xs text-green-600">
+                    Elige el año para ver los meses disponibles
+                  </p>
+                </div>
+              ) : !selectedMonth ? (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-6 text-center">
+                  <svg className="mx-auto h-12 w-12 text-purple-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm text-purple-700 font-medium mb-2">
+                    Selecciona un mes
+                  </p>
+                  <p className="text-xs text-purple-600">
+                    Elige el mes para visualizar el libro de compras
+                  </p>
+                </div>
+              ) : periodos.length === 0 && !isLoadingPeriods ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                  <svg className="mx-auto h-12 w-12 text-blue-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-sm text-blue-700 font-medium mb-2">
+                    No hay períodos cargados para {selectedSucursal}
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    Dirígete a &quot;Cargar Datos&quot; para subir un archivo de Libro de Compras
+                  </p>
+                </div>
+              ) : null}
             </div>
           )}
 

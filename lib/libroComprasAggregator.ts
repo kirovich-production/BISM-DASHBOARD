@@ -162,7 +162,7 @@ export function aggregateLibroComprasToEERR(
   valoresManuales: { [cuenta: string]: number } = {}
 ): EERRData {
   // Extraer año y mes del período (YYYY-MM)
-  const [year, mesStr] = periodo.split('-');
+  const [, mesStr] = periodo.split('-');
   const periodoMes = parseInt(mesStr); // 1-12
   
   // Solo mostrar el mes del período
@@ -426,5 +426,380 @@ export function aggregateLibroComprasToEERR(
     sheetName: `Libro de Compras - ${periodo}`,
     months: allMonths,
     categories
+  };
+}
+
+/**
+ * Convierte múltiples períodos de transacciones de Libro de Compras a formato EERRData consolidado
+ * manteniendo la estructura predefinida y mostrando columnas por cada mes.
+ * 
+ * @param documentos - Array de documentos de Libro de Compras, cada uno con su período
+ * @param valoresManuales - Valores manuales opcionales (ej: Ventas por período)
+ * @returns Estructura EERRData con columnas para cada mes + ANUAL
+ */
+export function aggregateMultiplePeriodsToEERR(
+  documentos: Array<{
+    periodo: string;
+    transacciones: LibroComprasTransaction[];
+    valoresManuales?: { [cuenta: string]: number };
+  }>
+): EERRData {
+  // Ordenar documentos por período para tener meses en orden cronológico
+  const docsOrdenados = [...documentos].sort((a, b) => a.periodo.localeCompare(b.periodo));
+  
+  // Extraer nombres de meses de cada período
+  const monthNames = docsOrdenados.map(doc => {
+    const [, mesStr] = doc.periodo.split('-');
+    const periodoMes = parseInt(mesStr);
+    return MESES[periodoMes - 1];
+  });
+  
+  // Agregar ANUAL al final
+  const allMonths = [...monthNames, 'ANUAL'];
+  
+  // Procesar cada documento para agrupar transacciones por cuenta y período
+  const transaccionesPorPeriodo = new Map<string, Map<string, number>>();
+  
+  docsOrdenados.forEach((doc, periodoIdx) => {
+    const mesNombre = monthNames[periodoIdx];
+    const mapPeriodo = new Map<string, number>();
+    
+    doc.transacciones.forEach(tx => {
+      const cuenta = (tx.cuenta || 'Sin Clasificar').trim();
+      const monto = tx.montoTotal || 0;
+      
+      const montoActual = mapPeriodo.get(cuenta) || 0;
+      mapPeriodo.set(cuenta, montoActual + monto);
+    });
+    
+    transaccionesPorPeriodo.set(mesNombre, mapPeriodo);
+  });
+  
+  // Rastrear qué cuentas del LC ya fueron mapeadas
+  const cuentasMapeadas = new Set<string>();
+  
+  // Construir categorías con estructura predefinida
+  const categories: EERRCategory[] = [];
+  
+  ESTRUCTURA_EERR.forEach(estructuraCategoria => {
+    const rows: EERRRow[] = [];
+    
+    // Agregar items predefinidos de la categoría
+    estructuraCategoria.items.forEach(itemName => {
+      const row: EERRRow = { Item: itemName };
+      let totalAnual = 0;
+      let countMeses = 0;
+      
+      // Agregar valores por cada mes
+      docsOrdenados.forEach((doc, periodoIdx) => {
+        const mesNombre = monthNames[periodoIdx];
+        const valoresManuales = doc.valoresManuales || {};
+        const mapPeriodo = transaccionesPorPeriodo.get(mesNombre);
+        
+        // Primero verificar si hay valor manual para esta cuenta en este período
+        let monto = valoresManuales[itemName] || 0;
+        
+        // Si no hay valor manual, buscar en transacciones del LC de este período
+        if (monto === 0 && mapPeriodo) {
+          const itemNormalizado = itemName.toLowerCase().trim();
+          
+          for (const [cuentaTx, montoTx] of mapPeriodo.entries()) {
+            const cuentaNormalizada = cuentaTx.toLowerCase().trim();
+            
+            // Match exacto o case-insensitive
+            if (cuentaTx === itemName || cuentaNormalizada === itemNormalizado) {
+              monto = montoTx;
+              cuentasMapeadas.add(`${mesNombre}:${cuentaTx}`);
+              break;
+            }
+          }
+        }
+        
+        row[`${mesNombre} Monto`] = monto;
+        row[`${mesNombre} %`] = 0; // Se calcula después basado en Ventas
+        
+        totalAnual += monto;
+        countMeses++;
+      });
+      
+      // ANUAL
+      row['ANUAL Monto'] = totalAnual;
+      row['ANUAL %'] = 0; // Se calcula después basado en Ventas
+      row['ANUAL Promedio'] = countMeses > 0 ? totalAnual / countMeses : 0;
+      
+      rows.push(row);
+    });
+    
+    // Agregar cuentas adicionales del LC que pertenecen a esta categoría
+    if (!estructuraCategoria.isCalculated) {
+      // Recolectar todas las cuentas únicas de todos los períodos
+      const cuentasUnicas = new Set<string>();
+      transaccionesPorPeriodo.forEach(mapPeriodo => {
+        mapPeriodo.forEach((_, cuenta) => {
+          cuentasUnicas.add(cuenta);
+        });
+      });
+      
+      cuentasUnicas.forEach(cuentaTx => {
+        // Verificar si ya fue mapeada en algún período
+        const yaMapeada = monthNames.some(mes => cuentasMapeadas.has(`${mes}:${cuentaTx}`));
+        if (yaMapeada) return;
+        
+        // Clasificar la cuenta
+        const categoriaClasificada = clasificarCuenta(cuentaTx);
+        
+        // Si pertenece a esta categoría, agregarla
+        if (categoriaClasificada === estructuraCategoria.name) {
+          const row: EERRRow = { Item: cuentaTx };
+          let totalAnual = 0;
+          let countMeses = 0;
+          
+          // Agregar valores por cada mes
+          monthNames.forEach(mesNombre => {
+            const mapPeriodo = transaccionesPorPeriodo.get(mesNombre);
+            const monto = mapPeriodo?.get(cuentaTx) || 0;
+            
+            row[`${mesNombre} Monto`] = monto;
+            row[`${mesNombre} %`] = 0;
+            
+            totalAnual += monto;
+            countMeses++;
+            cuentasMapeadas.add(`${mesNombre}:${cuentaTx}`);
+          });
+          
+          row['ANUAL Monto'] = totalAnual;
+          row['ANUAL %'] = 0;
+          row['ANUAL Promedio'] = countMeses > 0 ? totalAnual / countMeses : 0;
+          
+          rows.push(row);
+        }
+      });
+    }
+    
+    // Calcular total de categoría o MARGEN BRUTO OPERACIONAL
+    let totalRow: EERRRow | undefined;
+    
+    if (estructuraCategoria.hasMargenBruto) {
+      // Calcular MARGEN BRUTO OPERACIONAL por mes
+      const ventasRow = rows.find(r => r.Item === 'Ventas');
+      const costoVentaRow = rows.find(r => r.Item === 'Costo de venta');
+      const transbankRow = rows.find(r => r.Item === 'Transbank');
+      const bonificacionRow = rows.find(r => r.Item === 'Bonificacion por tramo');
+      
+      totalRow = { Item: 'MARGEN BRUTO OPERACIONAL' };
+      let totalAnualMargen = 0;
+      let countMeses = 0;
+      
+      monthNames.forEach(mesNombre => {
+        const ventasMonto = ventasRow?.[`${mesNombre} Monto`];
+        const costoVentaMonto = costoVentaRow?.[`${mesNombre} Monto`];
+        const transbankMonto = transbankRow?.[`${mesNombre} Monto`];
+        const bonificacionMonto = bonificacionRow?.[`${mesNombre} Monto`];
+        
+        const ventas = typeof ventasMonto === 'number' ? ventasMonto : 0;
+        const costoVenta = typeof costoVentaMonto === 'number' ? costoVentaMonto : 0;
+        const transbank = typeof transbankMonto === 'number' ? transbankMonto : 0;
+        const bonificacion = typeof bonificacionMonto === 'number' ? bonificacionMonto : 0;
+        
+        const margenBrutoMonto = ventas - costoVenta + bonificacion - transbank;
+        
+        if (totalRow) {
+          totalRow[`${mesNombre} Monto`] = margenBrutoMonto;
+          totalRow[`${mesNombre} %`] = 0;
+        }
+        
+        totalAnualMargen += margenBrutoMonto;
+        countMeses++;
+      });
+      
+      totalRow['ANUAL Monto'] = totalAnualMargen;
+      totalRow['ANUAL %'] = 0;
+      totalRow['ANUAL Promedio'] = countMeses > 0 ? totalAnualMargen / countMeses : 0;
+      
+    } else if (!estructuraCategoria.isCalculated) {
+      totalRow = { Item: `TOTAL ${estructuraCategoria.name}` };
+      let totalAnualCategoria = 0;
+      let countMeses = 0;
+      
+      monthNames.forEach(mesNombre => {
+        const totalMonto = rows.reduce((sum, row) => {
+          const valorMonto = row[`${mesNombre} Monto`];
+          return sum + (typeof valorMonto === 'number' ? valorMonto : 0);
+        }, 0);
+        
+        totalRow![`${mesNombre} Monto`] = totalMonto;
+        totalRow![`${mesNombre} %`] = 0;
+        
+        totalAnualCategoria += totalMonto;
+        countMeses++;
+      });
+      
+      totalRow['ANUAL Monto'] = totalAnualCategoria;
+      totalRow['ANUAL %'] = 0;
+      totalRow['ANUAL Promedio'] = countMeses > 0 ? totalAnualCategoria / countMeses : 0;
+    }
+    
+    categories.push({
+      name: estructuraCategoria.name,
+      rows,
+      total: totalRow
+    });
+  });
+  
+  // Calcular EBITDA: MARGEN BRUTO - TOTAL GASTOS (todas las categorías de gastos)
+  const ebitdaCategory = categories.find(cat => cat.name === 'EBIDTA');
+  if (ebitdaCategory) {
+    const margenBrutoCategory = categories.find(cat => cat.name === 'INGRESOS OPERACIONALES');
+    const gastosRemuneracionCategory = categories.find(cat => cat.name === 'GASTOS DE REMUNERACION');
+    const gastosOperacionCategory = categories.find(cat => cat.name === 'GASTOS DE OPERACION');
+    const gastosAdminCategory = categories.find(cat => cat.name === 'GASTOS DE ADMINISTRACION');
+    const otrosGastosCategory = categories.find(cat => cat.name === 'OTROS GASTOS');
+    
+    const ebitdaRow: EERRRow = { Item: 'EBIDTA' };
+    let totalAnualEbitda = 0;
+    let countMeses = 0;
+    
+    monthNames.forEach(mesNombre => {
+      const margenBrutoMonto = margenBrutoCategory?.total?.[`${mesNombre} Monto`];
+      const gastosRemuneracionMonto = gastosRemuneracionCategory?.total?.[`${mesNombre} Monto`];
+      const gastosOperacionMonto = gastosOperacionCategory?.total?.[`${mesNombre} Monto`];
+      const gastosAdminMonto = gastosAdminCategory?.total?.[`${mesNombre} Monto`];
+      const otrosGastosMonto = otrosGastosCategory?.total?.[`${mesNombre} Monto`];
+      
+      const margenBruto = typeof margenBrutoMonto === 'number' ? margenBrutoMonto : 0;
+      const gastosRemuneracion = typeof gastosRemuneracionMonto === 'number' ? gastosRemuneracionMonto : 0;
+      const gastosOperacion = typeof gastosOperacionMonto === 'number' ? gastosOperacionMonto : 0;
+      const gastosAdmin = typeof gastosAdminMonto === 'number' ? gastosAdminMonto : 0;
+      const otrosGastos = typeof otrosGastosMonto === 'number' ? otrosGastosMonto : 0;
+      
+      const ebitdaMonto = margenBruto - gastosRemuneracion - gastosOperacion - gastosAdmin - otrosGastos;
+      
+      ebitdaRow[`${mesNombre} Monto`] = ebitdaMonto;
+      ebitdaRow[`${mesNombre} %`] = 0;
+      
+      totalAnualEbitda += ebitdaMonto;
+      countMeses++;
+    });
+    
+    ebitdaRow['ANUAL Monto'] = totalAnualEbitda;
+    ebitdaRow['ANUAL %'] = 0;
+    ebitdaRow['ANUAL Promedio'] = countMeses > 0 ? totalAnualEbitda / countMeses : 0;
+    
+    ebitdaCategory.rows = [ebitdaRow];
+  }
+  
+  // Calcular RESULTADO NETO: MARGEN BRUTO - todos los gastos - OTROS EGRESOS
+  const resultadoNetoCategory = categories.find(cat => cat.name === 'RESULTADO NETO');
+  if (resultadoNetoCategory) {
+    const margenBrutoCategory = categories.find(cat => cat.name === 'INGRESOS OPERACIONALES');
+    const gastosRemuneracionCategory = categories.find(cat => cat.name === 'GASTOS DE REMUNERACION');
+    const gastosOperacionCategory = categories.find(cat => cat.name === 'GASTOS DE OPERACION');
+    const gastosAdminCategory = categories.find(cat => cat.name === 'GASTOS DE ADMINISTRACION');
+    const otrosGastosCategory = categories.find(cat => cat.name === 'OTROS GASTOS');
+    const otrosEgresosCategory = categories.find(cat => cat.name === 'OTROS EGRESOS FUERA DE EXPLOTACION');
+    
+    const resultadoNetoRow: EERRRow = { Item: 'RESULTADO NETO' };
+    let totalAnualResultado = 0;
+    let countMeses = 0;
+    
+    monthNames.forEach(mesNombre => {
+      const margenBrutoMonto = margenBrutoCategory?.total?.[`${mesNombre} Monto`];
+      const gastosRemuneracionMonto = gastosRemuneracionCategory?.total?.[`${mesNombre} Monto`];
+      const gastosOperacionMonto = gastosOperacionCategory?.total?.[`${mesNombre} Monto`];
+      const gastosAdminMonto = gastosAdminCategory?.total?.[`${mesNombre} Monto`];
+      const otrosGastosMonto = otrosGastosCategory?.total?.[`${mesNombre} Monto`];
+      const otrosEgresosMonto = otrosEgresosCategory?.total?.[`${mesNombre} Monto`];
+      
+      const margenBruto = typeof margenBrutoMonto === 'number' ? margenBrutoMonto : 0;
+      const gastosRemuneracion = typeof gastosRemuneracionMonto === 'number' ? gastosRemuneracionMonto : 0;
+      const gastosOperacion = typeof gastosOperacionMonto === 'number' ? gastosOperacionMonto : 0;
+      const gastosAdmin = typeof gastosAdminMonto === 'number' ? gastosAdminMonto : 0;
+      const otrosGastos = typeof otrosGastosMonto === 'number' ? otrosGastosMonto : 0;
+      const otrosEgresos = typeof otrosEgresosMonto === 'number' ? otrosEgresosMonto : 0;
+      
+      const resultadoNetoMonto = margenBruto - gastosRemuneracion - gastosOperacion - gastosAdmin - otrosGastos - otrosEgresos;
+      
+      resultadoNetoRow[`${mesNombre} Monto`] = resultadoNetoMonto;
+      resultadoNetoRow[`${mesNombre} %`] = 0;
+      
+      totalAnualResultado += resultadoNetoMonto;
+      countMeses++;
+    });
+    
+    resultadoNetoRow['ANUAL Monto'] = totalAnualResultado;
+    resultadoNetoRow['ANUAL %'] = 0;
+    resultadoNetoRow['ANUAL Promedio'] = countMeses > 0 ? totalAnualResultado / countMeses : 0;
+    
+    resultadoNetoCategory.rows = [resultadoNetoRow];
+  }
+  
+  // Calcular porcentajes basados en Ventas de cada mes y ANUAL
+  categories.forEach(cat => {
+    const ventasRow = cat.rows.find(r => r.Item === 'Ventas');
+    
+    // Calcular % para cada mes
+    monthNames.forEach(mesNombre => {
+      const montoVentasMes = ventasRow?.[`${mesNombre} Monto`];
+      const montoVentas = typeof montoVentasMes === 'number' ? montoVentasMes : 0;
+      
+      if (montoVentas > 0) {
+        // Calcular % para cada fila
+        cat.rows.forEach(row => {
+          const montoMes = row[`${mesNombre} Monto`];
+          if (typeof montoMes === 'number') {
+            row[`${mesNombre} %`] = (montoMes / montoVentas) * 100;
+          }
+        });
+        
+        // Calcular % para total de categoría
+        if (cat.total) {
+          const totalMontoMes = cat.total[`${mesNombre} Monto`];
+          if (typeof totalMontoMes === 'number') {
+            cat.total[`${mesNombre} %`] = (totalMontoMes / montoVentas) * 100;
+          }
+        }
+      }
+    });
+    
+    // Calcular % ANUAL
+    const montoVentasAnual = ventasRow?.['ANUAL Monto'];
+    const montoVentasAnualNum = typeof montoVentasAnual === 'number' ? montoVentasAnual : 0;
+    
+    if (montoVentasAnualNum > 0) {
+      cat.rows.forEach(row => {
+        const montoAnual = row['ANUAL Monto'];
+        if (typeof montoAnual === 'number') {
+          row['ANUAL %'] = (montoAnual / montoVentasAnualNum) * 100;
+        }
+      });
+      
+      if (cat.total) {
+        const totalMontoAnual = cat.total['ANUAL Monto'];
+        if (typeof totalMontoAnual === 'number') {
+          cat.total['ANUAL %'] = (totalMontoAnual / montoVentasAnualNum) * 100;
+        }
+      }
+    }
+  });
+  
+  // Determinar sheetName basado en períodos
+  const firstPeriodo = docsOrdenados[0]?.periodo || '';
+  const lastPeriodo = docsOrdenados[docsOrdenados.length - 1]?.periodo || '';
+  const sheetName = docsOrdenados.length === 1
+    ? `Libro de Compras - ${firstPeriodo}`
+    : `Libro de Compras - ${firstPeriodo} a ${lastPeriodo}`;
+  
+  // Crear mapeo de nombre de mes a período (ej: "Agosto" → "2024-08")
+  const monthToPeriod: { [monthName: string]: string } = {};
+  docsOrdenados.forEach((doc, idx) => {
+    const mesNombre = monthNames[idx];
+    monthToPeriod[mesNombre] = doc.periodo;
+  });
+  
+  return {
+    sheetName,
+    months: allMonths,
+    categories,
+    monthToPeriod
   };
 }

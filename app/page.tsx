@@ -15,26 +15,22 @@ import CargarDatosView from './components/CargarDatosView';
 import { UploadResponse, UploadedDocument, Period } from '@/types';
 
 export default function Home() {
-  const [uploadedData, setUploadedData] = useState<UploadResponse | null>(null);
+  const [uploadedData] = useState<UploadResponse | null>(null);
   const [excelData, setExcelData] = useState<UploadedDocument | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-  const [uploadPeriod, setUploadPeriod] = useState<string>('');
-  const [uploadPeriodLabel, setUploadPeriodLabel] = useState<string>('');
   const [activeView, setActiveView] = useState<string>('dashboard');
   
-  // Estados de usuario
+  // Estados de usuario (solo Libro de Compras)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserName, setSelectedUserName] = useState<string>('');
-  const [uploadUserId, setUploadUserId] = useState<string>('');
-  const [uploadUserName, setUploadUserName] = useState<string>('');
   
   // Refs para prevenir llamadas duplicadas
   const fetchPeriodsInProgress = useRef(false);
   const fetchDataInProgress = useRef(false);
   const lastFetchedPeriod = useRef<string | null>(null);
-  const lastFetchedUser = useRef<string>('');
+  const lastActiveView = useRef<string>('');
   const abortControllers = useRef<{
     periods?: AbortController;
     data?: AbortController;
@@ -50,8 +46,6 @@ export default function Home() {
         if (result.success && result.userId && result.userName) {
           setSelectedUserId(result.userId);
           setSelectedUserName(result.userName);
-          setUploadUserId(result.userId);
-          setUploadUserName(result.userName);
         }
       } catch {
         // Error loading session
@@ -74,38 +68,43 @@ export default function Home() {
     };
   }, []);
 
-  // Recargar períodos cuando cambia el usuario seleccionado o la vista activa
+  // Cargar períodos cuando se accede a Sevilla, Labranza o Consolidado sin período seleccionado
   useEffect(() => {
-    if (selectedUserName && selectedUserName !== lastFetchedUser.current) {
-      lastFetchedUser.current = selectedUserName;
-      const sucursal = activeView === 'sevilla' ? 'Sevilla' 
-                     : activeView === 'labranza' ? 'Labranza'
-                     : undefined;
-      fetchPeriods(sucursal);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUserName, activeView]);
-
-  // Cargar períodos cuando se accede a Sevilla o Labranza sin período seleccionado
-  useEffect(() => {
-    if ((activeView === 'sevilla' || activeView === 'labranza') && selectedUserId && !selectedPeriod) {
+    if ((activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado') && selectedUserId && !selectedPeriod) {
+      // Para Consolidado, usamos Labranza para obtener períodos (ambas sucursales deberían tener los mismos períodos)
       const sucursal = activeView === 'sevilla' ? 'Sevilla' : 'Labranza';
       fetchPeriods(sucursal);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView, selectedUserId]);
 
-  // Cargar datos del período seleccionado
+  // Cargar datos para vistas de Libro de Compras (Sevilla, Labranza, Consolidado)
   useEffect(() => {
-    if (selectedPeriod && selectedUserName) {
-      // Determinar sucursal según activeView
-      const sucursal = activeView === 'sevilla' ? 'Sevilla' 
-                     : activeView === 'labranza' ? 'Labranza'
-                     : undefined;
-      fetchData(selectedPeriod, sucursal);
+    if (selectedUserId) {
+      // Solo para vistas de Libro de Compras
+      if (activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado') {
+        // Determinar si necesita cargar datos según la vista específica
+        let needsData = lastActiveView.current !== activeView || !excelData;
+        
+        // Validación adicional: verificar si la sección específica existe
+        if (excelData) {
+          if (activeView === 'sevilla' && !excelData.sevilla) needsData = true;
+          if (activeView === 'labranza' && !excelData.labranza) needsData = true;
+          if (activeView === 'consolidado' && !excelData.consolidado) needsData = true;
+        }
+        
+        if (needsData) {
+          lastActiveView.current = activeView;
+          setLoadingData(true); // Mostrar spinner inmediatamente
+          const sucursal = activeView === 'sevilla' ? 'Sevilla' 
+                         : activeView === 'labranza' ? 'Labranza'
+                         : undefined;
+          fetchData(undefined, sucursal, true);
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPeriod, selectedUserName, activeView]);
+  }, [activeView, selectedUserId, excelData]);
 
   // Recargar períodos después de un upload exitoso
   useEffect(() => {
@@ -132,22 +131,19 @@ export default function Home() {
     try {
       fetchPeriodsInProgress.current = true;
       
-      let url = '/api/periods';
-      const params = new URLSearchParams();
-      
-      // Si no hay usuario seleccionado, no cargar períodos
-      if (!selectedUserName && !selectedUserId) {
+      // Libro de Compras requiere userId obligatorio
+      if (!selectedUserId) {
         setPeriods([]);
         fetchPeriodsInProgress.current = false;
         return;
       }
       
-      // Si hay sucursal (Libro de Compras), usar userId. Si no, usar userName (Excel tradicional)
-      if (sucursalFilter && selectedUserId) {
-        params.append('userId', selectedUserId);
+      let url = '/api/periods';
+      const params = new URLSearchParams();
+      
+      params.append('userId', selectedUserId);
+      if (sucursalFilter) {
         params.append('sucursal', sucursalFilter);
-      } else if (selectedUserName) {
-        params.append('userName', selectedUserName);
       }
       
       url += `?${params.toString()}`;
@@ -167,17 +163,7 @@ export default function Home() {
         if (!selectedPeriod && result.periods.length > 0) {
           setSelectedPeriod(result.periods[0].period);
         }
-      } else if (result.periods && result.periods.length === 0 && selectedUserName) {
-        // 🔍 Usuario guardado en localStorage pero sin períodos (posiblemente eliminado)
-        // Intentar verificar si el usuario existe consultando la API
-        // Si no hay períodos, probablemente el usuario fue eliminado
-        // Limpiar localStorage para evitar confusión
-        localStorage.removeItem('bism_selectedUserId');
-        localStorage.removeItem('bism_selectedUserName');
-        setSelectedUserId(null);
-        setSelectedUserName('');
-        setUploadUserId('');
-        setUploadUserName('');
+      } else if (result.periods && result.periods.length === 0) {
         setPeriods([]);
       }
     } catch (error) {
@@ -196,9 +182,22 @@ export default function Home() {
       abortControllers.current.data.abort();
     }
 
+    // Libro de Compras requiere userId
+    if (!selectedUserId) {
+      setExcelData(null);
+      return;
+    }
+
     // Prevenir llamadas duplicadas al mismo período (a menos que sea forzado)
-    const cacheKey = `${period}-${selectedUserName}-${sucursal || ''}`;
-    if (!forceReload && (fetchDataInProgress.current || lastFetchedPeriod.current === cacheKey)) {
+    const cacheKey = `${period}-${selectedUserId}-${sucursal || 'none'}-${activeView}`;
+    
+    // Si hay una request en progreso, esperar
+    if (fetchDataInProgress.current) {
+      return;
+    }
+    
+    // Solo usar caché si el cacheKey es exactamente el mismo y NO es forceReload
+    if (!forceReload && lastFetchedPeriod.current === cacheKey) {
       return;
     }
 
@@ -214,12 +213,10 @@ export default function Home() {
         params.append('period', period);
       }
       
-      // Si hay sucursal (Libro de Compras), usar userId. Si no, usar userName (Excel tradicional)
-      if (sucursal && selectedUserId) {
-        params.append('userId', selectedUserId);
+      // Libro de Compras siempre usa userId
+      params.append('userId', selectedUserId);
+      if (sucursal) {
         params.append('sucursal', sucursal);
-      } else if (selectedUserName) {
-        params.append('userName', selectedUserName);
       }
       
       if (params.toString()) {
@@ -235,7 +232,42 @@ export default function Home() {
       const result = await response.json();
       
       if (result.success && result.data) {
-        setExcelData(result.data);
+        // Limpiar campos no relacionados según la sucursal solicitada
+        // Esto asegura que cada vista solo muestre SUS propios datos
+        // IMPORTANTE: Siempre crear un NUEVO objeto para forzar re-render
+        if (sucursal === 'Labranza') {
+          const newData: UploadedDocument = {
+            userId: result.data.userId || selectedUserId || '',
+            fileName: result.data.fileName || 'Libro de Compras',
+            sheetName: result.data.sheetName || 'Labranza',
+            period: result.data.period,
+            periodLabel: result.data.periodLabel,
+            version: result.data.version,
+            uploadedAt: result.data.uploadedAt,
+            labranza: result.data.labranza,
+            sevilla: undefined,
+            consolidado: undefined
+          };
+          setExcelData(newData);
+        } else if (sucursal === 'Sevilla') {
+          const newData: UploadedDocument = {
+            userId: result.data.userId || selectedUserId || '',
+            fileName: result.data.fileName || 'Libro de Compras',
+            sheetName: result.data.sheetName || 'Sevilla',
+            period: result.data.period,
+            periodLabel: result.data.periodLabel,
+            version: result.data.version,
+            uploadedAt: result.data.uploadedAt,
+            sevilla: result.data.sevilla,
+            labranza: undefined,
+            consolidado: undefined
+          };
+          setExcelData(newData);
+        } else {
+          // Consolidado o sin sucursal trae todo - crear nuevo objeto también
+          const newData = { ...result.data };
+          setExcelData(newData);
+        }
       } else {
         setExcelData(null);
       }
@@ -251,10 +283,6 @@ export default function Home() {
   };
 
   const handleUserChange = (userId: string, userName: string) => {
-    setUploadUserId(userId);
-    setUploadUserName(userName);
-    
-    // También actualizar el usuario seleccionado globalmente
     setSelectedUserId(userId);
     setSelectedUserName(userName);
     
@@ -349,7 +377,7 @@ export default function Home() {
           />
         ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' || activeView === 'analisis-trimestral' || activeView === 'mes-anual' || activeView === 'waterfall-charts' || activeView === 'ebitda-combo' ? (
           /* Sevilla, Labranza, Consolidado, Charts and Mes-Anual Views */
-          excelData && selectedPeriod ? (
+          excelData ? (
             <div className="bg-white h-full overflow-hidden flex flex-col">
               {/* Content */}
               {activeView === 'sevilla' ? (
@@ -360,7 +388,7 @@ export default function Home() {
                   uploadedAt={excelData.uploadedAt}
                   userId={selectedUserId || undefined}
                   periodo={selectedPeriod || undefined}
-                  onDataRefresh={() => selectedPeriod && fetchData(selectedPeriod, 'Sevilla', true)}
+                  onDataRefresh={() => fetchData(undefined, 'Sevilla', true)}
                 />
               ) : activeView === 'labranza' ? (
                 <LabranzaTable
@@ -370,7 +398,7 @@ export default function Home() {
                   uploadedAt={excelData.uploadedAt}
                   userId={selectedUserId || undefined}
                   periodo={selectedPeriod || undefined}
-                  onDataRefresh={() => selectedPeriod && fetchData(selectedPeriod, 'Labranza', true)}
+                  onDataRefresh={() => fetchData(undefined, 'Labranza', true)}
                 />
               ) : activeView === 'consolidado' ? (
                 <TableView
@@ -411,6 +439,20 @@ export default function Home() {
                 />
               ) : null}
             </div>
+          ) : loadingData ? (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8 flex items-center justify-center">
+              <div className="bg-white rounded-lg shadow-lg p-12 text-center max-w-md">
+                <div className="mx-auto h-16 w-16 mb-4 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Cargando datos...
+                </h3>
+                <p className="text-gray-500">
+                  Por favor espera un momento
+                </p>
+              </div>
+            </div>
           ) : (
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8 flex items-center justify-center">
               <div className="bg-white rounded-lg shadow-lg p-12 text-center max-w-md">
@@ -421,7 +463,7 @@ export default function Home() {
                   No hay datos disponibles
                 </h3>
                 <p className="text-gray-500 mb-6">
-                  Primero debes cargar un archivo desde la sección &quot;Cargar Datos&quot;
+                  Selecciona un usuario en &quot;Cargar Datos&quot; para comenzar
                 </p>
                 
               </div>

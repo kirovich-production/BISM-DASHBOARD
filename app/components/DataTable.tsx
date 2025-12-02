@@ -23,8 +23,44 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
     );
   }
 
-  // Determinar qué meses mostrar
-  const displayMonths = visibleMonths && visibleMonths.length > 0 ? visibleMonths : MONTHS;
+  // Determinar qué meses mostrar detectando dinámicamente qué columnas tienen datos
+  const detectAvailableMonths = (): string[] => {
+    if (visibleMonths && visibleMonths.length > 0) return visibleMonths;
+    
+    const availableMonths: string[] = [];
+    
+    // Revisar cada mes para ver si tiene datos
+    for (const month of MONTHS) {
+      const montoKey = `${month} Monto`;
+      const percentKey = `${month} %`;
+      
+      // Verificar si al menos una fila tiene datos para este mes
+      const hasData = data.some(row => {
+        const monto = (row as Record<string, unknown>)[montoKey];
+        const percent = (row as Record<string, unknown>)[percentKey];
+        return (monto !== undefined && monto !== null && monto !== '') ||
+               (percent !== undefined && percent !== null && percent !== '');
+      });
+      
+      if (hasData) {
+        availableMonths.push(month);
+      }
+    }
+    
+    return availableMonths.length > 0 ? availableMonths : MONTHS;
+  };
+
+  const displayMonths = detectAvailableMonths();
+  
+  // Verificar si existe columna ANUAL
+  const hasAnual = data.some(row => {
+    const anualMonto = (row as Record<string, unknown>)['ANUAL Monto'];
+    const anualPercent = (row as Record<string, unknown>)['ANUAL %'];
+    const anualPromedio = (row as Record<string, unknown>)['ANUAL Promedio'];
+    return (anualMonto !== undefined && anualMonto !== null && anualMonto !== '') ||
+           (anualPercent !== undefined && anualPercent !== null && anualPercent !== '') ||
+           (anualPromedio !== undefined && anualPromedio !== null && anualPromedio !== '');
+  });
 
   const formatNumber = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
@@ -96,12 +132,14 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
                   {month}
                 </th>
               ))}
-              <th
-                colSpan={3}
-                className="border border-gray-300 px-2 py-3 text-center font-semibold bg-indigo-700"
-              >
-                ANUAL
-              </th>
+              {hasAnual && (
+                <th
+                  colSpan={3}
+                  className="border border-gray-300 px-2 py-3 text-center font-semibold bg-indigo-700"
+                >
+                  ANUAL
+                </th>
+              )}
             </tr>
             {/* Fila de Monto / % */}
             <tr className="bg-indigo-500 text-white">
@@ -118,15 +156,19 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
                   </th>
                 </Fragment>
               ))}
-              <th className="border border-gray-300 px-2 py-2 text-center text-xs bg-indigo-600">
-                Monto
-              </th>
-              <th className="border border-gray-300 px-2 py-2 text-center text-xs bg-indigo-600">
-                %
-              </th>
-              <th className="border border-gray-300 px-2 py-2 text-center text-xs bg-indigo-600">
-                Promedio
-              </th>
+              {hasAnual && (
+                <>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs bg-indigo-600">
+                    Monto
+                  </th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs bg-indigo-600">
+                    %
+                  </th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs bg-indigo-600">
+                    Promedio
+                  </th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -165,15 +207,19 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
                       </Fragment>
                     );
                   })}
-                  <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium bg-purple-50">
-                    {formatNumber(row['ANUAL Monto'])}
-                  </td>
-                  <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium bg-purple-50">
-                    {formatPercentage(row['ANUAL %'])}
-                  </td>
-                  <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium bg-purple-50">
-                    {formatNumber(row['ANUAL Promedio'])}
-                  </td>
+                  {hasAnual && (
+                    <>
+                      <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium bg-purple-50">
+                        {formatNumber(row['ANUAL Monto'])}
+                      </td>
+                      <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium bg-purple-50">
+                        {formatPercentage(row['ANUAL %'])}
+                      </td>
+                      <td className="border border-gray-300 px-2 py-2 text-right text-gray-900 font-medium bg-purple-50">
+                        {formatNumber(row['ANUAL Promedio'])}
+                      </td>
+                    </>
+                  )}
                 </tr>
               );
             })}

@@ -131,26 +131,8 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    // 🔍 VERIFICAR QUE EL USUARIO AÚN EXISTE
-    // Verificar si la colección del usuario existe
-    const userCollectionName = getUserCollectionName(session.userName);
-    const collections = await db.listCollections({ name: userCollectionName }).toArray();
-    const collectionExists = collections.length > 0;
-
-    if (!collectionExists) {
-      console.warn(`[SESSION] ❌ Usuario sin datos o eliminado: ${session.userName} (${userCollectionName})`);
-      
-      // Eliminar sesión de BD
-      await db.collection(SESSION_COLLECTION).deleteOne({ sessionId });
-      
-      // Eliminar cookie
-      const response = NextResponse.json({
-        success: false,
-        error: 'Usuario no existe o fue eliminado'
-      });
-      response.cookies.delete('bism_session_id');
-      return response;
-    }
+    // ✅ No validar colección Excel - Los usuarios de Libro de Compras no tienen colección Excel
+    // La validación se hace al momento de cargar datos, no en la sesión
 
     // ✅ SESIÓN VÁLIDA - Actualizar última actividad
     await db.collection(SESSION_COLLECTION).updateOne(

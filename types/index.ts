@@ -41,6 +41,7 @@ export interface EERRData {
   sheetName: string;
   months: string[];
   categories: EERRCategory[];
+  monthToPeriod?: { [monthName: string]: string }; // Mapeo "Agosto" → "2024-08"
 }
 
 // Tipos para los datos del Excel formato antiguo (Consolidado)

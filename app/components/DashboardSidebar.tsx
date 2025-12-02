@@ -102,10 +102,11 @@ export default function DashboardSidebar({
         });
       });
 
-    // Agregar consolidado si existe
+    // Agregar consolidado si existe (en Excel) o si hay un userId seleccionado (Libro de Compras)
     const hasConsolidado = availableSections.some(s => 
       ['consolidado', 'consolidados'].includes(s.toLowerCase())
-    );
+    ) || selectedUserId;
+    
     if (hasConsolidado) {
       items.push({
         id: 'consolidado',

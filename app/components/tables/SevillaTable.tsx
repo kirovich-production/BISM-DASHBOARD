@@ -78,6 +78,10 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
     return `${num.toFixed(2)}%`;
   };
 
+  // Detectar si existe CONSOLIDADO o ANUAL
+  const consolidadoColumn = data.months.find(m => m.toUpperCase().includes('CONSOLIDADO') || m.toUpperCase().includes('ANUAL')) || 'CONSOLIDADO';
+  const regularMonths = data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO') && !m.toUpperCase().includes('ANUAL'));
+
   const generatePDF = async () => {
     if (!contentRef.current || isGeneratingPdf) return;
 
@@ -404,7 +408,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
                 <th scope="col" className="sticky left-0 z-40 px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider border-r border-indigo-500 bg-indigo-600 shadow-lg">
                   Concepto
                 </th>
-                {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
+                {regularMonths.map((month: string, monthIdx: number) => (
                   <th
                     key={monthIdx}
                     scope="col"
@@ -414,18 +418,18 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
                     {month}
                   </th>
                 ))}
-                {/* CONSOLIDADO al final */}
+                {/* Columna consolidada (CONSOLIDADO o ANUAL) al final */}
                 <th
                   scope="col"
                   colSpan={3}
                   className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider border-r border-indigo-500 bg-indigo-700"
                 >
-                  CONSOLIDADO
+                  {consolidadoColumn.toUpperCase()}
                 </th>
               </tr>
               <tr>
                 <th scope="col" className="sticky left-0 z-40 px-6 py-2 bg-indigo-700 border-r border-indigo-500 shadow-lg"></th>
-                {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
+                {regularMonths.map((month: string, monthIdx: number) => (
                   <React.Fragment key={monthIdx}>
                     <th className="px-3 py-2 text-center text-xs font-medium text-white bg-indigo-700 border-r border-indigo-600">
                       Monto
@@ -435,7 +439,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
                     </th>
                   </React.Fragment>
                 ))}
-                {/* Sub-headers CONSOLIDADO */}
+                {/* Sub-headers columna consolidada */}
                 <th className="px-3 py-2 text-center text-xs font-medium text-white bg-indigo-800 border-r border-indigo-600">
                   Monto
                 </th>
@@ -457,7 +461,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
                     {category.name}
                   </td>
                   <td
-                    colSpan={(data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).length * 2) + 3}
+                    colSpan={(regularMonths.length * 2) + 3}
                     className="px-6 py-3 text-sm font-bold text-indigo-900 uppercase tracking-wide bg-gradient-to-r from-indigo-100 to-indigo-50"
                   >
                   </td>
@@ -473,17 +477,17 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
                       {row.Item}
                     </td>
                     {/* Meses normales (solo Monto y %) */}
-                    {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
+                    {regularMonths.map((month: string, monthIdx: number) => (
                       <React.Fragment key={monthIdx}>
                         <td className="px-3 py-3 text-sm text-gray-700 text-right whitespace-nowrap border-r border-gray-100">
-                          {row.Item === 'Ventas' && userId && periodo ? (
+                          {row.Item === 'Ventas' && userId && data.monthToPeriod?.[month] ? (
                             <EditableCell
                               value={(() => {
                                 const val = row[`${month} Monto`];
                                 return typeof val === 'number' ? val : 0;
                               })()}
                               userId={userId}
-                              periodo={periodo}
+                              periodo={data.monthToPeriod[month]}
                               sucursal="Sevilla"
                               cuenta="Ventas"
                               onValueChange={(newValue) => {
@@ -501,15 +505,15 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
                         </td>
                       </React.Fragment>
                     ))}
-                    {/* CONSOLIDADO (Monto, %, Promedio) */}
+                    {/* Columna consolidada (Monto, %, Promedio) */}
                     <td className="px-3 py-3 text-sm text-gray-900 font-semibold text-right whitespace-nowrap border-r border-gray-100 bg-indigo-50">
-                      {formatNumber(row['CONSOLIDADO Monto'])}
+                      {formatNumber(row[`${consolidadoColumn} Monto`])}
                     </td>
                     <td className="px-3 py-3 text-sm text-gray-900 font-semibold text-right whitespace-nowrap border-r border-gray-100 bg-indigo-50">
-                      {formatPercentage(row['CONSOLIDADO %'])}
+                      {formatPercentage(row[`${consolidadoColumn} %`])}
                     </td>
                     <td className="px-3 py-3 text-sm text-gray-900 font-semibold text-right whitespace-nowrap border-r border-gray-100 bg-indigo-50">
-                      {formatNumber(row['CONSOLIDADO Promedio'])}
+                      {formatNumber(row[`${consolidadoColumn} Promedio`])}
                     </td>
                   </tr>
                 )),
@@ -524,7 +528,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
                       {category.total.Item}
                     </td>
                     {/* Meses normales (solo Monto y %) */}
-                    {data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO')).map((month: string, monthIdx: number) => (
+                    {regularMonths.map((month: string, monthIdx: number) => (
                       <React.Fragment key={monthIdx}>
                         <td className="px-3 py-3 text-sm text-indigo-900 font-bold text-right whitespace-nowrap border-r border-indigo-100">
                           {formatNumber(category.total![`${month} Monto`])}
@@ -534,15 +538,15 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
                         </td>
                       </React.Fragment>
                     ))}
-                    {/* CONSOLIDADO (Monto, %, Promedio) */}
+                    {/* Columna consolidada (Monto, %, Promedio) */}
                     <td className="px-3 py-3 text-sm text-indigo-900 font-bold text-right whitespace-nowrap border-r border-indigo-100 bg-indigo-100">
-                      {formatNumber(category.total!['CONSOLIDADO Monto'])}
+                      {formatNumber(category.total![`${consolidadoColumn} Monto`])}
                     </td>
                     <td className="px-3 py-3 text-sm text-indigo-900 font-bold text-right whitespace-nowrap border-r border-indigo-100 bg-indigo-100">
-                      {formatPercentage(category.total!['CONSOLIDADO %'])}
+                      {formatPercentage(category.total![`${consolidadoColumn} %`])}
                     </td>
                     <td className="px-3 py-3 text-sm text-indigo-900 font-bold text-right whitespace-nowrap border-r border-indigo-100 bg-indigo-100">
-                      {formatNumber(category.total!['CONSOLIDADO Promedio'])}
+                      {formatNumber(category.total![`${consolidadoColumn} Promedio`])}
                     </td>
                   </tr>
                 ] : [])
