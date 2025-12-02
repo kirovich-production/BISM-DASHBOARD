@@ -18,6 +18,7 @@ export default function Home() {
   const [excelData, setExcelData] = useState<UploadedDocument | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [activeView, setActiveView] = useState<string>('dashboard');
+  const [isTransitioning, setIsTransitioning] = useState(false);
   
   // Estados de usuario (solo Libro de Compras)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -162,14 +163,21 @@ export default function Home() {
       }
   };
 
-
+  const handleViewChange = (newView: string) => {
+    setIsTransitioning(true);
+    // Pequeño delay para mostrar el spinner antes del cambio
+    setTimeout(() => {
+      setActiveView(newView);
+      setIsTransitioning(false);
+    }, 450);
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Dark Sidebar */}
       <DashboardSidebar
         activeView={activeView}
-        onViewChange={setActiveView}
+        onViewChange={handleViewChange}
         selectedUserId={selectedUserId}
         selectedUserName={selectedUserName}
         onUserChange={handleUserChange}
@@ -178,11 +186,19 @@ export default function Home() {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-auto">
-        {activeView === 'dashboard' ? (
+        {isTransitioning ? (
+          /* Spinner de transición */
+          <div className="h-full flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-4 text-sm text-gray-600">Cargando vista...</p>
+            </div>
+          </div>
+        ) : activeView === 'dashboard' ? (
           /* Dashboard View */
           <div className="p-4 sm:p-6 lg:p-8">
             <DashboardView
-              onNavigate={setActiveView}
+              onNavigate={handleViewChange}
               selectedUserName={selectedUserName}
               hasData={excelData !== null}
               availableSections={
