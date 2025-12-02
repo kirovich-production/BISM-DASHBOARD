@@ -2,8 +2,6 @@
 
 interface DashboardViewProps {
   onNavigate: (view: string) => void; // Ahora acepta cualquier sección dinámica
-  selectedPeriod: string | null;
-  periodsCount: number;
   selectedUserName?: string;
   hasData: boolean;
   availableSections?: string[]; // Secciones disponibles desde Excel (ej: ['sevilla', 'labranza', 'consolidado'])
@@ -11,8 +9,6 @@ interface DashboardViewProps {
 
 export default function DashboardView({ 
   onNavigate, 
-  selectedPeriod, 
-  periodsCount, 
   selectedUserName, 
   hasData,
   availableSections = []
@@ -196,32 +192,12 @@ export default function DashboardView({
               Resumen general de Balance Sheet
             </p>
           </div>
-          
-          {selectedPeriod && (
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-3">
-              <p className="text-xs text-indigo-100 mb-1">Período Actual</p>
-              <p className="text-lg font-semibold">{selectedPeriod}</p>
-            </div>
-          )}
         </div>
       </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Períodos Disponibles - DINÁMICO */}
-        <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm text-gray-500 mb-1">Períodos Disponibles</p>
-              <p className="text-2xl md:text-3xl font-bold text-gray-900">{periodsCount}</p>
-            </div>
-            <div className="bg-indigo-100 p-3 rounded-lg">
-              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-          </div>
-        </div>
+
 
         {/* Secciones - DINÁMICO basado en datos reales */}
         <div className="bg-white rounded-lg shadow-md p-4 md:p-6">

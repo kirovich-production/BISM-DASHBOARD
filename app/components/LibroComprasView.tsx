@@ -7,7 +7,6 @@ import ProveedoresMantenedor from './ProveedoresMantenedor';
 
 interface LibroComprasViewProps {
   userId: string | null;
-  periodo: string | null;
 }
 
 interface PeriodoLC {

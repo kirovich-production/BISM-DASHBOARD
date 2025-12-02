@@ -12,14 +12,11 @@ import DynamicComparativoEbitda from './components/dynamic/DynamicComparativoEbi
 import DynamicEbidtaCombo from './components/dynamic/DynamicEbidtaCombo';
 import LibroComprasView from './components/LibroComprasView';
 import CargarDatosView from './components/CargarDatosView';
-import { UploadResponse, UploadedDocument, Period } from '@/types';
+import { UploadedDocument } from '@/types';
 
 export default function Home() {
-  const [uploadedData] = useState<UploadResponse | null>(null);
   const [excelData, setExcelData] = useState<UploadedDocument | null>(null);
   const [loadingData, setLoadingData] = useState(false);
-  const [periods, setPeriods] = useState<Period[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<string>('dashboard');
   
   // Estados de usuario (solo Libro de Compras)
@@ -27,12 +24,8 @@ export default function Home() {
   const [selectedUserName, setSelectedUserName] = useState<string>('');
   
   // Refs para prevenir llamadas duplicadas
-  const fetchPeriodsInProgress = useRef(false);
   const fetchDataInProgress = useRef(false);
-  const lastFetchedPeriod = useRef<string | null>(null);
-  const lastActiveView = useRef<string>('');
   const abortControllers = useRef<{
-    periods?: AbortController;
     data?: AbortController;
   }>({});
 
@@ -59,124 +52,25 @@ export default function Home() {
   useEffect(() => {
     const controllers = abortControllers.current;
     return () => {
-      if (controllers.periods) {
-        controllers.periods.abort();
-      }
       if (controllers.data) {
         controllers.data.abort();
       }
     };
   }, []);
 
-  // Cargar períodos cuando se accede a Sevilla, Labranza o Consolidado sin período seleccionado
-  useEffect(() => {
-    if ((activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado') && selectedUserId && !selectedPeriod) {
-      // Para Consolidado, usamos Labranza para obtener períodos (ambas sucursales deberían tener los mismos períodos)
-      const sucursal = activeView === 'sevilla' ? 'Sevilla' : 'Labranza';
-      fetchPeriods(sucursal);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeView, selectedUserId]);
-
-  // Cargar datos para vistas de Libro de Compras (Sevilla, Labranza, Consolidado)
+  // Cargar datos automáticamente al seleccionar usuario
   useEffect(() => {
     if (selectedUserId) {
-      // Solo para vistas de Libro de Compras
-      if (activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado') {
-        // Determinar si necesita cargar datos según la vista específica
-        let needsData = lastActiveView.current !== activeView || !excelData;
-        
-        // Validación adicional: verificar si la sección específica existe
-        if (excelData) {
-          if (activeView === 'sevilla' && !excelData.sevilla) needsData = true;
-          if (activeView === 'labranza' && !excelData.labranza) needsData = true;
-          if (activeView === 'consolidado' && !excelData.consolidado) needsData = true;
-        }
-        
-        if (needsData) {
-          lastActiveView.current = activeView;
-          setLoadingData(true); // Mostrar spinner inmediatamente
-          const sucursal = activeView === 'sevilla' ? 'Sevilla' 
-                         : activeView === 'labranza' ? 'Labranza'
-                         : undefined;
-          fetchData(undefined, sucursal, true);
-        }
-      }
+      // Cargar todos los datos (sevilla + labranza + consolidado) automáticamente
+      fetchData(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeView, selectedUserId, excelData]);
+  }, [selectedUserId]);
 
-  // Recargar períodos después de un upload exitoso
-  useEffect(() => {
-    if (uploadedData?.success) {
-      const sucursal = activeView === 'sevilla' ? 'Sevilla' 
-                     : activeView === 'labranza' ? 'Labranza'
-                     : undefined;
-      fetchPeriods(sucursal);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uploadedData]);
 
-  const fetchPeriods = async (sucursalFilter?: 'Sevilla' | 'Labranza') => {
-    // Cancelar request anterior si existe
-    if (abortControllers.current.periods) {
-      abortControllers.current.periods.abort();
-    }
 
-    // Prevenir llamadas duplicadas
-    if (fetchPeriodsInProgress.current) {
-      return;
-    }
 
-    try {
-      fetchPeriodsInProgress.current = true;
-      
-      // Libro de Compras requiere userId obligatorio
-      if (!selectedUserId) {
-        setPeriods([]);
-        fetchPeriodsInProgress.current = false;
-        return;
-      }
-      
-      let url = '/api/periods';
-      const params = new URLSearchParams();
-      
-      params.append('userId', selectedUserId);
-      if (sucursalFilter) {
-        params.append('sucursal', sucursalFilter);
-      }
-      
-      url += `?${params.toString()}`;
-
-      // Crear nuevo AbortController
-      abortControllers.current.periods = new AbortController();
-      
-      const response = await fetch(url, {
-        signal: abortControllers.current.periods.signal
-      });
-      const result = await response.json();
-      
-      if (result.success && result.periods) {
-        setPeriods(result.periods);
-        
-        // Si no hay período seleccionado, seleccionar el más reciente
-        if (!selectedPeriod && result.periods.length > 0) {
-          setSelectedPeriod(result.periods[0].period);
-        }
-      } else if (result.periods && result.periods.length === 0) {
-        setPeriods([]);
-      }
-    } catch (error) {
-      // Ignorar errores de abort
-      if (error instanceof Error && error.name === 'AbortError') {
-        return;
-      }
-    } finally {
-      fetchPeriodsInProgress.current = false;
-    }
-  };
-
-  const fetchData = async (period?: string, sucursal?: 'Sevilla' | 'Labranza', forceReload = false) => {
+  const fetchData = async (forceReload = false) => {
     // Cancelar request anterior si existe
     if (abortControllers.current.data) {
       abortControllers.current.data.abort();
@@ -188,40 +82,17 @@ export default function Home() {
       return;
     }
 
-    // Prevenir llamadas duplicadas al mismo período (a menos que sea forzado)
-    const cacheKey = `${period}-${selectedUserId}-${sucursal || 'none'}-${activeView}`;
-    
-    // Si hay una request en progreso, esperar
-    if (fetchDataInProgress.current) {
-      return;
-    }
-    
-    // Solo usar caché si el cacheKey es exactamente el mismo y NO es forceReload
-    if (!forceReload && lastFetchedPeriod.current === cacheKey) {
+    // Prevenir llamadas duplicadas simultáneas
+    if (!forceReload && fetchDataInProgress.current) {
       return;
     }
 
     fetchDataInProgress.current = true;
-    lastFetchedPeriod.current = cacheKey;
     setLoadingData(true);
     
     try {
-      let url = '/api/data';
-      const params = new URLSearchParams();
-      
-      if (period) {
-        params.append('period', period);
-      }
-      
-      // Libro de Compras siempre usa userId
-      params.append('userId', selectedUserId);
-      if (sucursal) {
-        params.append('sucursal', sucursal);
-      }
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
+      // Cargar TODOS los datos (sevilla + labranza + consolidado)
+      const url = `/api/data?userId=${selectedUserId}`;
 
       // Crear nuevo AbortController
       abortControllers.current.data = new AbortController();
@@ -232,42 +103,8 @@ export default function Home() {
       const result = await response.json();
       
       if (result.success && result.data) {
-        // Limpiar campos no relacionados según la sucursal solicitada
-        // Esto asegura que cada vista solo muestre SUS propios datos
-        // IMPORTANTE: Siempre crear un NUEVO objeto para forzar re-render
-        if (sucursal === 'Labranza') {
-          const newData: UploadedDocument = {
-            userId: result.data.userId || selectedUserId || '',
-            fileName: result.data.fileName || 'Libro de Compras',
-            sheetName: result.data.sheetName || 'Labranza',
-            period: result.data.period,
-            periodLabel: result.data.periodLabel,
-            version: result.data.version,
-            uploadedAt: result.data.uploadedAt,
-            labranza: result.data.labranza,
-            sevilla: undefined,
-            consolidado: undefined
-          };
-          setExcelData(newData);
-        } else if (sucursal === 'Sevilla') {
-          const newData: UploadedDocument = {
-            userId: result.data.userId || selectedUserId || '',
-            fileName: result.data.fileName || 'Libro de Compras',
-            sheetName: result.data.sheetName || 'Sevilla',
-            period: result.data.period,
-            periodLabel: result.data.periodLabel,
-            version: result.data.version,
-            uploadedAt: result.data.uploadedAt,
-            sevilla: result.data.sevilla,
-            labranza: undefined,
-            consolidado: undefined
-          };
-          setExcelData(newData);
-        } else {
-          // Consolidado o sin sucursal trae todo - crear nuevo objeto también
-          const newData = { ...result.data };
-          setExcelData(newData);
-        }
+        // Guardar datos completos
+        setExcelData(result.data);
       } else {
         setExcelData(null);
       }
@@ -276,6 +113,7 @@ export default function Home() {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
+      setExcelData(null);
     } finally {
       setLoadingData(false);
       fetchDataInProgress.current = false;
@@ -336,9 +174,6 @@ export default function Home() {
         selectedUserName={selectedUserName}
         onUserChange={handleUserChange}
         availableSections={excelData?.consolidado?.map(s => s.name.toLowerCase()) || []}
-        periods={periods}
-        selectedPeriod={selectedPeriod}
-        onPeriodChange={setSelectedPeriod}
       />
 
       {/* Main Content Area */}
@@ -348,8 +183,6 @@ export default function Home() {
           <div className="p-4 sm:p-6 lg:p-8">
             <DashboardView
               onNavigate={setActiveView}
-              selectedPeriod={selectedPeriod}
-              periodsCount={periods.length}
               selectedUserName={selectedUserName}
               hasData={excelData !== null}
               availableSections={
@@ -373,7 +206,6 @@ export default function Home() {
           /* Libro de Compras View - Gestión completa */
           <LibroComprasView 
             userId={selectedUserId}
-            periodo={selectedPeriod}
           />
         ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' || activeView === 'analisis-trimestral' || activeView === 'mes-anual' || activeView === 'waterfall-charts' || activeView === 'ebitda-combo' ? (
           /* Sevilla, Labranza, Consolidado, Charts and Mes-Anual Views */
@@ -387,8 +219,7 @@ export default function Home() {
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}
                   userId={selectedUserId || undefined}
-                  periodo={selectedPeriod || undefined}
-                  onDataRefresh={() => fetchData(undefined, 'Sevilla', true)}
+                  onDataRefresh={() => fetchData(true)}
                 />
               ) : activeView === 'labranza' ? (
                 <LabranzaTable
@@ -397,8 +228,7 @@ export default function Home() {
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}
                   userId={selectedUserId || undefined}
-                  periodo={selectedPeriod || undefined}
-                  onDataRefresh={() => fetchData(undefined, 'Labranza', true)}
+                  onDataRefresh={() => fetchData(true)}
                 />
               ) : activeView === 'consolidado' ? (
                 <TableView

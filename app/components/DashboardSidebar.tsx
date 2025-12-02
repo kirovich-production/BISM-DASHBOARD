@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import GlobalUserSelector from './GlobalUserSelector';
-import PeriodSelector from './PeriodSelector';
-import { Period } from '@/types';
 
 interface DashboardSidebarProps {
   activeView: string; // Vista activa (puede ser cualquier sección)
@@ -12,9 +10,6 @@ interface DashboardSidebarProps {
   selectedUserName?: string;
   onUserChange: (userId: string, userName: string) => void;
   availableSections?: string[]; // Secciones disponibles desde Excel
-  periods?: Period[]; // Períodos disponibles
-  selectedPeriod?: string | null; // Período seleccionado
-  onPeriodChange?: (period: string) => void; // Función para cambiar período
 }
 
 export default function DashboardSidebar({ 
@@ -22,10 +17,7 @@ export default function DashboardSidebar({
   onViewChange, 
   selectedUserId, 
   onUserChange,
-  availableSections = [],
-  periods = [],
-  selectedPeriod = null,
-  onPeriodChange
+  availableSections = []
 }: DashboardSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -286,15 +278,6 @@ export default function DashboardSidebar({
             selectedUserId={selectedUserId}
           />
         </div>
-
-        {/* Selector de Período */}
-        {onPeriodChange && (
-          <PeriodSelector
-            periods={periods}
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={onPeriodChange}
-          />
-        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-6 px-3">
