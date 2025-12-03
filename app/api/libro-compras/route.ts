@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 // GET: Obtener libro de compras por período, usuario y sucursal
 export async function GET(request: NextRequest) {
@@ -19,13 +20,26 @@ export async function GET(request: NextRequest) {
     const { db } = await connectToDatabase();
     const libroComprasCollection = db.collection('libroCompras');
 
-    const document = await libroComprasCollection.findOne({
+    console.log('[GET libro-compras] Búsqueda con:', { userId, periodo, sucursal });
+
+    // Buscar ambos documentos: con ObjectId y con string
+    const documentObjectId = await libroComprasCollection.findOne({
+      userId: new ObjectId(userId),
+      periodo,
+      sucursal
+    });
+
+    const documentString = await libroComprasCollection.findOne({
       userId,
       periodo,
       sucursal
     });
 
-    if (!document) {
+    console.log('[GET libro-compras] Encontrado con ObjectId:', !!documentObjectId, 'registros:', documentObjectId?.data?.length || 0);
+    console.log('[GET libro-compras] Encontrado con string:', !!documentString, 'registros:', documentString?.transacciones?.length || 0);
+
+    // Si no hay ninguno de los dos
+    if (!documentObjectId && !documentString) {
       return NextResponse.json({
         success: false,
         message: 'No se encontraron datos para este período',
@@ -33,9 +47,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Combinar transacciones de ambos documentos
+    const transaccionesObjectId = documentObjectId?.data || [];
+    const transaccionesString = documentString?.transacciones || [];
+    const todasLasTransacciones = [...transaccionesString, ...transaccionesObjectId];
+
+    console.log('[GET libro-compras] Total transacciones combinadas:', todasLasTransacciones.length);
+
+    // Usar el primer documento encontrado como base y agregar todas las transacciones
+    const baseDocument = documentString || documentObjectId;
+    const normalizedDocument = {
+      ...baseDocument,
+      transacciones: todasLasTransacciones
+    };
+
     return NextResponse.json({
       success: true,
-      data: document
+      data: normalizedDocument
     });
 
   } catch (error) {
@@ -67,7 +95,7 @@ export async function PUT(request: NextRequest) {
     const updateKey = `transacciones.${transaccionIndex}`;
     
     const result = await libroComprasCollection.updateOne(
-      { userId, periodo, sucursal },
+      { userId: new ObjectId(userId), periodo, sucursal },
       {
         $set: {
           [updateKey]: transaccion,
@@ -116,7 +144,7 @@ export async function DELETE(request: NextRequest) {
     const libroComprasCollection = db.collection('libroCompras');
 
     const result = await libroComprasCollection.deleteOne({
-      userId,
+      userId: new ObjectId(userId),
       periodo,
       sucursal
     });

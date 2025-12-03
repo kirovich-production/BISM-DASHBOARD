@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { EERRData, EERRCategory, EERRRow, ExcelSection, ExcelRow, LibroComprasTransaction, Proveedor } from '@/types';
+import { asignarEncabezadoPorCuenta } from './cuentasEncabezados';
 
 /**
  * Parser para hojas EERR (Estado de Resultados)
@@ -482,14 +483,17 @@ export function parseLibroComprasSheet(workbook: XLSX.WorkBook): LibroComprasTra
     // Saltar filas vacías
     if (!row[0] || String(row[0]).trim() === '') continue;
 
+    const cuentaContable = String(row[6] || '').trim();
+    
     const transaction: LibroComprasTransaction = {
       nro: parseChileanNumber(row[0]),
-      tipoDoc: String(row[1] || '').trim(),
+      tipoDoc: parseChileanNumber(row[1]) || 33, // Código SII, default 33 (Factura Electrónica)
       tipoCompra: String(row[2] || '').trim(),
       rutProveedor: String(row[3] || '').trim(),
       razonSocial: String(row[4] || '').trim(),
       unidadNegocio: String(row[5] || '').trim(),
-      cuenta: String(row[6] || '').trim(),
+      cuenta: cuentaContable,
+      encabezado: asignarEncabezadoPorCuenta(cuentaContable) || undefined,
       folio: String(row[7] || '').trim(),
       fechaDocto: String(row[8] || ''),
       fechaRecepcion: String(row[9] || ''),

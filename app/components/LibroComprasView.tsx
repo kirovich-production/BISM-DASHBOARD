@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import LibroComprasTable from './LibroComprasTable';
 import ProveedoresTable from './ProveedoresTable';
-import ProveedoresMantenedor from './ProveedoresMantenedor';
+import MantenedorLibroDiario from './MantenedorLibroDiario';
 
 interface LibroComprasViewProps {
   userId: string | null;
@@ -91,14 +91,14 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
   }, [selectedYear, periodos]);
 
   return (
-    <div className="bg-white h-full overflow-auto">
-      <div className="p-6">
-        {/* Header */}
-        <div className="mb-6">
+    <div className="bg-white h-full flex flex-col">
+      {/* Header fijo */}
+      <div className="p-6 border-b border-gray-200 bg-white">
+        <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-bold text-gray-800">Libro de Compras</h2>
             
-            {/* Selectores en Cascada: Sucursal → Año → Mes */}
+            {/* Selectores en Cascada: Sucursal → Año → Mes - SIEMPRE VISIBLE */}
             {userId && (
               <div className="flex items-center gap-3">
                 {/* 1. Selector de Sucursal */}
@@ -107,7 +107,7 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
                   <select
                     value={selectedSucursal || ''}
                     onChange={(e) => setSelectedSucursal(e.target.value || null)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px]"
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] text-gray-900"
                   >
                     <option value="">Seleccionar...</option>
                     <option value="Sevilla">Sevilla</option>
@@ -115,48 +115,44 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
                   </select>
                 </div>
 
-                {/* 2. Selector de Año (solo si hay sucursal seleccionada) */}
-                {selectedSucursal && availableYears.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-600 font-medium">Año:</label>
-                    <select
-                      value={selectedYear || ''}
-                      onChange={(e) => setSelectedYear(e.target.value || null)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 min-w-[100px]"
-                      disabled={isLoadingPeriods}
-                    >
-                      <option value="">Seleccionar...</option>
-                      {availableYears.map((year) => (
-                        <option key={year} value={year}>
-                          {year}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                {/* 2. Selector de Año - SIEMPRE VISIBLE */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600 font-medium">Año:</label>
+                  <select
+                    value={selectedYear || ''}
+                    onChange={(e) => setSelectedYear(e.target.value || null)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 min-w-[100px] text-gray-900"
+                    disabled={!selectedSucursal || isLoadingPeriods || availableYears.length === 0}
+                  >
+                    <option value="">Seleccionar...</option>
+                    {availableYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                {/* 3. Selector de Mes (solo si hay año seleccionado) */}
-                {selectedYear && availableMonths.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-600 font-medium">Mes:</label>
-                    <select
-                      value={selectedMonth || ''}
-                      onChange={(e) => {
-                        setSelectedMonth(e.target.value || null);
-                        setSelectedPeriodo(e.target.value || null);
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-w-[140px]"
-                      disabled={isLoadingPeriods}
-                    >
-                      <option value="">Seleccionar...</option>
-                      {availableMonths.map((p) => (
-                        <option key={p.periodo} value={p.periodo}>
-                          {p.periodLabel}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                {/* 3. Selector de Mes - SIEMPRE VISIBLE */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600 font-medium">Mes:</label>
+                  <select
+                    value={selectedMonth || ''}
+                    onChange={(e) => {
+                      setSelectedMonth(e.target.value || null);
+                      setSelectedPeriodo(e.target.value || null);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-w-[140px] text-gray-900"
+                    disabled={!selectedYear || isLoadingPeriods || availableMonths.length === 0}
+                  >
+                    <option value="">Seleccionar...</option>
+                    {availableMonths.map((p) => (
+                      <option key={p.periodo} value={p.periodo}>
+                        {p.periodLabel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
           </div>
@@ -166,7 +162,7 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
         </div>
 
         {/* Tabs Navigation */}
-        <div className="border-b border-gray-200 mb-6">
+        <div className="border-b border-gray-200">
           <div className="flex gap-4">
             <button
               onClick={() => setActiveTab('lc')}
@@ -224,9 +220,11 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Tab Content */}
-        <div>
+      {/* Tab Content - con scroll independiente */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-6">
           {activeTab === 'lc' && (
             <div>
               {userId && selectedPeriodo && selectedSucursal ? (
@@ -316,7 +314,7 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
 
           {activeTab === 'mantenedor' && (
             <div>
-              <ProveedoresMantenedor />
+              <MantenedorLibroDiario userId={userId} />
             </div>
           )}
         </div>

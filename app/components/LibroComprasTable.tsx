@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { LibroComprasData } from '@/types';
+import { asignarEncabezadoPorCuenta } from '@/lib/cuentasEncabezados';
 
 interface LibroComprasTableProps {
   userId: string;
@@ -78,7 +79,12 @@ export default function LibroComprasTable({ userId, periodo, sucursal, onDataLoa
 
   const formatNumber = (value: number | undefined) => {
     if (value === undefined || value === null) return '-';
-    return new Intl.NumberFormat('es-CL').format(value);
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
   };
 
   if (isLoading) {
@@ -178,6 +184,7 @@ export default function LibroComprasTable({ userId, periodo, sucursal, onDataLoa
                 <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase whitespace-nowrap">Razón Social</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase whitespace-nowrap">Unidad Negocio</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase whitespace-nowrap">Cuenta</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase whitespace-nowrap">Encabezado</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase whitespace-nowrap">Folio</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase whitespace-nowrap">Fecha Docto</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase whitespace-nowrap">Fecha Recepción</th>
@@ -212,6 +219,9 @@ export default function LibroComprasTable({ userId, periodo, sucursal, onDataLoa
                   <td className="px-3 py-3 text-sm text-gray-900 max-w-xs">{trans.razonSocial}</td>
                   <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">{trans.unidadNegocio}</td>
                   <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">{trans.cuenta}</td>
+                  <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">
+                    {trans.encabezado || asignarEncabezadoPorCuenta(trans.cuenta) || 'Sin clasificar'}
+                  </td>
                   <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">{trans.folio}</td>
                   <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">{String(trans.fechaDocto)}</td>
                   <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">{String(trans.fechaRecepcion)}</td>

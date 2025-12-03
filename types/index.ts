@@ -147,12 +147,13 @@ export interface YearsRangeResponse {
 // Libro de Compras - Transacciones
 export interface LibroComprasTransaction {
   nro: number;
-  tipoDoc: string;
+  tipoDoc: number; // Código SII (33, 34, 46, 56, 61, etc.)
   tipoCompra: string;
   rutProveedor: string;
   razonSocial: string;
   unidadNegocio: string; // Centro de costo
   cuenta: string;
+  encabezado?: string; // Clasificación EERR (Ventas, Gastos de Administración, etc.)
   folio: string;
   fechaDocto: Date | string;
   fechaRecepcion: Date | string;
