@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import LibroComprasUpload from './LibroComprasUpload';
 import UserManagement from './UserManagement';
+import LibroComprasUpload from './LibroComprasUpload';
 
 interface CargarDatosViewProps {
   selectedUserId: string | null;
@@ -109,7 +109,6 @@ export default function CargarDatosView({
                 <LibroComprasUpload 
                   userId={selectedUserId}
                   onUploadSuccess={() => {
-                    // Mostrar mensaje de éxito
                     setTimeout(() => {
                       window.location.reload();
                     }, 1500);

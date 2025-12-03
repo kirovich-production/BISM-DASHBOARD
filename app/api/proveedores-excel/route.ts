@@ -20,7 +20,12 @@ export async function GET(request: NextRequest) {
     const { db } = await connectToDatabase();
     const proveedoresCollection = db.collection('proveedores');
 
-    let query: any = {
+    const query: {
+      userId: string;
+      sucursal: string;
+      periodo: string;
+      $or?: Array<{ rut: { $regex: string; $options: string } } | { nombre: { $regex: string; $options: string } }>;
+    } = {
       userId,
       sucursal,
       periodo

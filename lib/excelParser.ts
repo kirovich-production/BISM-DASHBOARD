@@ -528,7 +528,7 @@ export function parseLibroComprasSheet(workbook: XLSX.WorkBook): LibroComprasTra
  * Parser para hoja "CLASIFICACIÓN" (Proveedores)
  * Lee catálogo de proveedores con sus clasificaciones
  */
-export function parseClasificacionSheet(workbook: XLSX.WorkBook): Omit<Proveedor, '_id' | 'createdAt' | 'updatedAt'>[] | null {
+export function parseClasificacionSheet(workbook: XLSX.WorkBook): Pick<Proveedor, 'rut' | 'nombre' | 'centroCosto' | 'tipoCuenta' | 'observaciones'>[] | null {
   
   // Buscar la hoja con o sin tilde
   let sheetName = 'CLASIFICACIÓN';
@@ -591,7 +591,7 @@ export function parseClasificacionSheet(workbook: XLSX.WorkBook): Omit<Proveedor
   // Extraer headers
   const headers = rawData[headerRowIndex] as string[];
   const dataStartRow = headerRowIndex + 1;
-  const proveedores: Omit<Proveedor, '_id' | 'createdAt' | 'updatedAt'>[] = [];
+  const proveedores: Pick<Proveedor, 'rut' | 'nombre' | 'centroCosto' | 'tipoCuenta' | 'observaciones'>[] = [];
 
   // Log de headers para debug
 

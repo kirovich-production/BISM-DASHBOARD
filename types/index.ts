@@ -203,6 +203,9 @@ export interface LibroComprasUploadResponse {
 // Proveedores - Clasificación (flat structure - each Excel row is one document)
 export interface Proveedor {
   _id?: string;
+  userId: string;
+  sucursal: string;
+  periodo: string; // Formato: YYYY-MM
   rut: string;
   nombre: string;
   centroCosto: string; // CC
