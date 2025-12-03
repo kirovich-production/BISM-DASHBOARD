@@ -33,43 +33,52 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
     { value: '12', label: 'Diciembre' },
   ];
 
-  const [formData, setFormData] = useState({
-    // Periodo y Sucursal
-    sucursal: '',
-    year: currentYear.toString(),
-    month: new Date().getMonth() + 1 < 10 ? `0${new Date().getMonth() + 1}` : `${new Date().getMonth() + 1}`,
+  // Función helper para obtener el estado inicial del formulario
+  const getInitialFormData = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const currentMonth = new Date().getMonth() + 1;
+    const monthStr = currentMonth < 10 ? `0${currentMonth}` : `${currentMonth}`;
     
-    // Columnas del Libro Diario (29 columnas completas)
-    tipoDoc: '33', // Código SII como string (se convierte a número al enviar)
-    tipoCompra: '',
-    rutProveedor: '',
-    razonSocial: '',
-    unidadNegocio: '',
-    cuenta: '',
-    encabezado: '',
-    folio: '',
-    fechaDocto: new Date().toISOString().split('T')[0],
-    fechaRecepcion: new Date().toISOString().split('T')[0],
-    fechaAcuse: '',
-    montoExento: '',
-    montoNeto: '',
-    montoIVARecuperable: '',
-    montoIVANoRecuperable: '',
-    codigoIVANoRec: '',
-    montoTotal: '',
-    montoNetoActivoFijo: '',
-    ivaActivoFijo: '',
-    ivaUsoComun: '',
-    imptoSinDerechoCredito: '',
-    ivaNoRetenido: '',
-    tabacosPuros: '',
-    tabacosCigarrillos: '',
-    tabacosElaborados: '',
-    nceNdeSobreFactCompra: '',
-    codigoOtroImpuesto: '',
-    valorOtroImpuesto: '',
-    tasaOtroImpuesto: '',
-  });
+    return {
+      // Periodo y Sucursal
+      sucursal: '',
+      year: currentYear.toString(),
+      month: monthStr,
+      
+      // Columnas del Libro Diario (29 columnas completas)
+      tipoDoc: '',
+      tipoCompra: '',
+      rutProveedor: '',
+      razonSocial: '',
+      unidadNegocio: '',
+      cuenta: '',
+      encabezado: '',
+      folio: '',
+      fechaDocto: today,
+      fechaRecepcion: today,
+      fechaAcuse: '',
+      montoExento: '',
+      montoNeto: '',
+      montoIVARecuperable: '',
+      montoIVANoRecuperable: '',
+      codigoIVANoRec: '',
+      montoTotal: '',
+      montoNetoActivoFijo: '',
+      ivaActivoFijo: '',
+      ivaUsoComun: '',
+      imptoSinDerechoCredito: '',
+      ivaNoRetenido: '',
+      tabacosPuros: '',
+      tabacosCigarrillos: '',
+      tabacosElaborados: '',
+      nceNdeSobreFactCompra: '',
+      codigoOtroImpuesto: '',
+      valorOtroImpuesto: '',
+      tasaOtroImpuesto: '',
+    };
+  };
+
+  const [formData, setFormData] = useState(getInitialFormData());
 
   // Cargar encabezados al montar
   useEffect(() => {
@@ -188,35 +197,12 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
           texto: `✅ Registro insertado correctamente. ${result.proveedorNuevo ? '(Nuevo proveedor creado)' : '(Proveedor existente)'}`
         });
         
-        // Limpiar formulario (mantener sucursal, periodo y fechas)
+        // Limpiar formulario manteniendo sucursal, año y mes
         setFormData(prev => ({
-          ...prev,
-          tipoDoc: '33',
-          tipoCompra: '',
-          rutProveedor: '',
-          razonSocial: '',
-          unidadNegocio: '',
-          cuenta: '',
-          encabezado: '',
-          folio: '',
-          montoExento: '',
-          montoNeto: '',
-          montoIVARecuperable: '',
-          montoIVANoRecuperable: '',
-          codigoIVANoRec: '',
-          montoTotal: '',
-          montoNetoActivoFijo: '',
-          ivaActivoFijo: '',
-          ivaUsoComun: '',
-          imptoSinDerechoCredito: '',
-          ivaNoRetenido: '',
-          tabacosPuros: '',
-          tabacosCigarrillos: '',
-          tabacosElaborados: '',
-          nceNdeSobreFactCompra: '',
-          codigoOtroImpuesto: '',
-          valorOtroImpuesto: '',
-          tasaOtroImpuesto: '',
+          ...getInitialFormData(),
+          sucursal: prev.sucursal,
+          year: prev.year,
+          month: prev.month,
         }));
       } else {
         setMensaje({ tipo: 'error', texto: result.error || 'Error al insertar registro' });
@@ -230,44 +216,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
   };
 
   const handleReset = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const currentMonth = new Date().getMonth() + 1;
-    const monthStr = currentMonth < 10 ? `0${currentMonth}` : `${currentMonth}`;
-
-    setFormData({
-      sucursal: '',
-      year: currentYear.toString(),
-      month: monthStr,
-      tipoDoc: '33', // Código SII default (Factura Electrónica)
-      tipoCompra: '',
-      rutProveedor: '',
-      razonSocial: '',
-      unidadNegocio: '',
-      cuenta: '',
-      encabezado: '',
-      folio: '',
-      fechaDocto: today,
-      fechaRecepcion: today,
-      fechaAcuse: '',
-      montoExento: '',
-      montoNeto: '',
-      montoIVARecuperable: '',
-      montoIVANoRecuperable: '',
-      codigoIVANoRec: '',
-      montoTotal: '',
-      montoNetoActivoFijo: '',
-      ivaActivoFijo: '',
-      ivaUsoComun: '',
-      imptoSinDerechoCredito: '',
-      ivaNoRetenido: '',
-      tabacosPuros: '',
-      tabacosCigarrillos: '',
-      tabacosElaborados: '',
-      nceNdeSobreFactCompra: '',
-      codigoOtroImpuesto: '',
-      valorOtroImpuesto: '',
-      tasaOtroImpuesto: '',
-    });
+    setFormData(getInitialFormData());
     setMensaje(null);
   };
 
@@ -302,8 +251,8 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* SECCIÓN 1: IDENTIFICACIÓN */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-blue-800 mb-3">📋 Identificación</h4>
+        <div className="bg-gray-30 border border-gray-300 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-800 mb-3">📋 Identificación</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -315,7 +264,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 onChange={handleChange}
                 required
                 disabled={!userId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               >
                 <option value="">Seleccionar...</option>
                 <option value="Sevilla">Sevilla</option>
@@ -333,7 +282,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 onChange={handleChange}
                 required
                 disabled={!userId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               >
                 {years.map(year => (
                   <option key={year} value={year}>{year}</option>
@@ -351,7 +300,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 onChange={handleChange}
                 required
                 disabled={!userId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               >
                 {months.map(m => (
                   <option key={m.value} value={m.value}>{m.label}</option>
@@ -374,7 +323,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 placeholder="33"
                 min="30"
                 max="112"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-8000 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-8000 text-gray-900"
               />
               <p className="mt-1 text-xs text-gray-500">
                 Ej: 33 (Factura), 34 (Factura Exenta), 46 (Factura Compra), 56 (Nota Débito), 61 (Nota Crédito)
@@ -392,7 +341,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 onChange={handleChange}
                 disabled={!userId}
                 placeholder="Ej: Interno, Importación"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -407,15 +356,15 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 onChange={handleChange}
                 disabled={!userId}
                 placeholder="Número de folio"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
           </div>
         </div>
 
         {/* SECCIÓN 2: FECHAS */}
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-purple-800 mb-3">📅 Fechas</h4>
+        <div className="bg-gray-30 border border-gray-300 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-800 mb-3">📅 Fechas</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -427,7 +376,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 value={formData.fechaDocto}
                 onChange={handleChange}
                 disabled={!userId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 text-gray-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-500"
               />
             </div>
 
@@ -441,7 +390,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 value={formData.fechaRecepcion}
                 onChange={handleChange}
                 disabled={!userId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 text-gray-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-500"
               />
             </div>
 
@@ -455,15 +404,15 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 value={formData.fechaAcuse}
                 onChange={handleChange}
                 disabled={!userId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 text-gray-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-500"
               />
             </div>
           </div>
         </div>
 
         {/* SECCIÓN 3: PROVEEDOR */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-green-800 mb-3">🏢 Proveedor</h4>
+        <div className="bg-gray-30 border border-gray-300 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-800 mb-3">🏢 Proveedor</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -477,7 +426,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 required
                 disabled={!userId}
                 placeholder="12345678-9"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -493,7 +442,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 required
                 disabled={!userId}
                 placeholder="Nombre del proveedor"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -506,7 +455,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 value={formData.unidadNegocio}
                 onChange={handleChange}
                 disabled={!userId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               >
                 <option value="">Seleccionar...</option>
                 {UNIDADES_NEGOCIO.map(unidad => (
@@ -518,8 +467,8 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
         </div>
 
         {/* SECCIÓN 4: CLASIFICACIÓN CONTABLE */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-yellow-800 mb-3">🏦 Clasificación Contable</h4>
+        <div className="bg-gray-30 border border-gray-300 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">🏦 Clasificación Contable</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -531,7 +480,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 onChange={handleChange}
                 required
                 disabled={!userId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:bg-gray-100 font-medium text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 font-medium text-gray-900"
               >
                 <option value="">Seleccionar clasificación...</option>
                 {encabezados.map(enc => (
@@ -551,7 +500,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 onChange={handleChange}
                 disabled={!userId || !formData.encabezado || cuentasDisponibles.length === 0}
                 required={!!formData.encabezado}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               >
                 <option value="">
                   {!formData.encabezado 
@@ -574,8 +523,8 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
         </div>
 
         {/* SECCIÓN 5: MONTOS BASE */}
-        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-indigo-800 mb-3">💰 Montos Base</h4>
+        <div className="bg-gray-30 border border-gray-300 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">💰 Montos Base</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -589,7 +538,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -605,7 +554,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -621,7 +570,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 bg-gray-50 font-semibold text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 bg-gray-50 font-semibold text-gray-900"
                 readOnly
               />
             </div>
@@ -629,8 +578,8 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
         </div>
 
         {/* SECCIÓN 6: IVA */}
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-red-800 mb-3">📊 IVA</h4>
+        <div className="bg-gray-30 border border-gray-300 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">📊 IVA</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -644,7 +593,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -660,7 +609,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -675,7 +624,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 onChange={handleChange}
                 disabled={!userId}
                 placeholder="Código"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
           </div>
@@ -693,7 +642,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -709,7 +658,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -725,14 +674,14 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
           </div>
         </div>
 
         {/* SECCIÓN 7: ACTIVO FIJO Y OTROS */}
-        <div className="bg-gray-30 border border-gray-200 rounded-lg p-4">
+        <div className="bg-gray-30 border border-gray-300 rounded-lg p-4">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">🏗️ Activo Fijo y Otros</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -786,8 +735,8 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
         </div>
 
         {/* SECCIÓN 8: IMPUESTOS ESPECIALES */}
-        <div className="bg-gray-30 border border-gray-200 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-orange-800 mb-3">🚬 Impuestos Especiales</h4>
+        <div className="bg-gray-30 border border-gray-300 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-800 mb-3">🚬 Impuestos Especiales</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -801,7 +750,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -817,7 +766,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -833,7 +782,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
           </div>
@@ -850,7 +799,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 onChange={handleChange}
                 disabled={!userId}
                 placeholder="Código"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -866,7 +815,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
 
@@ -882,7 +831,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
                 disabled={!userId}
                 placeholder="0"
                 step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent disabled:bg-gray-100 text-gray-900"
               />
             </div>
           </div>
