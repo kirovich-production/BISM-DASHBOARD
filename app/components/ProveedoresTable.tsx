@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Proveedor } from '@/types';
 
 interface ProveedoresTableProps {
@@ -16,17 +16,7 @@ export default function ProveedoresTable({ userId, sucursal, periodo }: Proveedo
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingObservaciones, setEditingObservaciones] = useState('');
 
-  // Cargar proveedores cuando cambien userId, sucursal o periodo
-  useEffect(() => {
-    if (userId && sucursal && periodo) {
-      loadProveedores();
-    } else {
-      setProveedores([]);
-      setIsLoading(false);
-    }
-  }, [userId, sucursal, periodo]);
-
-  const loadProveedores = async () => {
+  const loadProveedores = useCallback(async () => {
     if (!userId || !sucursal || !periodo) return;
     
     setIsLoading(true);
@@ -42,7 +32,17 @@ export default function ProveedoresTable({ userId, sucursal, periodo }: Proveedo
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId, sucursal, periodo]);
+
+  // Cargar proveedores cuando cambien userId, sucursal o periodo
+  useEffect(() => {
+    if (userId && sucursal && periodo) {
+      loadProveedores();
+    } else {
+      setProveedores([]);
+      setIsLoading(false);
+    }
+  }, [userId, sucursal, periodo, loadProveedores]);
 
   const handleEditClick = (index: number, proveedor: Proveedor) => {
     setEditingIndex(index);

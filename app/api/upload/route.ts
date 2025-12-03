@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase, getUserCollectionName } from '@/lib/mongodb';
 import * as XLSX from 'xlsx';
-import { parseEERR, parseConsolidado } from '@/lib/excelParser';
+import { parseConsolidado, parseLibroComprasSheet } from '@/lib/excelParser';
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,9 +59,21 @@ export async function POST(request: NextRequest) {
     
     const consolidadoData = parseConsolidado(workbook);
     
-    const sevillaData = parseEERR(workbook, 'EERR SEVILLA');
+    // Parsear Libro de Compras y generar EERR automáticamente
+    const libroComprasTransactions = parseLibroComprasSheet(workbook);
     
-    const labranzaData = parseEERR(workbook, 'EERR LABRANZA');
+    let sevillaData = null;
+    let labranzaData = null;
+    
+    if (libroComprasTransactions && libroComprasTransactions.length > 0) {
+      // Generar EERR desde Libro de Compras
+      const { generateEERRFromLibroCompras } = await import('@/lib/eerrCalculator');
+      sevillaData = generateEERRFromLibroCompras(libroComprasTransactions, 'Sevilla');
+      labranzaData = generateEERRFromLibroCompras(libroComprasTransactions, 'Labranza');
+      console.log(`[UPLOAD] ✅ EERR generado automáticamente desde Libro de Compras`);
+    } else {
+      console.warn('[UPLOAD] ⚠️ No se encontraron transacciones en Libro de Compras, EERR no generado');
+    }
 
     // Validar que al menos tengamos la hoja consolidado
     if (!consolidadoData) {

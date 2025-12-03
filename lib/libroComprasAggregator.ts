@@ -179,7 +179,7 @@ export function aggregateLibroComprasToEERR(
   
   transacciones.forEach(tx => {
     const cuenta = (tx.cuenta || 'Sin Clasificar').trim();
-    const monto = tx.montoTotal || 0;
+    const monto = tx.montoNeto || 0;
     
     const montoActual = transaccionesPorCuenta.get(cuenta) || 0;
     transaccionesPorCuenta.set(cuenta, montoActual + monto);
@@ -466,7 +466,7 @@ export function aggregateMultiplePeriodsToEERR(
     
     doc.transacciones.forEach(tx => {
       const cuenta = (tx.cuenta || 'Sin Clasificar').trim();
-      const monto = tx.montoTotal || 0;
+      const monto = tx.montoNeto || 0;
       
       const montoActual = mapPeriodo.get(cuenta) || 0;
       mapPeriodo.set(cuenta, montoActual + monto);
