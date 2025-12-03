@@ -3,20 +3,35 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Proveedor } from '@/types';
 
-export default function ProveedoresTable() {
+interface ProveedoresTableProps {
+  userId: string | null;
+  sucursal: string | null;
+  periodo: string | null;
+}
+
+export default function ProveedoresTable({ userId, sucursal, periodo }: ProveedoresTableProps) {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingObservaciones, setEditingObservaciones] = useState('');
 
-  // Cargar proveedores
+  // Cargar proveedores cuando cambien userId, sucursal o periodo
   useEffect(() => {
-    loadProveedores();
-  }, []);
+    if (userId && sucursal && periodo) {
+      loadProveedores();
+    } else {
+      setProveedores([]);
+      setIsLoading(false);
+    }
+  }, [userId, sucursal, periodo]);
 
   const loadProveedores = async () => {
+    if (!userId || !sucursal || !periodo) return;
+    
     setIsLoading(true);
     try {
-      const response = await fetch('/api/proveedores-excel');
+      const response = await fetch(`/api/proveedores-excel?userId=${userId}&sucursal=${sucursal}&periodo=${periodo}`);
       const result = await response.json();
       
       if (result.success) {
@@ -29,6 +44,50 @@ export default function ProveedoresTable() {
     }
   };
 
+  const handleEditClick = (index: number, proveedor: Proveedor) => {
+    setEditingIndex(index);
+    setEditingObservaciones(proveedor.observaciones || '');
+  };
+
+  const handleSaveObservaciones = async (rut: string) => {
+    if (!userId || !sucursal || !periodo) return;
+    
+    try {
+      const response = await fetch('/api/proveedores-excel', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId,
+          sucursal,
+          periodo,
+          rut, 
+          observaciones: editingObservaciones 
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Actualizar estado local
+        setProveedores(prev => prev.map(p => 
+          p.rut === rut ? { ...p, observaciones: editingObservaciones } : p
+        ));
+        setEditingIndex(null);
+        setEditingObservaciones('');
+      } else {
+        alert('Error al guardar observaciones: ' + (result.error || 'Error desconocido'));
+      }
+    } catch (error) {
+      console.error('Error al actualizar observaciones:', error);
+      alert('Error de conexión al guardar observaciones');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
+    setEditingObservaciones('');
+  };
+
   // Filtrar proveedores
   const filteredProveedores = useMemo(() => {
     if (!searchTerm) return proveedores;
@@ -39,6 +98,16 @@ export default function ProveedoresTable() {
       p.nombre.toLowerCase().includes(term)
     );
   }, [proveedores, searchTerm]);
+
+  if (!userId || !sucursal || !periodo) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+        <p className="text-sm text-yellow-700 font-medium">
+          Selecciona un usuario, sucursal y período para visualizar los proveedores
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -75,7 +144,7 @@ export default function ProveedoresTable() {
             No hay proveedores registrados
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-green-600 sticky top-0 z-10">
                 <tr>
@@ -88,7 +157,7 @@ export default function ProveedoresTable() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredProveedores.map((proveedor, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
+                  <tr key={`${proveedor.rut}-${idx}`} className="hover:bg-gray-50 group">
                     <td className="px-6 py-3 text-sm font-medium text-gray-900">{proveedor.rut}</td>
                     <td className="px-6 py-3 text-sm text-gray-900">{proveedor.nombre}</td>
                     <td className="px-6 py-3 text-sm text-gray-900">
@@ -105,8 +174,44 @@ export default function ProveedoresTable() {
                         </span>
                       ) : '-'}
                     </td>
-                    <td className="px-6 py-3 text-sm text-gray-600 max-w-xs truncate">
-                      {proveedor.observaciones || '-'}
+                    <td className="px-6 py-3 text-sm text-gray-600">
+                      {editingIndex === idx ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editingObservaciones}
+                            onChange={(e) => setEditingObservaciones(e.target.value)}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-gray-900 focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveObservaciones(proveedor.rut);
+                              if (e.key === 'Escape') handleCancelEdit();
+                            }}
+                          />
+                          <button
+                            onClick={() => handleSaveObservaciones(proveedor.rut)}
+                            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="truncate max-w-xs">{proveedor.observaciones || '-'}</span>
+                          <button
+                            onClick={() => handleEditClick(idx, proveedor)}
+                            className="ml-2 px-2 py-1 text-blue-600 hover:text-blue-800 opacity-0 group-hover:opacity-100 transition-opacity text-xs whitespace-nowrap"
+                          >
+                            ✏️ Editar
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

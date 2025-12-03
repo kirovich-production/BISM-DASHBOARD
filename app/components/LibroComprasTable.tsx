@@ -173,7 +173,7 @@ export default function LibroComprasTable({ userId, periodo, sucursal, onDataLoa
 
       {/* Tabla - TODAS LAS 29 COLUMNAS */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-blue-600 sticky top-0 z-10">
               <tr>

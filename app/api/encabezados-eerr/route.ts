@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ENCABEZADOS_EERR } from '@/lib/encabezadosEERR';
 
 // GET /api/encabezados-eerr - Retorna lista de encabezados disponibles
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     return NextResponse.json({
       success: true,
