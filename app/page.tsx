@@ -200,7 +200,6 @@ export default function Home() {
             <DashboardView
               onNavigate={handleViewChange}
               selectedUserName={selectedUserName}
-              hasData={excelData !== null}
               availableSections={
                 excelData?.consolidado?.map(s => s.name.toLowerCase()) || []
               }
