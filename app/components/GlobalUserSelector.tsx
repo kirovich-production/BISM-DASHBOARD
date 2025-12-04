@@ -20,7 +20,7 @@ export default function GlobalUserSelector({ onUserChange, selectedUserId }: Glo
       
       if (result.success && result.users) {
         // Mapear _id a id para compatibilidad con el tipo User
-        const mappedUsers = result.users.map((u: any) => ({
+        const mappedUsers = result.users.map((u: { _id?: string; id?: string; name: string; createdAt?: string }) => ({
           id: u._id || u.id,
           name: u.name,
           createdAt: u.createdAt

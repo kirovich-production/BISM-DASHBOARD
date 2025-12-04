@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const libroComprasCollection = db.collection('libroCompras');
 
     // Construir filtro base
-    const filter: any = { userId };
+    const filter: Record<string, unknown> = { userId };
     
     // Si se especifica sucursal, agregar al filtro
     if (sucursal) {

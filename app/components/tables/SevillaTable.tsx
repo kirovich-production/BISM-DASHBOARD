@@ -10,11 +10,10 @@ interface SevillaTableProps {
   version?: number;
   uploadedAt?: string | Date;
   userId?: string;
-  periodo?: string;
   onDataRefresh?: () => void;
 }
 
-export default function SevillaTable({ data, periodLabel, version, uploadedAt, userId, periodo, onDataRefresh }: SevillaTableProps) {
+export default function SevillaTable({ data, periodLabel, version, uploadedAt, userId, onDataRefresh }: SevillaTableProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   if (!data) {
@@ -490,7 +489,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
                               periodo={data.monthToPeriod[month]}
                               sucursal="Sevilla"
                               cuenta="Ventas"
-                              onValueChange={(newValue) => {
+                              onValueChange={() => {
                                 if (onDataRefresh) {
                                   onDataRefresh();
                                 }

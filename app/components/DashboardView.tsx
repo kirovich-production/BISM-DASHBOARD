@@ -3,14 +3,12 @@
 interface DashboardViewProps {
   onNavigate: (view: string) => void; // Ahora acepta cualquier sección dinámica
   selectedUserName?: string;
-  hasData: boolean;
   availableSections?: string[]; // Secciones disponibles desde Excel (ej: ['sevilla', 'labranza', 'consolidado'])
 }
 
 export default function DashboardView({ 
   onNavigate, 
   selectedUserName, 
-  hasData,
   availableSections = []
 }: DashboardViewProps) {
 
