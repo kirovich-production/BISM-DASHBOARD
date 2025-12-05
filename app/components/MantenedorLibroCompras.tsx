@@ -223,7 +223,7 @@ export default function MantenedorLibroDiario({ userId }: MantenedorLibroDiarioP
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-2">Mantenedor - Inserción en Libro Diario</h3>
+        <h3 className="text-xl font-bold text-gray-800 mb-2">Mantenedor - Inserción en Libro de Compras</h3>
         <p className="text-sm text-gray-600">
           Registra manualmente transacciones en el Libro de Compras. Los proveedores se guardan automáticamente.
         </p>

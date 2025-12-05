@@ -9,80 +9,37 @@ const MESES = [
 ];
 
 /**
- * Estructura predefinida de cuentas para EERR
+ * Estructura de encabezados EERR (sin cuentas hardcodeadas)
+ * Las cuentas se generan dinámicamente desde el Libro de Compras
+ * EXCEPCIÓN: Solo "Ventas" está hardcodeada en INGRESOS OPERACIONALES
  */
 const ESTRUCTURA_EERR = [
   {
     name: 'INGRESOS OPERACIONALES',
-    items: ['Ventas', 'Costo de venta', 'Transbank', 'Bonificacion por tramo'],
-    hasMargenBruto: true
+    hasMargenBruto: true  // Indica que calcula MARGEN BRUTO OPERACIONAL
   },
   {
-    name: 'GASTOS DE REMUNERACION',
-    items: [
-      'Sueldo Personal',
-      'Seguro de Cesantia',
-      'Seguro de Accidentes Trabajo',
-      'Seguro Invalidez y Sobrevivencia',
-      'Finiquitos',
-      'Honorarios BH',
-      'Honorarios Factura BSM',
-      'Provision de Vacaciones'
-    ]
+    name: 'GASTOS DE REMUNERACION'
   },
   {
-    name: 'GASTOS DE OPERACION',
-    items: [
-      'Consumo de Electricidad',
-      'Consumo de Agua',
-      'Comunicaciones',
-      'Articulos de Aseo',
-      'Mantencion y Reparacion',
-      'Gastos Generales',
-      'Servicios Externos',
-      'Caja Chica'
-    ]
+    name: 'GASTOS DE OPERACION'
   },
   {
-    name: 'GASTOS DE ADMINISTRACION',
-    items: [
-      'Materiales y Utiles de Oficina',
-      'Publicidad y Propaganda BSM',
-      'Licencias y Software',
-      'Gastos Notariales',
-      'Gastos Bancarios',
-      'Contribuciones',
-      'Patentes Municipales',
-      'Gastos generales',
-      'Recaudacion y Sencillo',
-      'Seguros'
-    ]
+    name: 'GASTOS DE ADMINISTRACION'
   },
   {
-    name: 'OTROS GASTOS',
-    items: [
-      'Arriendo',
-      'Gestion BSM',
-      'Supervisor punto de venta (S.M)'
-    ]
+    name: 'OTROS GASTOS'
   },
   {
     name: 'EBIDTA',
-    items: [],
-    isCalculated: true
+    isCalculated: true  // Subtotal calculado
   },
   {
-    name: 'OTROS EGRESOS FUERA DE EXPLOTACION',
-    items: [
-      'Pago Cuota Leasing',
-      'Pago Cuota creditos Bancarios',
-      'Directorio'
-    ]
+    name: 'OTROS EGRESOS FUERA DE EXPLOTACION'
   },
   {
     name: 'RESULTADO NETO',
-    items: [],
-    isCalculated: true
+    isCalculated: true  // Subtotal calculado
   }
 ];
 
@@ -188,54 +145,48 @@ export function aggregateLibroComprasToEERR(
   // Rastrear qué cuentas del LC ya fueron mapeadas
   const cuentasMapeadas = new Set<string>();
   
-  // Construir categorías con estructura predefinida
+  // Construir categorías dinámicamente desde el Libro de Compras
   const categories: EERRCategory[] = [];
   
   ESTRUCTURA_EERR.forEach(estructuraCategoria => {
     const rows: EERRRow[] = [];
     
-    // Agregar items predefinidos de la categoría
-    estructuraCategoria.items.forEach(itemName => {
-      const row: EERRRow = { Item: itemName };
+    // CASO ESPECIAL: INGRESOS OPERACIONALES - agregar Ventas hardcodeada
+    if (estructuraCategoria.name === 'INGRESOS OPERACIONALES') {
+      const ventasRow: EERRRow = { Item: 'Ventas' };
       
-      // Primero verificar si hay valor manual para esta cuenta
-      let monto = valoresManuales[itemName] || 0;
+      // Primero verificar si hay valor manual para Ventas
+      let ventasMonto = valoresManuales['Ventas'] || 0;
       
       // Si no hay valor manual, buscar en transacciones del LC
-      if (monto === 0) {
-        const itemNormalizado = itemName.toLowerCase().trim();
-        
+      if (ventasMonto === 0) {
         for (const [cuentaTx, montoTx] of transaccionesPorCuenta.entries()) {
           const cuentaNormalizada = cuentaTx.toLowerCase().trim();
           
-          // Match exacto o case-insensitive
-          if (cuentaTx === itemName || cuentaNormalizada === itemNormalizado) {
-            monto = montoTx;
+          if (cuentaTx === 'Ventas' || cuentaNormalizada === 'ventas') {
+            ventasMonto = montoTx;
             cuentasMapeadas.add(cuentaTx);
             break;
           }
         }
       }
       
-      // Agregar valores por mes
-      row[`${mesNombre} Monto`] = monto;
-      row[`${mesNombre} %`] = 0; // Se calcula después basado en Ventas
+      ventasRow[`${mesNombre} Monto`] = ventasMonto;
+      ventasRow[`${mesNombre} %`] = 0;
+      ventasRow['CONSOLIDADO Monto'] = ventasMonto;
+      ventasRow['CONSOLIDADO %'] = 0;
+      ventasRow['CONSOLIDADO Promedio'] = ventasMonto;
       
-      // CONSOLIDADO
-      row['CONSOLIDADO Monto'] = monto;
-      row['CONSOLIDADO %'] = 0; // Se calcula después basado en Ventas
-      row['CONSOLIDADO Promedio'] = monto;
-      
-      rows.push(row);
-    });
+      rows.push(ventasRow);
+    }
     
-    // Agregar cuentas adicionales del LC que pertenecen a esta categoría
+    // Agregar cuentas dinámicamente del LC que pertenecen a esta categoría
     if (!estructuraCategoria.isCalculated) {
       for (const [cuentaTx, montoTx] of transaccionesPorCuenta.entries()) {
-        // Si ya fue mapeada, skip
+        // Si ya fue mapeada (ej: Ventas), skip
         if (cuentasMapeadas.has(cuentaTx)) continue;
         
-        // Clasificar la cuenta
+        // Clasificar la cuenta usando la función de clasificación
         const categoriaClasificada = clasificarCuenta(cuentaTx);
         
         // Si pertenece a esta categoría, agregarla
@@ -478,15 +429,15 @@ export function aggregateMultiplePeriodsToEERR(
   // Rastrear qué cuentas del LC ya fueron mapeadas
   const cuentasMapeadas = new Set<string>();
   
-  // Construir categorías con estructura predefinida
+  // Construir categorías dinámicamente desde el Libro de Compras
   const categories: EERRCategory[] = [];
   
   ESTRUCTURA_EERR.forEach(estructuraCategoria => {
     const rows: EERRRow[] = [];
     
-    // Agregar items predefinidos de la categoría
-    estructuraCategoria.items.forEach(itemName => {
-      const row: EERRRow = { Item: itemName };
+    // CASO ESPECIAL: INGRESOS OPERACIONALES - agregar Ventas hardcodeada
+    if (estructuraCategoria.name === 'INGRESOS OPERACIONALES') {
+      const ventasRow: EERRRow = { Item: 'Ventas' };
       let totalAnual = 0;
       let countMeses = 0;
       
@@ -496,41 +447,38 @@ export function aggregateMultiplePeriodsToEERR(
         const valoresManuales = doc.valoresManuales || {};
         const mapPeriodo = transaccionesPorPeriodo.get(mesNombre);
         
-        // Primero verificar si hay valor manual para esta cuenta en este período
-        let monto = valoresManuales[itemName] || 0;
+        // Primero verificar si hay valor manual para Ventas en este período
+        let ventasMonto = valoresManuales['Ventas'] || 0;
         
         // Si no hay valor manual, buscar en transacciones del LC de este período
-        if (monto === 0 && mapPeriodo) {
-          const itemNormalizado = itemName.toLowerCase().trim();
-          
+        if (ventasMonto === 0 && mapPeriodo) {
           for (const [cuentaTx, montoTx] of mapPeriodo.entries()) {
             const cuentaNormalizada = cuentaTx.toLowerCase().trim();
             
-            // Match exacto o case-insensitive
-            if (cuentaTx === itemName || cuentaNormalizada === itemNormalizado) {
-              monto = montoTx;
+            if (cuentaTx === 'Ventas' || cuentaNormalizada === 'ventas') {
+              ventasMonto = montoTx;
               cuentasMapeadas.add(`${mesNombre}:${cuentaTx}`);
               break;
             }
           }
         }
         
-        row[`${mesNombre} Monto`] = monto;
-        row[`${mesNombre} %`] = 0; // Se calcula después basado en Ventas
+        ventasRow[`${mesNombre} Monto`] = ventasMonto;
+        ventasRow[`${mesNombre} %`] = 0;
         
-        totalAnual += monto;
+        totalAnual += ventasMonto;
         countMeses++;
       });
       
       // ANUAL
-      row['ANUAL Monto'] = totalAnual;
-      row['ANUAL %'] = 0; // Se calcula después basado en Ventas
-      row['ANUAL Promedio'] = countMeses > 0 ? totalAnual / countMeses : 0;
+      ventasRow['ANUAL Monto'] = totalAnual;
+      ventasRow['ANUAL %'] = 0;
+      ventasRow['ANUAL Promedio'] = countMeses > 0 ? totalAnual / countMeses : 0;
       
-      rows.push(row);
-    });
+      rows.push(ventasRow);
+    }
     
-    // Agregar cuentas adicionales del LC que pertenecen a esta categoría
+    // Agregar cuentas dinámicamente del LC que pertenecen a esta categoría
     if (!estructuraCategoria.isCalculated) {
       // Recolectar todas las cuentas únicas de todos los períodos
       const cuentasUnicas = new Set<string>();
@@ -541,11 +489,11 @@ export function aggregateMultiplePeriodsToEERR(
       });
       
       cuentasUnicas.forEach(cuentaTx => {
-        // Verificar si ya fue mapeada en algún período
+        // Verificar si ya fue mapeada en algún período (ej: Ventas)
         const yaMapeada = monthNames.some(mes => cuentasMapeadas.has(`${mes}:${cuentaTx}`));
         if (yaMapeada) return;
         
-        // Clasificar la cuenta
+        // Clasificar la cuenta usando la función de clasificación
         const categoriaClasificada = clasificarCuenta(cuentaTx);
         
         // Si pertenece a esta categoría, agregarla
@@ -734,16 +682,18 @@ export function aggregateMultiplePeriodsToEERR(
   }
   
   // Calcular porcentajes basados en Ventas de cada mes y ANUAL
-  categories.forEach(cat => {
-    const ventasRow = cat.rows.find(r => r.Item === 'Ventas');
+  // Buscar la fila Ventas en INGRESOS OPERACIONALES (una sola vez)
+  const ingresosCategory = categories.find(cat => cat.name === 'INGRESOS OPERACIONALES');
+  const ventasRow = ingresosCategory?.rows.find(r => r.Item === 'Ventas');
+  
+  // Calcular % para cada mes usando el valor de Ventas global
+  monthNames.forEach(mesNombre => {
+    const montoVentasMes = ventasRow?.[`${mesNombre} Monto`];
+    const montoVentas = typeof montoVentasMes === 'number' ? montoVentasMes : 0;
     
-    // Calcular % para cada mes
-    monthNames.forEach(mesNombre => {
-      const montoVentasMes = ventasRow?.[`${mesNombre} Monto`];
-      const montoVentas = typeof montoVentasMes === 'number' ? montoVentasMes : 0;
-      
-      if (montoVentas > 0) {
-        // Calcular % para cada fila
+    if (montoVentas > 0) {
+      // Calcular % para cada fila de TODAS las categorías
+      categories.forEach(cat => {
         cat.rows.forEach(row => {
           const montoMes = row[`${mesNombre} Monto`];
           if (typeof montoMes === 'number') {
@@ -758,14 +708,16 @@ export function aggregateMultiplePeriodsToEERR(
             cat.total[`${mesNombre} %`] = (totalMontoMes / montoVentas) * 100;
           }
         }
-      }
-    });
-    
-    // Calcular % ANUAL
-    const montoVentasAnual = ventasRow?.['ANUAL Monto'];
-    const montoVentasAnualNum = typeof montoVentasAnual === 'number' ? montoVentasAnual : 0;
-    
-    if (montoVentasAnualNum > 0) {
+      });
+    }
+  });
+  
+  // Calcular % ANUAL usando el valor de Ventas global
+  const montoVentasAnual = ventasRow?.['ANUAL Monto'];
+  const montoVentasAnualNum = typeof montoVentasAnual === 'number' ? montoVentasAnual : 0;
+  
+  if (montoVentasAnualNum > 0) {
+    categories.forEach(cat => {
       cat.rows.forEach(row => {
         const montoAnual = row['ANUAL Monto'];
         if (typeof montoAnual === 'number') {
@@ -779,8 +731,8 @@ export function aggregateMultiplePeriodsToEERR(
           cat.total['ANUAL %'] = (totalMontoAnual / montoVentasAnualNum) * 100;
         }
       }
-    }
-  });
+    });
+  }
   
   // Determinar sheetName basado en períodos
   const firstPeriodo = docsOrdenados[0]?.periodo || '';
