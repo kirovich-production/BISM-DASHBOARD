@@ -13,6 +13,7 @@ import {
   ChartOptions,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import AddToReportButton from './AddToReportButton';
 
 ChartJS.register(
   CategoryScale,
@@ -58,6 +59,7 @@ interface ComparativoEbitdaViewProps {
 
 export default function ComparativoEbitdaView({ consolidadoData, sevillaData, labranzaData, selectedUserName, selectedPeriod }: ComparativoEbitdaViewProps) {
   const chartRef = useRef<ChartJS<'line'>>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [notes, setNotes] = useState('');
   const [showPercentages, setShowPercentages] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -396,6 +398,216 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
     },
   };
 
+  // Función para generar HTML del reporte (sin notas, layout horizontal)
+  const generateComparativoEbitdaHTML = async (): Promise<string> => {
+    // Capturar el gráfico
+    let chartImageBase64 = '';
+    if (chartRef.current) {
+      try {
+        const canvas = chartRef.current.canvas;
+        if (canvas) {
+          chartImageBase64 = canvas.toDataURL('image/png', 0.95);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error capturando gráfico:', error);
+      }
+    }
+
+    // Calcular promedios
+    const consolidadoPromedio = showPercentages 
+      ? parseFloat((consolidadoEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitdaPercent.length).toFixed(2))
+      : (consolidadoEbitda.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitda.length);
+    
+    const sevillaPromedio = showPercentages 
+      ? parseFloat((sevillaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitdaPercent.length).toFixed(2))
+      : (sevillaEbitda.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitda.length);
+    
+    const labranzaPromedio = showPercentages 
+      ? parseFloat((labranzaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitdaPercent.length).toFixed(2))
+      : (labranzaEbitda.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitda.length);
+
+    const formatValue = (value: number): string => {
+      if (showPercentages) {
+        return `${value.toFixed(2)}%`;
+      }
+      return new Intl.NumberFormat('es-CL', {
+        style: 'currency',
+        currency: 'CLP',
+        minimumFractionDigits: 0,
+      }).format(value);
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Comparativo EBITDA por Centro</title>
+        <style>
+          @page {
+            size: A4 landscape;
+            margin: 0.4in;
+          }
+          
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Arial', sans-serif;
+            color: #1f2937;
+            background: white;
+            margin: 0;
+            padding: 0;
+          }
+          
+          .ebitda-container {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 4px;
+            height: auto;
+            padding: 2px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          
+          .ebitda-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #1f2937;
+            border-bottom: 1px solid #22c55e;
+            padding-bottom: 2px;
+            margin-bottom: 2px;
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          
+          .ebitda-chart {
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+          }
+          
+          .ebitda-chart .chart-image {
+            width: 100%;
+            height: auto;
+            max-height: 420px;
+            object-fit: contain;
+            border-radius: 4px;
+          }
+          
+          .ebitda-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 4px;
+          }
+          
+          .ebitda-card {
+            background: white;
+            border-radius: 6px;
+            padding: 8px 10px;
+            border: 2px solid #e5e7eb;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+          }
+          
+          .ebitda-card-consolidado {
+            border-left: 5px solid #3b82f6;
+            background: #eff6ff;
+          }
+          
+          .ebitda-card-sevilla {
+            border-left: 5px solid #8b5cf6;
+            background: #f3e8ff;
+          }
+          
+          .ebitda-card-labranza {
+            border-left: 5px solid #10b981;
+            background: #ecfdf5;
+          }
+          
+          .ebitda-card .card-title {
+            font-size: 9px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            line-height: 1.2;
+          }
+          
+          .ebitda-card-consolidado .card-title {
+            color: #1e40af;
+          }
+          
+          .ebitda-card-sevilla .card-title {
+            color: #7c3aed;
+          }
+          
+          .ebitda-card-labranza .card-title {
+            color: #059669;
+          }
+          
+          .ebitda-card .card-value {
+            font-size: 14px;
+            font-weight: bold;
+          }
+          
+          .ebitda-card-consolidado .card-value {
+            color: #1e3a8a;
+          }
+          
+          .ebitda-card-sevilla .card-value {
+            color: #6b21a8;
+          }
+          
+          .ebitda-card-labranza .card-value {
+            color: #047857;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="ebitda-container">
+          <div class="ebitda-title">
+            📊 Comparativo EBITDA por Centro
+          </div>
+          
+          <div class="ebitda-chart">
+            ${chartImageBase64 ? `
+              <img src="${chartImageBase64}" alt="Gráfico Comparativo EBITDA" class="chart-image" />
+            ` : '<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #9ca3af;">Gráfico no disponible</div>'}
+          </div>
+          
+          <div class="ebitda-cards">
+            <div class="ebitda-card ebitda-card-consolidado">
+              <div class="card-title">EBITDA Promedio<br>Consolidado ${showPercentages ? '(%)' : '(CLP)'}</div>
+              <div class="card-value">${formatValue(consolidadoPromedio)}</div>
+            </div>
+            
+            <div class="ebitda-card ebitda-card-sevilla">
+              <div class="card-title">EBITDA Promedio<br>Sevilla ${showPercentages ? '(%)' : '(CLP)'}</div>
+              <div class="card-value">${formatValue(sevillaPromedio)}</div>
+            </div>
+            
+            <div class="ebitda-card ebitda-card-labranza">
+              <div class="card-title">EBITDA Promedio<br>Labranza ${showPercentages ? '(%)' : '(CLP)'}</div>
+              <div class="card-value">${formatValue(labranzaPromedio)}</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
   // Función para exportar PDF usando Browserless (como MesAnualChartsView)
   const exportPDF = async () => {
     if (!chartRef.current) {
@@ -689,7 +901,7 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 overflow-y-auto max-h-screen">
+    <div ref={contentRef} className="bg-white rounded-xl shadow-lg p-6 overflow-y-auto max-h-screen">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
@@ -719,6 +931,14 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
             </svg>
             {showPercentages ? 'Ver CLP' : 'Ver %'}
           </button>
+          
+          <AddToReportButton
+            viewName={`Comparativo EBITDA ${showPercentages ? '(%)' : '(CLP)'}`}
+            contentRef={contentRef as React.RefObject<HTMLElement>}
+            period={selectedPeriod || 'Sin período'}
+            captureMode="html"
+            htmlGenerator={() => generateComparativoEbitdaHTML()}
+          />
           
           <button
             onClick={exportPDF}

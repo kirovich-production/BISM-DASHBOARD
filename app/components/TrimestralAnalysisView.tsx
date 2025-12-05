@@ -15,6 +15,7 @@ import {
   ChartOptions,
 } from "chart.js";
 import type { ExcelRow, EERRData } from "@/types";
+import AddToReportButton from "./AddToReportButton";
 
 // Registrar componentes de Chart.js
 ChartJS.register(
@@ -545,6 +546,308 @@ export default function TrimestralAnalysisView({
 
   const comparativeMetrics = getComparativeMetrics();
 
+  // Función para generar HTML del análisis (compartida entre PDF individual y reporte)
+  const generateAnalysisHTML = async (includeNotes: boolean = true, includeHeader: boolean = true) => {
+    // Capturar el gráfico como imagen
+    let chartImageBase64 = "";
+    const chartContainer = contentRef.current;
+
+    if (chartContainer) {
+      const canvas = chartContainer.querySelector("canvas");
+      if (canvas) {
+        try {
+          chartImageBase64 = canvas.toDataURL("image/png", 0.8);
+        } catch (error) {
+          console.warn("⚠️ No se pudo capturar el gráfico:", error);
+        }
+      }
+    }
+
+    const currentDate = new Date().toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Análisis Trimestral Comparativo - ${periodLabel}</title>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #1f2937;
+            line-height: 1.4;
+          }
+          
+          .trimestral-header {
+            text-align: center;
+            margin: 0 0 15px 0;
+            padding: 10px 15px 12px 15px;
+            border-bottom: 3px solid #8b5cf6;
+          }
+          .trimestral-header h1 {
+            color: #1f2937;
+            font-size: 24px;
+            margin: 0 0 6px 0;
+            font-weight: bold;
+            letter-spacing: -0.3px;
+          }
+          .trimestral-header .business-unit {
+            color: #8b5cf6;
+            padding: 0;
+            font-size: 14px;
+            font-weight: 600;
+            display: block;
+            margin: 4px 0 6px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+          .trimestral-header p {
+            color: #6b7280;
+            font-size: 10px;
+            margin: 0;
+            font-weight: normal;
+          }
+          
+          .trimestral-main {
+            padding: 10px;
+            page-break-inside: avoid;
+          }
+          
+          .trimestral-grid {
+            display: grid;
+            grid-template-columns: 70% 30%;
+            grid-template-rows: auto auto;
+            gap: 10px;
+            align-items: start;
+          }
+
+          .trimestral-chart {
+            grid-column: 1;
+            grid-row: 1 / 3;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+          }
+          .trimestral-chart-title {
+            color: #374151;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 6px;
+            flex-shrink: 0;
+          }
+          .trimestral-chart-image {
+            max-width: 100%;
+            width: 100%;
+            height: 100%;
+            max-height: none;
+            object-fit: fill;
+            object-position: center;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: block;
+            margin-bottom: 0;
+            flex: 1;
+          }
+          .trimestral-chart-image.compact {
+            max-height: none;
+          }
+          .trimestral-chart-placeholder {
+            background: #f3f4f6;
+            padding: 40px;
+            border: 2px dashed #9ca3af;
+            border-radius: 8px;
+            color: #6b7280;
+            font-style: italic;
+            font-size: 14px;
+          }
+
+          .trimestral-metrics {
+            grid-column: 2;
+            grid-row: 1 / 3;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .trimestral-metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+          }
+          .trimestral-metric-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-left: 6px solid #8b5cf6;
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .trimestral-metric-card.compact {
+            padding: 6px;
+            border-radius: 6px;
+            border-left-width: 3px;
+          }
+          .trimestral-metric-title {
+            font-weight: bold;
+            color: #1f2937;
+            font-size: 14px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 6px;
+          }
+          .trimestral-metric-title.compact {
+            font-size: 10px;
+            margin-bottom: 4px;
+            padding-bottom: 3px;
+          }
+          .trimestral-metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            padding: 4px 0;
+          }
+          .trimestral-metric-row.compact {
+            margin-bottom: 4px;
+            padding: 2px 0;
+          }
+          .trimestral-metric-label {
+            font-weight: 600;
+            color: #4b5563;
+            font-size: 11px;
+          }
+          .trimestral-metric-label.compact {
+            font-size: 8px;
+          }
+          .trimestral-metric-value {
+            font-weight: bold;
+            font-size: 12px;
+          }
+          .trimestral-metric-value.compact {
+            font-size: 9px;
+          }
+          .trimestral-metric-q1 { color: #3b82f6; }
+          .trimestral-metric-q2 { color: #10b981; }
+          .trimestral-variation-positive { color: #10b981; }
+          .trimestral-variation-negative { color: #ef4444; }
+          .trimestral-winner-badge {
+            background: #e0f2fe;
+            color: #0277bd;
+            padding: 3px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+          }
+
+          .trimestral-notes {
+            grid-column: 1;
+            grid-row: 2;
+            background: #ffffff;
+            border: 1px solid #6b7280;
+            border-radius: 12px;
+            padding: 15px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            width: 66.67%;
+            max-width: 66.67%;
+          }
+          .trimestral-notes-title {
+            color: #000000;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+          }
+          .trimestral-notes-content {
+            color: #000000;
+            line-height: 1.6;
+            font-size: 12px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="trimestral-main">
+          ${includeHeader ? `<div class="trimestral-header">
+            <h1>📊 Análisis Trimestral Comparativo</h1>
+            <div class="business-unit">
+              ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
+            </div>
+            <p>Período: ${periodLabel} | Generado: ${currentDate}</p>
+          </div>` : ''}
+          
+          <div class="trimestral-grid">
+            <div class="trimestral-chart">
+              <h3 class="trimestral-chart-title">
+                ${analysisType === "comparison"
+                  ? `📊 Gráfico de Comparación: ${QUARTERS[selectedQuarter1].label} vs ${QUARTERS[selectedQuarter2].label}`
+                  : `📈 Gráfico de Evolución: ${QUARTERS[selectedQuarter1].label} + ${QUARTERS[selectedQuarter2].label}`}
+              </h3>
+              ${chartImageBase64
+                ? `<img src="${chartImageBase64}" alt="Gráfico de Análisis Trimestral" class="trimestral-chart-image ${comparativeMetrics.length >= 4 ? 'compact' : ''}" />`
+                : `<div class="trimestral-chart-placeholder">Gráfico no disponible</div>`}
+            </div>
+
+            <div class="trimestral-metrics">
+              <div class="trimestral-metrics-grid compact">
+                ${comparativeMetrics.map((metric) => {
+                  const isCompact = true;
+                  return `
+                    <div class="trimestral-metric-card ${isCompact ? 'compact' : ''}">
+                      <div class="trimestral-metric-title ${isCompact ? 'compact' : ''}">${metric.item}</div>
+                      <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
+                        <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">${QUARTERS[selectedQuarter1].label}</span>
+                        <span class="trimestral-metric-value ${isCompact ? 'compact' : ''} trimestral-metric-q1">$${metric.q1.total.toLocaleString("es-CL")}</span>
+                      </div>
+                      <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
+                        <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">${QUARTERS[selectedQuarter2].label}</span>
+                        <span class="trimestral-metric-value ${isCompact ? 'compact' : ''} trimestral-metric-q2">$${metric.q2.total.toLocaleString("es-CL")}</span>
+                      </div>
+                      <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
+                        <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">Variación</span>
+                        <span class="trimestral-metric-value ${isCompact ? 'compact' : ''} ${metric.variation >= 0 ? "trimestral-variation-positive" : "trimestral-variation-negative"}">
+                          ${metric.variation >= 0 ? "+" : ""}${metric.variation.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
+                        <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">Mejor Trimestre</span>
+                        <span class="trimestral-winner-badge">${QUARTERS[metric.winner].label}</span>
+                      </div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+
+            ${includeNotes && notes.trim() ? `
+              <div class="trimestral-notes">
+                <div class="trimestral-notes-title">Análisis del gráfico:</div>
+                <div class="trimestral-notes-content">${notes.replace(/\n/g, "<br>")}</div>
+              </div>
+            ` : ""}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
   // Función para generar PDF del análisis trimestral
   const generatePDF = async () => {
     if (selectedItems.length === 0) {
@@ -561,348 +864,8 @@ export default function TrimestralAnalysisView({
     setShowPdfWarning(false);
 
     try {
-      // Capturar el gráfico como imagen
-      let chartImageBase64 = "";
-      const chartContainer = contentRef.current;
-
-      if (chartContainer) {
-        const canvas = chartContainer.querySelector("canvas");
-        if (canvas) {
-          try {
-            chartImageBase64 = canvas.toDataURL("image/png", 0.8);
-          } catch (error) {
-            console.warn("⚠️ No se pudo capturar el gráfico:", error);
-          }
-        }
-      }
-
-      // Crear el HTML del análisis trimestral
-      const analysisHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Análisis Trimestral Comparativo - ${periodLabel}</title>
-          <style>
-            body {
-              font-family: 'Arial', sans-serif;
-              margin: 0;
-              padding: 0;
-              color: #1f2937;
-              line-height: 1.4;
-            }
-            
-            /* Header compacto en la misma página */
-            .header {
-              text-align: center;
-              margin: 0 0 15px 0;
-              padding: 10px 15px 12px 15px;
-              border-bottom: 3px solid #8b5cf6;
-            }
-            .header h1 {
-              color: #1f2937;
-              font-size: 24px;
-              margin: 0 0 6px 0;
-              font-weight: bold;
-              letter-spacing: -0.3px;
-            }
-            .header .business-unit {
-              color: #8b5cf6;
-              padding: 0;
-              font-size: 14px;
-              font-weight: 600;
-              display: block;
-              margin: 4px 0 6px 0;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-            }
-            .header p {
-              color: #6b7280;
-              font-size: 10px;
-              margin: 0;
-              font-weight: normal;
-            }
-            
-            /* Contenedor principal con layout vertical */
-            .main-content {
-              padding: 15px;
-              page-break-inside: avoid;
-            }
-            
-            .content-grid {
-              display: grid;
-              grid-template-columns: 60% 40%;
-              grid-template-rows: auto auto;
-              gap: 15px;
-              align-items: start;
-            }
-
-            /* Sección del gráfico - columna izquierda */
-            .chart-section {
-              grid-column: 1;
-              grid-row: 1;
-              background: white;
-              border: 2px solid #e5e7eb;
-              border-radius: 12px;
-              padding: 15px;
-              text-align: center;
-              page-break-inside: avoid;
-              break-inside: avoid;
-              display: flex;
-              flex-direction: column;
-              height: fit-content;
-            }
-            .chart-title {
-              color: #374151;
-              font-size: 16px;
-              font-weight: bold;
-              margin-bottom: 12px;
-              border-bottom: 2px solid #e5e7eb;
-              padding-bottom: 8px;
-              flex-shrink: 0;
-            }
-            .chart-image {
-              max-width: 100%;
-              width: 100%;
-              height: auto;
-              max-height: 750px;
-              object-fit: contain;
-              object-position: top;
-              border: 1px solid #d1d5db;
-              border-radius: 8px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              display: block;
-              margin-bottom: 0;
-            }
-            .chart-image.compact {
-              max-height: 480px;
-            }
-            .chart-placeholder {
-              background: #f3f4f6;
-              padding: 40px;
-              border: 2px dashed #9ca3af;
-              border-radius: 8px;
-              color: #6b7280;
-              font-style: italic;
-              font-size: 14px;
-            }
-
-            /* Sección de métricas - columna derecha */
-            .metrics-section {
-              grid-column: 2;
-              grid-row: 1 / 3;
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .metrics-grid {
-              display: flex;
-              flex-direction: column;
-              gap: 12px;
-            }
-            .metrics-grid.compact {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 8px;
-            }
-            .metric-card {
-              background: white;
-              border: 2px solid #e5e7eb;
-              border-left: 6px solid #8b5cf6;
-              border-radius: 10px;
-              padding: 12px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .metric-card.compact {
-              padding: 8px;
-              border-radius: 8px;
-              border-left-width: 4px;
-            }
-            .metric-title {
-              font-weight: bold;
-              color: #1f2937;
-              font-size: 14px;
-              margin-bottom: 10px;
-              border-bottom: 1px solid #e5e7eb;
-              padding-bottom: 6px;
-            }
-            .metric-title.compact {
-              font-size: 11px;
-              margin-bottom: 6px;
-              padding-bottom: 4px;
-            }
-            .metric-row {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 6px;
-              padding: 4px 0;
-            }
-            .metric-row.compact {
-              margin-bottom: 4px;
-              padding: 2px 0;
-            }
-            .metric-label {
-              font-weight: 600;
-              color: #4b5563;
-              font-size: 11px;
-            }
-            .metric-label.compact {
-              font-size: 9px;
-            }
-            .metric-value {
-              font-weight: bold;
-              font-size: 12px;
-            }
-            .metric-value.compact {
-              font-size: 10px;
-            }
-            .metric-q1 { color: #3b82f6; }
-            .metric-q2 { color: #10b981; }
-            .variation-positive { color: #10b981; }
-            .variation-negative { color: #ef4444; }
-            .winner-badge {
-              background: #e0f2fe;
-              color: #0277bd;
-              padding: 3px 6px;
-              border-radius: 10px;
-              font-size: 10px;
-              font-weight: bold;
-            }
-
-            /* Sección de notas - 40% del ancho debajo del gráfico */
-            .notes-section {
-              grid-column: 1;
-              grid-row: 2;
-              background: #ffffff;
-              border: 1px solid #6b7280;
-              border-radius: 12px;
-              padding: 15px;
-              page-break-inside: avoid;
-              break-inside: avoid;
-              width: 66.67%;
-              max-width: 66.67%;
-            }
-            .notes-title {
-              color: #000000;
-              font-weight: bold;
-              margin-bottom: 8px;
-              font-size: 14px;
-            }
-            .notes-content {
-              color: #000000;
-              line-height: 1.6;
-              font-size: 12px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="main-content">
-            <!-- Header compacto -->
-            <div class="header">
-              <h1>📊 Análisis Trimestral Comparativo</h1>
-              <div class="business-unit">
-                ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
-              </div>
-              <p>Período: ${periodLabel} | Generado: ${new Date().toLocaleDateString(
-        "es-ES",
-        {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }
-      )}</p>
-            </div>
-            
-            <div class="content-grid">
-            <!-- Gráfico - Columna Izquierda (60%) -->
-            <div class="chart-section">
-              <h3 class="chart-title">
-                ${
-                  analysisType === "comparison"
-                    ? `📊 Gráfico de Comparación: ${QUARTERS[selectedQuarter1].label} vs ${QUARTERS[selectedQuarter2].label}`
-                    : `📈 Gráfico de Evolución: ${QUARTERS[selectedQuarter1].label} + ${QUARTERS[selectedQuarter2].label}`
-                }
-              </h3>
-              ${
-                chartImageBase64
-                  ? `<img src="${chartImageBase64}" alt="Gráfico de Análisis Trimestral" class="chart-image ${comparativeMetrics.length >= 4 ? 'compact' : ''}" />`
-                  : `<div class="chart-placeholder">Gráfico no disponible - Asegúrate de que haya ítems seleccionados y el gráfico esté visible</div>`
-              }
-            </div>
-
-            <!-- Métricas - Columna Derecha (40%) -->
-            <div class="metrics-section">
-              <div class="metrics-grid ${comparativeMetrics.length >= 4 ? 'compact' : ''}">
-                ${comparativeMetrics
-                  .map(
-                    (metric) => {
-                      const isCompact = comparativeMetrics.length >= 4;
-                      return `
-                  <div class="metric-card ${isCompact ? 'compact' : ''}">
-                    <div class="metric-title ${isCompact ? 'compact' : ''}">${metric.item}</div>
-                    <div class="metric-row ${isCompact ? 'compact' : ''}">
-                      <span class="metric-label ${isCompact ? 'compact' : ''}">${
-                        QUARTERS[selectedQuarter1].label
-                      }</span>
-                      <span class="metric-value ${isCompact ? 'compact' : ''} metric-q1">$${metric.q1.total.toLocaleString(
-                        "es-CL"
-                      )}</span>
-                    </div>
-                    <div class="metric-row ${isCompact ? 'compact' : ''}">
-                      <span class="metric-label ${isCompact ? 'compact' : ''}">${
-                        QUARTERS[selectedQuarter2].label
-                      }</span>
-                      <span class="metric-value ${isCompact ? 'compact' : ''} metric-q2">$${metric.q2.total.toLocaleString(
-                        "es-CL"
-                      )}</span>
-                    </div>
-                    <div class="metric-row ${isCompact ? 'compact' : ''}">
-                      <span class="metric-label ${isCompact ? 'compact' : ''}">Variación</span>
-                      <span class="metric-value ${isCompact ? 'compact' : ''} ${
-                        metric.variation >= 0
-                          ? "variation-positive"
-                          : "variation-negative"
-                      }">
-                        ${
-                          metric.variation >= 0 ? "+" : ""
-                        }${metric.variation.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div class="metric-row ${isCompact ? 'compact' : ''}">
-                      <span class="metric-label ${isCompact ? 'compact' : ''}">Mejor Trimestre</span>
-                      <span class="winner-badge">${
-                        QUARTERS[metric.winner].label
-                      }</span>
-                    </div>
-                  </div>
-                `;
-                    }
-                  )
-                  .join("")}
-              </div>
-            </div>
-
-            <!-- Notas - Ancho Completo en la Parte Inferior -->
-            ${
-              notes.trim()
-                ? `
-              <div class="notes-section">
-                <div class="notes-title">Análisis del gráfico:</div>
-                <div class="notes-content">${notes.replace(/\n/g, "<br>")}</div>
-              </div>
-            `
-                : ""
-            }
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-
+      // Usar el generador compartido con notas
+      const analysisHtml = await generateAnalysisHTML(true);
 
       const response = await fetch("/api/generate-pdf", {
         method: "POST",
@@ -1017,54 +980,71 @@ export default function TrimestralAnalysisView({
             </div>
           )}
 
-          {/* Botón Exportar PDF */}
-          <button
-            onClick={generatePDF}
-            disabled={isGeneratingPdf || selectedItems.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
-          >
-            {isGeneratingPdf ? (
-              <>
-                <svg
-                  className="animate-spin h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Generando...
-              </>
-            ) : (
-              <>
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Exportar PDF
-              </>
+          {/* Botones de acción */}
+          <div className="flex items-center gap-3">
+            <AddToReportButton
+              viewName={`Análisis Trimestral - ${selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza'}`}
+              contentRef={contentRef as React.RefObject<HTMLElement>}
+              period={periodLabel}
+              disabled={selectedItems.length === 0 || selectedItems.length > 6}
+              captureMode="html"
+              htmlGenerator={() => generateAnalysisHTML(false, false)}
+            />
+            
+            {selectedItems.length > 6 && (
+              <p className="text-xs text-red-600 mt-1">
+                ⚠️ Máximo 6 ítems permitidos para agregar al reporte ({selectedItems.length}/6)
+              </p>
             )}
-          </button>
+            
+            <button
+              onClick={generatePDF}
+              disabled={isGeneratingPdf || selectedItems.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Exportar PDF
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

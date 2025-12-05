@@ -12,6 +12,7 @@ import DynamicComparativoEbitda from './components/dynamic/DynamicComparativoEbi
 import DynamicEbidtaCombo from './components/dynamic/DynamicEbidtaCombo';
 import LibroComprasView from './components/LibroComprasView';
 import CargarDatosView from './components/CargarDatosView';
+import ReportQueuePanel from './components/ReportQueuePanel';
 import { UploadedDocument } from '@/types';
 
 export default function Home() {
@@ -316,6 +317,9 @@ export default function Home() {
           )
         ) : null}
       </div>
+
+      {/* Panel flotante para cola de reportes */}
+      <ReportQueuePanel />
     </div>
   );
 }

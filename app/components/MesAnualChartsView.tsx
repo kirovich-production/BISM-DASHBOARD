@@ -13,6 +13,7 @@ import {
   TooltipItem,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import AddToReportButton from './AddToReportButton';
 
 ChartJS.register(
   CategoryScale,
@@ -693,6 +694,245 @@ export default function MesAnualChartsView({
     }
   };
 
+  // Función para generar HTML específico para el reporte multi-gráfico
+  const generateComparisonReportHTML = async (): Promise<string> => {
+    // Capturar el gráfico
+    let chartImageBase64 = '';
+    if (chartRef.current) {
+      try {
+        const canvas = chartRef.current.canvas;
+        if (canvas) {
+          chartImageBase64 = canvas.toDataURL('image/png', 0.95);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error capturando gráfico:', error);
+      }
+    }
+
+    // Filtrar tabla para mostrar solo el ítem del gráfico actual
+    const filteredTableData = tableData.filter(row => row.item === selectedItemForChart);
+
+    // Funciones de formato
+    const formatValue = (value: string | number | null | undefined): string => {
+      if (value === null || value === undefined || value === '') return '-';
+      if (typeof value === 'number') {
+        return new Intl.NumberFormat('es-CL', {
+          style: 'currency',
+          currency: 'CLP',
+          minimumFractionDigits: 0,
+        }).format(value);
+      }
+      return String(value);
+    };
+
+    const formatPercentage = (value: string | number | null | undefined): string => {
+      if (value === null || value === undefined || value === '') return '-';
+      if (typeof value === 'number') {
+        return `${value.toFixed(2)}%`;
+      }
+      return String(value);
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Comparación ${selectedMonth} vs Anual</title>
+        <style>
+          @page {
+            size: A4 landscape;
+            margin: 0.4in;
+          }
+          
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Arial', sans-serif;
+            color: #1f2937;
+            background: white;
+            margin: 0;
+            padding: 0;
+          }
+          
+          .mes-anual-container {
+            display: grid;
+            grid-template-columns: 40% 60%;
+            grid-template-rows: auto 1fr;
+            gap: 4px;
+            height: auto;
+            padding: 2px;
+            box-sizing: border-box;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          
+          .mes-anual-title {
+            grid-column: 1 / 3;
+            grid-row: 1;
+            font-size: 12px;
+            font-weight: bold;
+            color: #1f2937;
+            border-bottom: 1px solid #3b82f6;
+            padding-bottom: 2px;
+            margin-bottom: 2px;
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          
+          .mes-anual-table {
+            grid-column: 1;
+            grid-row: 2;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 3px;
+            overflow: auto;
+          }
+          
+          .mes-anual-table table {
+            width: 100%;
+            font-size: 10px;
+            border-collapse: collapse;
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .mes-anual-table thead {
+            display: none;
+          }
+          
+          .mes-anual-table tbody {
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .mes-anual-table tbody tr {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 0;
+            padding: 8px;
+            background: #f9fafb;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+          }
+          
+          .mes-anual-table td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 9px;
+            border: none;
+          }
+          
+          .mes-anual-table td:not(:last-child) {
+            border-bottom: 1px solid #e5e7eb;
+          }
+          
+          .mes-anual-table td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #6b7280;
+            margin-right: 8px;
+          }
+          
+          .mes-anual-table td:first-child::before {
+            content: 'ÍTEM: ';
+          }
+          
+          .mes-anual-table .item-name {
+            font-weight: 600;
+            color: #1f2937;
+          }
+          
+          .mes-anual-table .month-value {
+            color: #3b82f6;
+            font-weight: 600;
+          }
+          
+          .mes-anual-table .annual-value {
+            color: #06b6d4;
+            font-weight: 600;
+          }
+          
+          .mes-anual-table .percentage {
+            color: #a855f7;
+            font-weight: 600;
+          }
+          
+          .mes-anual-table .average-value {
+            color: #22c55e;
+            font-weight: 600;
+          }
+          
+          .mes-anual-chart {
+            grid-column: 2;
+            grid-row: 2;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 3px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            max-height: 450px;
+          }
+          
+          .mes-anual-chart .chart-image {
+            width: 100%;
+            height: 100%;
+            max-height: 440px;
+            object-fit: contain;
+            border-radius: 4px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="mes-anual-container">
+          <div class="mes-anual-title">
+            📊 Comparación ${selectedMonth} vs Anual - ${selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza'}
+          </div>
+          
+          <div class="mes-anual-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>ÍTEM</th>
+                  <th>${selectedMonth.toUpperCase()}</th>
+                  <th>ACUMULADO 2024</th>
+                  <th>%</th>
+                  <th>PROMEDIO ANUAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filteredTableData.map(row => `
+                  <tr>
+                    <td class="item-name">${row.item}</td>
+                    <td class="month-value" data-label="${selectedMonth.toUpperCase()}">${formatValue(row.mes)}</td>
+                    <td class="annual-value" data-label="ACUMULADO 2024">${formatValue(row.acumulado)}</td>
+                    <td class="percentage" data-label="%">${formatPercentage(row.porcentaje)}</td>
+                    <td class="average-value" data-label="PROMEDIO ANUAL">${formatValue(row.promedio)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="mes-anual-chart">
+            ${chartImageBase64 ? `
+              <img src="${chartImageBase64}" alt="Gráfico de comparación" class="chart-image" />
+            ` : '<div style="display: flex; align-items: center; justify-center; height: 100%; color: #9ca3af;">Gráfico no disponible</div>'}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
   if (!activeData || activeData.length === 0) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
@@ -737,29 +977,40 @@ export default function MesAnualChartsView({
             </div>
           </div>
           
-          {/* Botón Exportar PDF */}
-          <button
-            onClick={generatePDF}
-            disabled={isGeneratingPdf || tableData.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
-          >
-            {isGeneratingPdf ? (
-              <>
-                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Generando...
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Exportar PDF
-              </>
-            )}
-          </button>
+          {/* Botones de acción */}
+          <div className="flex items-center gap-3">
+            <AddToReportButton
+              viewName={`Comparación ${selectedMonth} vs Anual - ${selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza'}`}
+              contentRef={contentRef as React.RefObject<HTMLElement>}
+              period={periodLabel}
+              disabled={tableData.length === 0}
+              captureMode="html"
+              htmlGenerator={() => generateComparisonReportHTML()}
+            />
+            
+            <button
+              onClick={generatePDF}
+              disabled={isGeneratingPdf || tableData.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Exportar PDF
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

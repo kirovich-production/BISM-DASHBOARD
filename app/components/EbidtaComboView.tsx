@@ -14,6 +14,7 @@ import {
   ChartOptions,
 } from "chart.js";
 import { Chart } from "react-chartjs-2";
+import AddToReportButton from './AddToReportButton';
 
 ChartJS.register(
   CategoryScale,
@@ -109,6 +110,7 @@ export default function EbidtaComboView({
   selectedPeriod,
 }: EbidtaComboViewProps) {
   const chartRef = useRef<ChartJS>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [notes, setNotes] = useState("");
   const [mounted, setMounted] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<'consolidado' | 'sevilla' | 'labranza'>('consolidado');
@@ -409,6 +411,232 @@ export default function EbidtaComboView({
     },
   };
 
+  // Función para generar HTML del reporte (sin notas, 4 cards horizontales)
+  const generateEbitdaComboHTML = async (): Promise<string> => {
+    // Capturar el gráfico
+    let chartImageBase64 = '';
+    if (chartRef.current) {
+      try {
+        const canvas = chartRef.current.canvas;
+        if (canvas) {
+          chartImageBase64 = canvas.toDataURL('image/png', 0.95);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error capturando gráfico:', error);
+      }
+    }
+
+    // Calcular métricas
+    let ebitdaPromedio = 0;
+    let margenPromedio = 0;
+    let ebitdaMaximo = 0;
+    let margenMaximo = 0;
+
+    if (comboData.length > 0) {
+      ebitdaPromedio = comboData.reduce((acc, d) => acc + d.ebitda, 0) / comboData.length;
+      margenPromedio = comboData.reduce((acc, d) => acc + d.margenEbitda, 0) / comboData.length;
+      ebitdaMaximo = Math.max(...comboData.map((d) => d.ebitda));
+      margenMaximo = Math.max(...comboData.map((d) => d.margenEbitda));
+    }
+
+    const formatCurrency = (value: number): string => {
+      return new Intl.NumberFormat('es-CL', {
+        style: 'currency',
+        currency: 'CLP',
+        minimumFractionDigits: 0,
+      }).format(value);
+    };
+
+    const unitName = selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza';
+
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Análisis Combo EBITDA</title>
+        <style>
+          @page {
+            size: A4 landscape;
+            margin: 0.4in;
+          }
+          
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Arial', sans-serif;
+            color: #1f2937;
+            background: white;
+            margin: 0;
+            padding: 0;
+          }
+          
+          .ebitda-combo-container {
+            display: grid;
+            grid-template-rows: auto auto 65px;
+            gap: 2px;
+            padding: 2px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          
+          .ebitda-combo-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #1f2937;
+            border-bottom: 1px solid #3b82f6;
+            padding-bottom: 1px;
+            margin-bottom: 1px;
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          
+          .ebitda-combo-chart {
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 0;
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            overflow: hidden;
+            height: 420px;
+          }
+          
+          .ebitda-combo-chart .chart-image {
+            width: 100%;
+            height: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+          }
+          
+          .ebitda-combo-cards {
+            display: grid;
+            grid-template-columns: 2fr 1fr 2fr 1fr;
+            gap: 8px;
+          }
+          
+          .ebitda-combo-card {
+            background: white;
+            border-radius: 6px;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+          }
+          
+          .card-blue {
+            border-left: 5px solid #3b82f6;
+            background: #eff6ff;
+          }
+          
+          .card-green {
+            border-left: 5px solid #10b981;
+            background: #ecfdf5;
+          }
+          
+          .card-amber {
+            border-left: 5px solid #f59e0b;
+            background: #fef3c7;
+          }
+          
+          .card-purple {
+            border-left: 5px solid #8b5cf6;
+            background: #f3e8ff;
+          }
+          
+          .ebitda-combo-card .card-title {
+            font-size: 9px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            line-height: 1.2;
+          }
+          
+          .card-blue .card-title {
+            color: #1e40af;
+          }
+          
+          .card-green .card-title {
+            color: #059669;
+          }
+          
+          .card-amber .card-title {
+            color: #d97706;
+          }
+          
+          .card-purple .card-title {
+            color: #7c3aed;
+          }
+          
+          .ebitda-combo-card .card-value {
+            font-size: 16px;
+            font-weight: bold;
+          }
+          
+          .card-blue .card-value {
+            color: #1e3a8a;
+          }
+          
+          .card-green .card-value {
+            color: #047857;
+          }
+          
+          .card-amber .card-value {
+            color: #b45309;
+          }
+          
+          .card-purple .card-value {
+            color: #6b21a8;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="ebitda-combo-container">
+          <div class="ebitda-combo-title">
+            📊📈 Análisis Combo EBITDA - ${unitName}
+          </div>
+          
+          <div class="ebitda-combo-chart">
+            ${chartImageBase64 ? `
+              <img src="${chartImageBase64}" alt="Gráfico Combo EBITDA" class="chart-image" />
+            ` : '<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #9ca3af;">Gráfico no disponible</div>'}
+          </div>
+          
+          <div class="ebitda-combo-cards">
+            <div class="ebitda-combo-card card-blue">
+              <div class="card-title">EBITDA Promedio</div>
+              <div class="card-value">${formatCurrency(ebitdaPromedio)}</div>
+            </div>
+            
+            <div class="ebitda-combo-card card-green">
+              <div class="card-title">Margen Promedio</div>
+              <div class="card-value">${margenPromedio.toFixed(1)}%</div>
+            </div>
+            
+            <div class="ebitda-combo-card card-amber">
+              <div class="card-title">EBITDA Máximo</div>
+              <div class="card-value">${formatCurrency(ebitdaMaximo)}</div>
+            </div>
+            
+            <div class="ebitda-combo-card card-purple">
+              <div class="card-title">Margen Máximo</div>
+              <div class="card-value">${margenMaximo.toFixed(1)}%</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
   // Función para exportar PDF usando Browserless (como MesAnualChartsView)
   const exportPDF = async () => {
     if (!chartRef.current) {
@@ -707,7 +935,7 @@ export default function EbidtaComboView({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 overflow-auto">
+    <div ref={contentRef} className="bg-white rounded-xl shadow-lg p-6 overflow-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
@@ -727,6 +955,14 @@ export default function EbidtaComboView({
         </div>
 
         <div className="flex gap-2">
+          <AddToReportButton
+            viewName={`Análisis Combo EBITDA - ${selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza'}`}
+            contentRef={contentRef as React.RefObject<HTMLElement>}
+            period={selectedPeriod || 'Sin período'}
+            captureMode="html"
+            htmlGenerator={() => generateEbitdaComboHTML()}
+          />
+          
           <button
             onClick={exportPDF}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
