@@ -934,6 +934,7 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
           
           <AddToReportButton
             viewName={`Comparativo EBITDA ${showPercentages ? '(%)' : '(CLP)'}`}
+            uniqueKey={`ComparativoEbitda-${showPercentages ? 'percentage' : 'clp'}-${selectedPeriod || 'Sin período'}`}
             contentRef={contentRef as React.RefObject<HTMLElement>}
             period={selectedPeriod || 'Sin período'}
             captureMode="html"

@@ -635,6 +635,7 @@ export default function ConsolidadoChartsView({ data, periodLabel }: Consolidado
           <div className="flex items-center gap-3">
             <AddToReportButton
               viewName="Gráficos de Consolidado"
+              uniqueKey={`Consolidado-${selectedItems.sort().join(',')}-${dataType}-${periodLabel}`}
               contentRef={contentRef as React.RefObject<HTMLElement>}
               period={periodLabel}
               disabled={selectedItems.length === 0}

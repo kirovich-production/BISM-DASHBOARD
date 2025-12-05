@@ -981,6 +981,7 @@ export default function MesAnualChartsView({
           <div className="flex items-center gap-3">
             <AddToReportButton
               viewName={`Comparación ${selectedMonth} vs Anual - ${selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza'}`}
+              uniqueKey={`MesAnualComparison-${selectedUnit}-${selectedMonth}-${selectedItemForChart}-${periodLabel}`}
               contentRef={contentRef as React.RefObject<HTMLElement>}
               period={periodLabel}
               disabled={tableData.length === 0}

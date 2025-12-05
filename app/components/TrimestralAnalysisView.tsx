@@ -984,6 +984,7 @@ export default function TrimestralAnalysisView({
           <div className="flex items-center gap-3">
             <AddToReportButton
               viewName={`Análisis Trimestral - ${selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza'}`}
+              uniqueKey={`TrimestralAnalysis-${selectedUnit}-${selectedQuarter1}-${selectedQuarter2}-${[...selectedItems].sort().join(',')}-${periodLabel}`}
               contentRef={contentRef as React.RefObject<HTMLElement>}
               period={periodLabel}
               disabled={selectedItems.length === 0 || selectedItems.length > 6}

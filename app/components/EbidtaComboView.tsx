@@ -957,6 +957,7 @@ export default function EbidtaComboView({
         <div className="flex gap-2">
           <AddToReportButton
             viewName={`Análisis Combo EBITDA - ${selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza'}`}
+            uniqueKey={`EbitdaCombo-${selectedUnit}-${selectedPeriod || 'Sin período'}`}
             contentRef={contentRef as React.RefObject<HTMLElement>}
             period={selectedPeriod || 'Sin período'}
             captureMode="html"
