@@ -30,26 +30,14 @@ export const useReportStore = create<ReportState>()(
 
       addGraph: (graph) =>
         set((state) => {
-          // Verificar si ya existe un gráfico de la misma vista
-          const existingIndex = state.graphs.findIndex(
-            (g) => g.viewName === graph.viewName && g.period === graph.period
-          );
-
           const newGraph: GraphSnapshot = {
             ...graph,
             id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             timestamp: Date.now(),
           };
 
-          if (existingIndex !== -1) {
-            // Reemplazar el gráfico existente
-            const newGraphs = [...state.graphs];
-            newGraphs[existingIndex] = newGraph;
-            return { graphs: newGraphs };
-          } else {
-            // Agregar nuevo gráfico
-            return { graphs: [...state.graphs, newGraph] };
-          }
+          // Siempre agregar nuevo gráfico sin verificar duplicados
+          return { graphs: [...state.graphs, newGraph] };
         }),
 
       removeGraph: (id) =>
