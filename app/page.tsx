@@ -24,6 +24,7 @@ export default function Home() {
   // Estados de usuario (solo Libro de Compras)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserName, setSelectedUserName] = useState<string>('');
+  const [userSucursales, setUserSucursales] = useState<string[]>([]);
   
   // Refs para prevenir llamadas duplicadas
   const fetchDataInProgress = useRef(false);
@@ -41,6 +42,14 @@ export default function Home() {
         if (result.success && result.userId && result.userName) {
           setSelectedUserId(result.userId);
           setSelectedUserName(result.userName);
+          
+          // Cargar sucursales del usuario
+          const userResponse = await fetch(`/api/users?userId=${result.userId}`);
+          const userResult = await userResponse.json();
+          if (userResult.success && userResult.users && userResult.users.length > 0) {
+            const user = userResult.users[0];
+            setUserSucursales(user.sucursales || []);
+          }
         }
       } catch {
         // Error loading session
@@ -122,9 +131,26 @@ export default function Home() {
     }
   };
 
-  const handleUserChange = (userId: string, userName: string) => {
+  const handleUserChange = async (userId: string, userName: string) => {
     setSelectedUserId(userId);
     setSelectedUserName(userName);
+    
+    // Cargar sucursales del nuevo usuario
+    if (userId) {
+      try {
+        const userResponse = await fetch(`/api/users?userId=${userId}`);
+        const userResult = await userResponse.json();
+        if (userResult.success && userResult.users && userResult.users.length > 0) {
+          const user = userResult.users[0];
+          setUserSucursales(user.sucursales || []);
+        }
+      } catch (error) {
+        console.error('Error loading user sucursales:', error);
+        setUserSucursales([]);
+      }
+    } else {
+      setUserSucursales([]);
+    }
     
     // 💾 Crear sesión en servidor (DB Sessions)
     if (userId && userName) {
@@ -204,6 +230,7 @@ export default function Home() {
               availableSections={
                 excelData?.consolidado?.map(s => s.name.toLowerCase()) || []
               }
+              userSucursales={userSucursales}
             />
           </div>
         ) : activeView === 'cargar-datos' ? (
@@ -222,6 +249,7 @@ export default function Home() {
           /* Libro de Compras View - Gestión completa */
           <LibroComprasView 
             userId={selectedUserId}
+            userSucursales={userSucursales}
           />
         ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' || activeView === 'analisis-trimestral' || activeView === 'mes-anual' || activeView === 'waterfall-charts' || activeView === 'ebitda-combo' ? (
           /* Sevilla, Labranza, Consolidado, Charts and Mes-Anual Views */

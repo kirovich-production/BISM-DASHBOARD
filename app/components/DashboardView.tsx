@@ -4,12 +4,14 @@ interface DashboardViewProps {
   onNavigate: (view: string) => void; // Ahora acepta cualquier sección dinámica
   selectedUserName?: string;
   availableSections?: string[]; // Secciones disponibles desde Excel (ej: ['sevilla', 'labranza', 'consolidado'])
+  userSucursales?: string[]; // Sucursales del usuario activo
 }
 
 export default function DashboardView({ 
   onNavigate, 
   selectedUserName, 
-  availableSections = []
+  availableSections = [],
+  userSucursales = []
 }: DashboardViewProps) {
 
   // Si no hay usuario seleccionado, mostrar vista inicial
@@ -36,41 +38,41 @@ export default function DashboardView({
     );
   }
 
-  // Cards estáticas para Libro de Compras (Sevilla y Labranza)
-  const libroComprasSectionCards = [
-    {
-      id: 'sevilla',
-      title: 'EERR Sevilla',
-      description: 'Estado de resultados detallado de Sevilla',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      ),
-      color: 'from-indigo-500 to-indigo-600',
-      bgColor: 'bg-indigo-50',
-      iconColor: 'text-indigo-600',
-    },
-    {
-      id: 'labranza',
-      title: 'EERR Labranza',
-      description: 'Estado de resultados detallado de Labranza',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      ),
-      color: 'from-emerald-500 to-emerald-600',
-      bgColor: 'bg-emerald-50',
-      iconColor: 'text-emerald-600',
-    },
+  // Colores dinámicos para las cards de sucursales
+  const colorPalette = [
+    { color: 'from-indigo-500 to-indigo-600', bgColor: 'bg-indigo-50', iconColor: 'text-indigo-600' },
+    { color: 'from-emerald-500 to-emerald-600', bgColor: 'bg-emerald-50', iconColor: 'text-emerald-600' },
+    { color: 'from-rose-500 to-rose-600', bgColor: 'bg-rose-50', iconColor: 'text-rose-600' },
+    { color: 'from-amber-500 to-amber-600', bgColor: 'bg-amber-50', iconColor: 'text-amber-600' },
+    { color: 'from-sky-500 to-sky-600', bgColor: 'bg-sky-50', iconColor: 'text-sky-600' },
+    { color: 'from-violet-500 to-violet-600', bgColor: 'bg-violet-50', iconColor: 'text-violet-600' },
   ];
 
-  // Card de consolidado (estática)
+  // Generar cards dinámicamente para cada sucursal del usuario
+  const libroComprasSectionCards = userSucursales.map((sucursal, index) => {
+    const colors = colorPalette[index % colorPalette.length];
+    return {
+      id: sucursal.toLowerCase(),
+      title: `EERR ${sucursal}`,
+      description: `Estado de resultados detallado de ${sucursal}`,
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      ),
+      ...colors,
+    };
+  });
+
+  // Card de consolidado (dinámica basada en sucursales del usuario)
+  const consolidadoDescription = userSucursales.length > 0
+    ? `Vista consolidada: ${userSucursales.join(' + ')}`
+    : 'Vista consolidada de todas las unidades de negocio';
+
   const consolidadoCard = {
     id: 'consolidado',
     title: 'Consolidado',
-    description: 'Vista consolidada Sevilla + Labranza',
+    description: consolidadoDescription,
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />

@@ -7,6 +7,7 @@ import MantenedorLibroDiario from './MantenedorLibroCompras';
 
 interface LibroComprasViewProps {
   userId: string | null;
+  userSucursales?: string[];
 }
 
 interface PeriodoLC {
@@ -15,7 +16,7 @@ interface PeriodoLC {
   sucursal: string;
 }
 
-export default function LibroComprasView({ userId }: LibroComprasViewProps) {
+export default function LibroComprasView({ userId, userSucursales = [] }: LibroComprasViewProps) {
   const [activeTab, setActiveTab] = useState<'lc' | 'proveedores' | 'mantenedor'>('lc');
   const [periodos, setPeriodos] = useState<PeriodoLC[]>([]);
   const [selectedSucursal, setSelectedSucursal] = useState<string | null>(null);
@@ -305,7 +306,7 @@ export default function LibroComprasView({ userId }: LibroComprasViewProps) {
 
           {activeTab === 'mantenedor' && (
             <div>
-              <MantenedorLibroDiario userId={userId} />
+              <MantenedorLibroDiario userId={userId} userSucursales={userSucursales} />
             </div>
           )}
         </div>

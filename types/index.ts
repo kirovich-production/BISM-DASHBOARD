@@ -2,6 +2,7 @@
 export interface User {
   id: string;
   name: string;
+  sucursales: string[];  // Unidades de negocio del usuario
   createdAt: Date;
 }
 
