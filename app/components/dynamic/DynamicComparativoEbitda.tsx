@@ -23,8 +23,10 @@ interface EERRData {
 
 interface ComparativoEbitdaViewProps {
   consolidadoData: ExcelRow[];
-  sevillaData: EERRData | null;
-  labranzaData: EERRData | null;
+  sucursalesData: Array<{
+    name: string;
+    data: EERRData | null;
+  }>;
   selectedUserName?: string;
   selectedPeriod?: string;
 }

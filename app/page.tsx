@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import DashboardView from './components/DashboardView';
 import DashboardSidebar from './components/DashboardSidebar';
 import TableView from './components/TableView';
-import SevillaTable from './components/tables/SevillaTable';
-import LabranzaTable from './components/tables/LabranzaTable';
+import SucursalTable from './components/tables/SucursalTable';
 import TrimestralAnalysisView from './components/TrimestralAnalysisView';
 import MesAnualChartsView from './components/MesAnualChartsView';
 import DynamicComparativoEbitda from './components/dynamic/DynamicComparativoEbitda';
@@ -15,11 +14,45 @@ import CargarDatosView from './components/CargarDatosView';
 import ReportQueuePanel from './components/ReportQueuePanel';
 import { UploadedDocument } from '@/types';
 
+// Type guard para verificar si un valor es EERRData
+interface EERRData {
+  sheetName: string;
+  months: string[];
+  categories: Array<{
+    name: string;
+    rows: Array<{
+      Item: string;
+      [key: string]: string | number | undefined;
+    }>;
+  }>;
+}
+
+function isEERRData(value: unknown): value is EERRData {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'sheetName' in value &&
+    'months' in value &&
+    'categories' in value &&
+    typeof (value as EERRData).sheetName === 'string' &&
+    Array.isArray((value as EERRData).months) &&
+    Array.isArray((value as EERRData).categories)
+  );
+}
+
 export default function Home() {
   const [excelData, setExcelData] = useState<UploadedDocument | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [activeView, setActiveView] = useState<string>('dashboard');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  // Helper para crear slug
+  const createSlug = (text: string) => text.toLowerCase().replace(/\s+/g, '_');
+  
+  // Helper para detectar si activeView corresponde a una sucursal
+  const isSucursalView = (view: string) => {
+    return userSucursales.some(sucursal => createSlug(sucursal) === view);
+  };
   
   // Estados de usuario (solo Libro de Compras)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -209,6 +242,7 @@ export default function Home() {
         selectedUserName={selectedUserName}
         onUserChange={handleUserChange}
         availableSections={excelData?.consolidado?.map(s => s.name.toLowerCase()) || []}
+        userSucursales={userSucursales}
       />
 
       {/* Main Content Area */}
@@ -239,10 +273,8 @@ export default function Home() {
             <CargarDatosView 
               selectedUserId={selectedUserId}
               selectedUserName={selectedUserName}
-              onUserChange={(userId, userName) => {
-                setSelectedUserId(userId);
-                setSelectedUserName(userName);
-              }}
+              userSucursales={userSucursales}
+              onUserChange={handleUserChange}
             />
           </div>
         ) : activeView === 'libro-compras' ? (
@@ -251,23 +283,14 @@ export default function Home() {
             userId={selectedUserId}
             userSucursales={userSucursales}
           />
-        ) : activeView === 'sevilla' || activeView === 'labranza' || activeView === 'consolidado' || activeView === 'analisis-trimestral' || activeView === 'mes-anual' || activeView === 'waterfall-charts' || activeView === 'ebitda-combo' ? (
-          /* Sevilla, Labranza, Consolidado, Charts and Mes-Anual Views */
+        ) : isSucursalView(activeView) || activeView === 'consolidado' || activeView === 'analisis-trimestral' || activeView === 'mes-anual' || activeView === 'waterfall-charts' || activeView === 'ebitda-combo' ? (
+          /* Sucursales dinámicas, Consolidado, Charts and Mes-Anual Views */
           excelData ? (
             <div className="bg-white h-full overflow-hidden flex flex-col">
               {/* Content */}
-              {activeView === 'sevilla' ? (
-                <SevillaTable
-                  data={excelData.sevilla || null}
-                  periodLabel={excelData.periodLabel}
-                  version={excelData.version}
-                  uploadedAt={excelData.uploadedAt}
-                  userId={selectedUserId || undefined}
-                  onDataRefresh={() => fetchData(true)}
-                />
-              ) : activeView === 'labranza' ? (
-                <LabranzaTable
-                  data={excelData.labranza || null}
+              {isSucursalView(activeView) ? (
+                <SucursalTable
+                  data={(excelData[activeView as keyof typeof excelData] as EERRData) || null}
                   periodLabel={excelData.periodLabel}
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}
@@ -284,30 +307,54 @@ export default function Home() {
               ) : activeView === 'analisis-trimestral' ? (
                 <TrimestralAnalysisView
                   consolidadoData={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
-                  sevillaData={excelData.sevilla || null}
-                  labranzaData={excelData.labranza || null}
+                  sucursalesData={userSucursales.map(sucursal => {
+                    const slug = sucursal.toLowerCase().replace(/\s+/g, '_');
+                    const sucursalData = excelData[slug as keyof typeof excelData];
+                    return {
+                      name: sucursal,
+                      data: isEERRData(sucursalData) ? sucursalData : null
+                    };
+                  })}
                   periodLabel={excelData.periodLabel}
                 />
               ) : activeView === 'mes-anual' ? (
                 <MesAnualChartsView
                   consolidadoData={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
-                  sevillaData={excelData.sevilla && Array.isArray(excelData.sevilla) ? null : (excelData.sevilla || null)}
-                  labranzaData={excelData.labranza && Array.isArray(excelData.labranza) ? null : (excelData.labranza || null)}
+                  sucursalesData={userSucursales.map(sucursal => {
+                    const slug = sucursal.toLowerCase().replace(/\s+/g, '_');
+                    const sucursalData = excelData[slug as keyof typeof excelData];
+                    return {
+                      name: sucursal,
+                      data: isEERRData(sucursalData) ? sucursalData : null
+                    };
+                  })}
                   periodLabel={excelData.periodLabel}
                 />
               ) : activeView === 'waterfall-charts' ? (
                 <DynamicComparativoEbitda
                   consolidadoData={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
-                  sevillaData={excelData.sevilla && Array.isArray(excelData.sevilla) ? null : (excelData.sevilla || null)}
-                  labranzaData={excelData.labranza && Array.isArray(excelData.labranza) ? null : (excelData.labranza || null)}
+                  sucursalesData={userSucursales.map(sucursal => {
+                    const slug = sucursal.toLowerCase().replace(/\s+/g, '_');
+                    const sucursalData = excelData[slug as keyof typeof excelData];
+                    return {
+                      name: sucursal,
+                      data: isEERRData(sucursalData) ? sucursalData : null
+                    };
+                  })}
                   selectedUserName={selectedUserName}
                   selectedPeriod={excelData.periodLabel}
                 />
               ) : activeView === 'ebitda-combo' ? (
                 <DynamicEbidtaCombo
                   consolidadoData={excelData.consolidado?.find(s => s.name === 'Consolidados')?.data || []}
-                  sevillaData={excelData.sevilla && Array.isArray(excelData.sevilla) ? undefined : (excelData.sevilla || undefined)}
-                  labranzaData={excelData.labranza && Array.isArray(excelData.labranza) ? undefined : (excelData.labranza || undefined)}
+                  sucursalesData={userSucursales.map(sucursal => {
+                    const slug = sucursal.toLowerCase().replace(/\s+/g, '_');
+                    const sucursalData = excelData[slug as keyof typeof excelData];
+                    return {
+                      name: sucursal,
+                      data: isEERRData(sucursalData) ? sucursalData : null
+                    };
+                  })}
                   selectedUserName={selectedUserName}
                   selectedPeriod={excelData.periodLabel}
                 />

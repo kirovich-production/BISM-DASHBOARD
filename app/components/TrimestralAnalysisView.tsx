@@ -31,8 +31,10 @@ ChartJS.register(
 
 interface TrimestralAnalysisViewProps {
   consolidadoData: ExcelRow[];
-  sevillaData: EERRData | null;
-  labranzaData: EERRData | null;
+  sucursalesData: Array<{
+    name: string;  // Nombre de la sucursal ("Sevilla", "Pan de Azúcar", etc.)
+    data: EERRData | null;
+  }>;
   periodLabel: string;
 }
 
@@ -99,11 +101,10 @@ const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
 
 export default function TrimestralAnalysisView({
   consolidadoData,
-  sevillaData,
-  labranzaData,
+  sucursalesData,
   periodLabel,
 }: TrimestralAnalysisViewProps) {
-  const [selectedUnit, setSelectedUnit] = useState<'consolidado' | 'sevilla' | 'labranza'>('consolidado');
+  const [selectedUnit, setSelectedUnit] = useState<string>('consolidado');
   const [selectedQuarter1, setSelectedQuarter1] = useState<QuarterKey>("Q1");
   const [selectedQuarter2, setSelectedQuarter2] = useState<QuarterKey>("Q3");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -115,32 +116,29 @@ export default function TrimestralAnalysisView({
   const [showPdfWarning, setShowPdfWarning] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Helper para crear slug
+  const createSlug = (text: string) => text.toLowerCase().replace(/\s+/g, '_');
+
+  // Función para obtener datos activos según la unidad seleccionada
+  const getActiveData = (): ExcelRow[] => {
+    if (selectedUnit === 'consolidado') {
+      return consolidadoData || [];
+    }
+    
+    // Buscar datos de la sucursal seleccionada
+    const sucursal = sucursalesData.find(s => createSlug(s.name) === selectedUnit);
+    return sucursal?.data ? convertEERRToExcelRows(sucursal.data) : [];
+  };
+
+  const activeData = getActiveData();
+
   // Limpiar ítems seleccionados cuando cambie la unidad y auto-seleccionar algunos ítems
   useEffect(() => {
     setSelectedItems([]);
     
     // Auto-seleccionar los primeros 3 ítems si hay datos disponibles
     setTimeout(() => {
-      
-      // Obtener datos activos según la unidad seleccionada directamente
-      let currentActiveData: ExcelRow[] = [];
-      switch(selectedUnit) {
-        case 'sevilla': 
-          if (sevillaData) {
-            currentActiveData = convertEERRToExcelRows(sevillaData);
-          }
-          break;
-        case 'labranza': 
-          if (labranzaData) {
-            currentActiveData = convertEERRToExcelRows(labranzaData);
-          }
-          break;
-        case 'consolidado': 
-        default: 
-          currentActiveData = consolidadoData || [];
-          break;
-      }
-      
+      const currentActiveData = getActiveData();
       
       if (currentActiveData.length > 0) {
         // Filtrar items válidos que tengan datos en al menos un mes
@@ -167,30 +165,13 @@ export default function TrimestralAnalysisView({
           .slice(0, 3)
           .map(row => row.Item);
         
-        
         if (validItems.length > 0) {
           setSelectedItems(validItems);
-        } else {
         }
-      } else {
       }
-    }, 200); // Aumentar timeout para asegurar que los datos estén procesados
-  }, [selectedUnit, consolidadoData, sevillaData, labranzaData]);
-
-  // Función para obtener datos activos según la unidad seleccionada
-  const getActiveData = (): ExcelRow[] => {
-    switch(selectedUnit) {
-      case 'sevilla': 
-        return sevillaData ? convertEERRToExcelRows(sevillaData) : [];
-      case 'labranza': 
-        return labranzaData ? convertEERRToExcelRows(labranzaData) : [];
-      case 'consolidado': 
-      default: 
-        return consolidadoData || [];
-    }
-  };
-
-  const activeData = getActiveData();
+    }, 200);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUnit, consolidadoData, sucursalesData]);
 
   // Extraer ítems disponibles
   const availableItems = useMemo(() => {
@@ -787,7 +768,7 @@ export default function TrimestralAnalysisView({
           ${includeHeader ? `<div class="trimestral-header">
             <h1>📊 Análisis Trimestral Comparativo</h1>
             <div class="business-unit">
-              ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : selectedUnit === 'sevilla' ? '🏭 Sevilla' : '🌾 Labranza'}
+              ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : sucursalesData.find(s => createSlug(s.name) === selectedUnit)?.name || selectedUnit}
             </div>
             <p>Período: ${periodLabel} | Generado: ${currentDate}</p>
           </div>` : ''}
@@ -940,14 +921,10 @@ export default function TrimestralAnalysisView({
                 Período: {periodLabel} - Análisis por Q1, Q2, Q3, Q4
               </p>
               <div className="mt-2">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                  selectedUnit === 'consolidado' ? 'bg-blue-100 text-blue-800' :
-                  selectedUnit === 'sevilla' ? 'bg-indigo-100 text-indigo-800' :
-                  'bg-green-100 text-green-800'
-                }`}>
-                  {selectedUnit === 'consolidado' ? '📊 Datos Consolidado' :
-                   selectedUnit === 'sevilla' ? '🏪 Datos Sevilla' :
-                   '🌾 Datos Labranza'}
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                  {selectedUnit === 'consolidado' 
+                    ? '📊 Datos Consolidado' 
+                    : sucursalesData.find(s => createSlug(s.name) === selectedUnit)?.name || selectedUnit}
                 </span>
               </div>
             </div>
@@ -983,7 +960,7 @@ export default function TrimestralAnalysisView({
           {/* Botones de acción */}
           <div className="flex items-center gap-3">
             <AddToReportButton
-              viewName={`Análisis Trimestral - ${selectedUnit === 'consolidado' ? 'Consolidado' : selectedUnit === 'sevilla' ? 'Sevilla' : 'Labranza'}`}
+              viewName={`Análisis Trimestral - ${selectedUnit === 'consolidado' ? 'Consolidado' : sucursalesData.find(s => createSlug(s.name) === selectedUnit)?.name || selectedUnit}`}
               uniqueKey={`TrimestralAnalysis-${selectedUnit}-${selectedQuarter1}-${selectedQuarter2}-${[...selectedItems].sort().join(',')}-${periodLabel}`}
               contentRef={contentRef as React.RefObject<HTMLElement>}
               period={periodLabel}
@@ -1049,13 +1026,14 @@ export default function TrimestralAnalysisView({
         </div>
       </div>
 
-      {/* Selector de Unidad de Negocio */}
+      {/* Selector de Unidad de Negocio - Dinámico */}
       <div className="bg-white rounded-xl shadow-md p-6 mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           🏢 Unidad de Negocio
         </h3>
         
         <div className="flex flex-wrap gap-3">
+          {/* Botón Consolidado */}
           <button
             onClick={() => setSelectedUnit('consolidado')}
             className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
@@ -1070,60 +1048,53 @@ export default function TrimestralAnalysisView({
             </span>
           </button>
           
-          <button
-            onClick={() => setSelectedUnit('sevilla')}
-            disabled={!sevillaData}
-            className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
-              selectedUnit === 'sevilla'
-                ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg'
-                : sevillaData 
-                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300'
-                  : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-            }`}
-          >
-            🏪 Sevilla
-            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-              sevillaData 
-                ? 'bg-indigo-100 text-indigo-800' 
-                : 'bg-gray-200 text-gray-500'
-            }`}>
-              {sevillaData ? convertEERRToExcelRows(sevillaData).length : 0}
-            </span>
-          </button>
-          
-          <button
-            onClick={() => setSelectedUnit('labranza')}
-            disabled={!labranzaData}
-            className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
-              selectedUnit === 'labranza'
-                ? 'bg-green-500 text-white border-green-500 shadow-lg'
-                : labranzaData 
-                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:border-green-300'
-                  : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-            }`}
-          >
-            🌾 Labranza
-            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-              labranzaData 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-200 text-gray-500'
-            }`}>
-              {labranzaData ? convertEERRToExcelRows(labranzaData).length : 0}
-            </span>
-          </button>
+          {/* Botones de sucursales dinámicos */}
+          {sucursalesData.map((sucursal, index) => {
+            const sucursalSlug = createSlug(sucursal.name);
+            const isActive = selectedUnit === sucursalSlug;
+            const hasData = sucursal.data !== null;
+            const rowCount = hasData && sucursal.data ? convertEERRToExcelRows(sucursal.data).length : 0;
+            
+            // Colores dinámicos por sucursal
+            const colors = [
+              { bg: 'bg-green-500', light: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', hover: 'hover:bg-green-100 hover:border-green-300', badge: 'bg-green-100 text-green-800' },
+              { bg: 'bg-orange-500', light: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', hover: 'hover:bg-orange-100 hover:border-orange-300', badge: 'bg-orange-100 text-orange-800' },
+              { bg: 'bg-purple-500', light: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', hover: 'hover:bg-purple-100 hover:border-purple-300', badge: 'bg-purple-100 text-purple-800' },
+              { bg: 'bg-pink-500', light: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200', hover: 'hover:bg-pink-100 hover:border-pink-300', badge: 'bg-pink-100 text-pink-800' }
+            ];
+            const color = colors[index % colors.length];
+            
+            return (
+              <button
+                key={sucursal.name}
+                onClick={() => setSelectedUnit(sucursalSlug)}
+                disabled={!hasData}
+                className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
+                  isActive
+                    ? `${color.bg} text-white ${color.bg.replace('bg-', 'border-')} shadow-lg`
+                    : hasData 
+                      ? `${color.light} ${color.text} ${color.border} ${color.hover}`
+                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                }`}
+              >
+                {sucursal.name}
+                <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+                  hasData ? color.badge : 'bg-gray-200 text-gray-500'
+                }`}>
+                  {rowCount}
+                </span>
+              </button>
+            );
+          })}
         </div>
         
         <div className="mt-4 p-3 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-700">
             <span className="font-semibold">Unidad activa:</span> 
-            <span className={`ml-2 px-3 py-1 rounded-full text-xs font-semibold ${
-              selectedUnit === 'consolidado' ? 'bg-blue-100 text-blue-800' :
-              selectedUnit === 'sevilla' ? 'bg-indigo-100 text-indigo-800' :
-              'bg-green-100 text-green-800'
-            }`}>
-              {selectedUnit === 'consolidado' ? '📊 Consolidado' :
-               selectedUnit === 'sevilla' ? '🏪 Sevilla' :
-               '🌾 Labranza'}
+            <span className="ml-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+              {selectedUnit === 'consolidado' 
+                ? '📊 Consolidado' 
+                : sucursalesData.find(s => createSlug(s.name) === selectedUnit)?.name || selectedUnit}
             </span>
             <span className="ml-3 text-gray-600">
               • {activeData.length} ítems disponibles

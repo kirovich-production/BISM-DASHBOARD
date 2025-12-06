@@ -48,12 +48,17 @@ export default function DashboardView({
     { color: 'from-violet-500 to-violet-600', bgColor: 'bg-violet-50', iconColor: 'text-violet-600' },
   ];
 
+  // Helper para crear slug sin espacios (para IDs y navegación)
+  const createSlug = (text: string) => {
+    return text.toLowerCase().replace(/\s+/g, '_');
+  };
+
   // Generar cards dinámicamente para cada sucursal del usuario
   const libroComprasSectionCards = userSucursales.map((sucursal, index) => {
     const colors = colorPalette[index % colorPalette.length];
     return {
-      id: sucursal.toLowerCase(),
-      title: `EERR ${sucursal}`,
+      id: createSlug(sucursal), // Slug para navegación: "pan de azucar" -> "pan_de_azucar"
+      title: `EERR ${sucursal}`, // Nombre real con espacios para display
       description: `Estado de resultados detallado de ${sucursal}`,
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">

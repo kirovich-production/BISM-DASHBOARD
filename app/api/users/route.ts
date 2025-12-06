@@ -91,14 +91,6 @@ export async function POST(request: NextRequest) {
 
     const userName = name.trim();
 
-    // Validar que el nombre no contenga espacios
-    if (userName.includes(' ')) {
-      return NextResponse.json(
-        { success: false, error: 'El nombre de usuario no puede contener espacios. Usa guiones bajos (_)' },
-        { status: 400 }
-      );
-    }
-
     const { db } = await connectToDatabase();
     const usersCollection = db.collection<User>('users');
 

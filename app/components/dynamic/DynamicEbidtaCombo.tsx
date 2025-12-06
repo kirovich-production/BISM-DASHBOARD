@@ -28,13 +28,13 @@ interface EERRRow {
 
 interface EbidtaComboViewProps {
   consolidadoData?: ExcelRow[];
-  sevillaData?: EERRData;  
-  labranzaData?: EERRData;
+  sucursalesData: Array<{
+    name: string;
+    data: EERRData | null;
+  }>;
   selectedUserName?: string;
   selectedPeriod?: string;
-}
-
-// Componente dinámico que solo se carga en el cliente
+}// Componente dinámico que solo se carga en el cliente
 const DynamicEbidtaCombo: ComponentType<EbidtaComboViewProps> = dynamic(
   () => import('../EbidtaComboView').then(mod => ({ default: mod.default })),
   { 

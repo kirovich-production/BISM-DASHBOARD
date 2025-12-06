@@ -3,6 +3,7 @@ import { connectToDatabase, getUserCollectionName } from '@/lib/mongodb';
 import { aggregateMultiplePeriodsToEERR } from '@/lib/libroComprasAggregator';
 import { convertEERRDataToExcelRows, sumarTablas } from '@/lib/consolidadoHelper';
 import { LibroComprasData } from '@/types';
+import { ObjectId } from 'mongodb';
 
 // Obtener la carga más reciente de datos o por período/versión específica
 export async function GET(request: NextRequest) {
@@ -33,12 +34,6 @@ export async function GET(request: NextRequest) {
       // Si se especifica sucursal, retornar solo esa sucursal
       if (sucursal) {
       console.log('✅ API route.ts - Entrando a bloque de sucursal específica:', sucursal);
-      if (sucursal !== 'Sevilla' && sucursal !== 'Labranza') {
-        return NextResponse.json(
-          { error: 'Sucursal debe ser "Sevilla" o "Labranza"' },
-          { status: 400 }
-        );
-      }
 
       // Obtener documentos de la sucursal especificada
       let sucursalDocs: LibroComprasData[] = [];
@@ -94,13 +89,15 @@ export async function GET(request: NextRequest) {
       const firstDoc = sucursalDocs[0];
       const lastDoc = sucursalDocs[sucursalDocs.length - 1];
       
+      // Crear slug de la sucursal para propiedad dinámica
+      const sucursalSlug = sucursal.toLowerCase().replace(/\s+/g, '_');
+      
       const responseData: {
         period: string;
         periodLabel: string;
         version: number;
         uploadedAt: Date;
-        sevilla?: typeof eerrData;
-        labranza?: typeof eerrData;
+        [key: string]: unknown;  // Permitir propiedades dinámicas
       } = {
         period: period || firstDoc.periodo,
         periodLabel: firstDoc.periodLabel,
@@ -108,13 +105,10 @@ export async function GET(request: NextRequest) {
         uploadedAt: lastDoc.updatedAt || lastDoc.createdAt
       };
       
-      if (sucursal === 'Sevilla') {
-        responseData.sevilla = eerrData;
-      } else if (sucursal === 'Labranza') {
-        responseData.labranza = eerrData;
-      }
+      // Asignar datos usando slug dinámico
+      responseData[sucursalSlug] = eerrData;
       
-      console.log('✅ API route.ts - Retornando datos para sucursal:', sucursal);
+      console.log('✅ API route.ts - Retornando datos para sucursal:', sucursal, 'con slug:', sucursalSlug);
       console.log('📦 API route.ts - responseData keys:', Object.keys(responseData));
       
       return NextResponse.json({
@@ -124,34 +118,49 @@ export async function GET(request: NextRequest) {
       });
       }
       
-      // Sin sucursal especificada: generar Labranza, Sevilla y Consolidado
+      // Sin sucursal especificada: cargar todas las sucursales del usuario dinámicamente
       const filter: { userId: string; periodo?: string } = { userId };
       if (period) {
         filter.periodo = period;
       }
       
-      // Obtener documentos de ambas sucursales
-      // Si no hay período, traer TODOS los documentos de cada sucursal
-      let labranzaDocsFiltered: LibroComprasData[] = [];
-      let sevillaDocsFiltered: LibroComprasData[] = [];
+      // Primero obtener las sucursales del usuario desde la colección users
+      const usersCollection = db.collection('users');
+      const userDoc = await usersCollection.findOne({ _id: new ObjectId(userId) });
       
-      if (period) {
-        // Buscar documento específico del período
-        const labranzaDoc = await libroComprasCollection.findOne({ ...filter, sucursal: 'Labranza' }) as LibroComprasData | null;
-        const sevillaDoc = await libroComprasCollection.findOne({ ...filter, sucursal: 'Sevilla' }) as LibroComprasData | null;
-        
-        if (labranzaDoc) labranzaDocsFiltered.push(labranzaDoc);
-        if (sevillaDoc) sevillaDocsFiltered.push(sevillaDoc);
-      } else {
-        // Traer todos los documentos de cada sucursal
-        const labranzaDocs = await libroComprasCollection.find({ userId, sucursal: 'Labranza' }).sort({ periodo: 1 }).toArray();
-        const sevillaDocs = await libroComprasCollection.find({ userId, sucursal: 'Sevilla' }).sort({ periodo: 1 }).toArray();
-        
-        labranzaDocsFiltered = labranzaDocs as unknown as LibroComprasData[];
-        sevillaDocsFiltered = sevillaDocs as unknown as LibroComprasData[];
+      if (!userDoc || !userDoc.sucursales || userDoc.sucursales.length === 0) {
+        return NextResponse.json({
+          success: true,
+          data: null,
+          message: 'Usuario no tiene sucursales asignadas'
+        });
       }
       
-      if (labranzaDocsFiltered.length === 0 && sevillaDocsFiltered.length === 0) {
+      const userSucursales: string[] = userDoc.sucursales;
+      console.log('📋 API route.ts - Sucursales del usuario:', userSucursales);
+      
+      // Obtener documentos de todas las sucursales del usuario
+      const sucursalesDocsMap: { [sucursal: string]: LibroComprasData[] } = {};
+      
+      for (const sucursalName of userSucursales) {
+        if (period) {
+          // Buscar documento específico del período
+          const doc = await libroComprasCollection.findOne({ userId, sucursal: sucursalName, periodo: period }) as LibroComprasData | null;
+          if (doc) {
+            sucursalesDocsMap[sucursalName] = [doc];
+          }
+        } else {
+          // Traer todos los documentos de la sucursal
+          const docs = await libroComprasCollection.find({ userId, sucursal: sucursalName }).sort({ periodo: 1 }).toArray();
+          if (docs.length > 0) {
+            sucursalesDocsMap[sucursalName] = docs as unknown as LibroComprasData[];
+          }
+        }
+      }
+      
+      // Verificar si hay datos
+      const totalDocs = Object.values(sucursalesDocsMap).flat();
+      if (totalDocs.length === 0) {
         return NextResponse.json({
           success: true,
           data: null,
@@ -162,10 +171,9 @@ export async function GET(request: NextRequest) {
       const valoresManualesCollection = db.collection('valoresManuales');
       
       // Determinar período para respuesta
-      const firstDoc = labranzaDocsFiltered[0] || sevillaDocsFiltered[0];
-      const lastDocLabranza = labranzaDocsFiltered[labranzaDocsFiltered.length - 1];
-      const lastDocSevilla = sevillaDocsFiltered[sevillaDocsFiltered.length - 1];
-      const latestUploadedAt = lastDocLabranza?.updatedAt || lastDocSevilla?.updatedAt || firstDoc?.updatedAt;
+      const firstDoc = totalDocs[0];
+      const lastDoc = totalDocs[totalDocs.length - 1];
+      const latestUploadedAt = lastDoc?.updatedAt || lastDoc?.createdAt || firstDoc?.updatedAt || firstDoc?.createdAt;
       
       const responseData: {
         period: string;
@@ -173,8 +181,7 @@ export async function GET(request: NextRequest) {
         version: number;
         uploadedAt: Date;
         consolidado: Array<{ name: string; data: unknown }>;
-        labranza?: ReturnType<typeof aggregateMultiplePeriodsToEERR>;
-        sevilla?: ReturnType<typeof aggregateMultiplePeriodsToEERR>;
+        [key: string]: unknown;  // Permitir propiedades dinámicas para sucursales
       } = {
         period: period || firstDoc?.periodo,
         periodLabel: firstDoc?.periodLabel,
@@ -183,88 +190,75 @@ export async function GET(request: NextRequest) {
         consolidado: []
       };
       
-      // Generar datos de Labranza (multi-período)
-      if (labranzaDocsFiltered.length > 0) {
-        // Preparar documentos con valores manuales
-        const labranzaDocsConValores = await Promise.all(
-          labranzaDocsFiltered.map(async (doc) => {
-            const valoresManualesLabranza = await valoresManualesCollection.find({
-              userId,
-              periodo: doc.periodo,
-              sucursal: 'Labranza'
-            }).toArray();
-            
-            const vmLabranza: { [cuenta: string]: number } = {};
-            valoresManualesLabranza.forEach(v => {
-              vmLabranza[v.cuenta] = v.monto;
-            });
-            
-            return {
-              periodo: doc.periodo,
-              transacciones: doc.transacciones,
-              valoresManuales: vmLabranza
-            };
-          })
-        );
-        
-        const labranzaData = aggregateMultiplePeriodsToEERR(labranzaDocsConValores);
-        
-        responseData.labranza = labranzaData;
-        
-        // Convertir a formato plano para TableView
-        const labranzaPlana = convertEERRDataToExcelRows(labranzaData);
-        responseData.consolidado.push({
-          name: 'Labranza',
-          data: labranzaPlana
-        });
+      // Generar datos EERR para cada sucursal dinámicamente
+      const sucursalesEERRData: { [sucursal: string]: ReturnType<typeof aggregateMultiplePeriodsToEERR> } = {};
+      const sucursalesPlanas: { [sucursal: string]: ReturnType<typeof convertEERRDataToExcelRows> } = {};
+      
+      for (const [sucursalName, docs] of Object.entries(sucursalesDocsMap)) {
+        if (docs.length > 0) {
+          console.log(`📊 Procesando sucursal: ${sucursalName} (${docs.length} documentos)`);
+          
+          // Preparar documentos con valores manuales
+          const docsConValores = await Promise.all(
+            docs.map(async (doc) => {
+              const valoresManualesDocs = await valoresManualesCollection.find({
+                userId,
+                periodo: doc.periodo,
+                sucursal: sucursalName
+              }).toArray();
+              
+              const vm: { [cuenta: string]: number } = {};
+              valoresManualesDocs.forEach(v => {
+                vm[v.cuenta] = v.monto;
+              });
+              
+              return {
+                periodo: doc.periodo,
+                transacciones: doc.transacciones,
+                valoresManuales: vm
+              };
+            })
+          );
+          
+          // Generar EERR
+          const eerrData = aggregateMultiplePeriodsToEERR(docsConValores);
+          
+          // Crear slug para propiedad dinámica
+          const sucursalSlug = sucursalName.toLowerCase().replace(/\s+/g, '_');
+          
+          // Guardar en responseData con slug
+          responseData[sucursalSlug] = eerrData;
+          sucursalesEERRData[sucursalName] = eerrData;
+          
+          // Convertir a formato plano para TableView
+          const plana = convertEERRDataToExcelRows(eerrData);
+          sucursalesPlanas[sucursalName] = plana;
+          
+          responseData.consolidado.push({
+            name: sucursalName,
+            data: plana
+          });
+          
+          console.log(`✅ Sucursal ${sucursalName} procesada (slug: ${sucursalSlug})`);
+        }
       }
       
-      // Generar datos de Sevilla (multi-período)
-      if (sevillaDocsFiltered.length > 0) {
-        // Preparar documentos con valores manuales
-        const sevillaDocsConValores = await Promise.all(
-          sevillaDocsFiltered.map(async (doc) => {
-            const valoresManualesSevilla = await valoresManualesCollection.find({
-              userId,
-              periodo: doc.periodo,
-              sucursal: 'Sevilla'
-            }).toArray();
-            
-            const vmSevilla: { [cuenta: string]: number } = {};
-            valoresManualesSevilla.forEach(v => {
-              vmSevilla[v.cuenta] = v.monto;
-            });
-            
-            return {
-              periodo: doc.periodo,
-              transacciones: doc.transacciones,
-              valoresManuales: vmSevilla
-            };
-          })
-        );
+      // Generar tabla Consolidados (suma de todas las sucursales)
+      if (Object.keys(sucursalesPlanas).length > 1) {
+        const tablasPlanas = Object.values(sucursalesPlanas);
+        let consolidadosPlana = tablasPlanas[0];
         
-        const sevillaData = aggregateMultiplePeriodsToEERR(sevillaDocsConValores);
-        
-        responseData.sevilla = sevillaData;
-        
-        // Convertir a formato plano para TableView
-        const sevillaPlana = convertEERRDataToExcelRows(sevillaData);
-        responseData.consolidado.push({
-          name: 'Sevilla',
-          data: sevillaPlana
-        });
-      }
-      
-      // Generar tabla Consolidados (suma de Labranza + Sevilla)
-      if (labranzaDocsFiltered.length > 0 && sevillaDocsFiltered.length > 0 && responseData.labranza && responseData.sevilla) {
-        const labranzaPlana = convertEERRDataToExcelRows(responseData.labranza);
-        const sevillaPlana = convertEERRDataToExcelRows(responseData.sevilla);
-        const consolidadosPlana = sumarTablas(labranzaPlana, sevillaPlana);
+        // Sumar todas las tablas
+        for (let i = 1; i < tablasPlanas.length; i++) {
+          consolidadosPlana = sumarTablas(consolidadosPlana, tablasPlanas[i]);
+        }
         
         responseData.consolidado.push({
           name: 'Consolidados',
           data: consolidadosPlana
         });
+        
+        console.log('✅ Tabla Consolidados generada');
       }
       
       console.log('API Response - consolidado structure:', {

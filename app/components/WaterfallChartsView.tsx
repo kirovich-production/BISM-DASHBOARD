@@ -51,13 +51,15 @@ interface EERRData {
 
 interface ComparativoEbitdaViewProps {
   consolidadoData: ExcelRow[];
-  sevillaData: EERRData | null;
-  labranzaData: EERRData | null;
+  sucursalesData: Array<{
+    name: string;
+    data: EERRData | null;
+  }>;
   selectedUserName?: string;
   selectedPeriod?: string;
 }
 
-export default function ComparativoEbitdaView({ consolidadoData, sevillaData, labranzaData, selectedUserName, selectedPeriod }: ComparativoEbitdaViewProps) {
+export default function ComparativoEbitdaView({ consolidadoData, sucursalesData, selectedUserName, selectedPeriod }: ComparativoEbitdaViewProps) {
   const chartRef = useRef<ChartJS<'line'>>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [notes, setNotes] = useState('');
@@ -238,17 +240,26 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
     });
   };
 
-  // Obtener datos EBITDA de las tres fuentes
+  // Obtener datos EBITDA de todas las sucursales dinámicamente
   const consolidadoEbitda = getEbitdaFromConsolidado(consolidadoData);
-  const sevillaEbitda = getEbitdaFromEERR(sevillaData);
-  const labranzaEbitda = getEbitdaFromEERR(labranzaData);
-
-  // Obtener datos EBITDA % de las tres fuentes
   const consolidadoEbitdaPercent = getEbitdaPercentageFromConsolidado(consolidadoData);
-  const sevillaEbitdaPercent = getEbitdaPercentageFromEERR(sevillaData);
-  const labranzaEbitdaPercent = getEbitdaPercentageFromEERR(labranzaData);
+  
+  // Generar datasets dinámicamente para cada sucursal
+  const sucursalesEbitdaData = sucursalesData.map(sucursal => ({
+    name: sucursal.name,
+    ebitda: getEbitdaFromEERR(sucursal.data),
+    ebitdaPercent: getEbitdaPercentageFromEERR(sucursal.data)
+  }));
 
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  // Colores para sucursales (alineado con leyenda)
+  const sucursalColors = [
+    { line: 'rgb(34, 197, 94)', bg: 'rgba(34, 197, 94, 0.1)' },   // green-500
+    { line: 'rgb(234, 88, 12)', bg: 'rgba(234, 88, 12, 0.1)' },   // orange-600
+    { line: 'rgb(168, 85, 247)', bg: 'rgba(168, 85, 247, 0.1)' }, // purple-500
+    { line: 'rgb(236, 72, 153)', bg: 'rgba(236, 72, 153, 0.1)' }  // pink-500
+  ];
 
   // Configuración del gráfico comparativo de líneas
   const chartData = {
@@ -267,30 +278,22 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
         pointRadius: 6,
         tension: 0.4
       },
-      {
-        label: showPercentages ? 'EBITDA % Sevilla' : 'EBITDA Sevilla',
-        data: showPercentages ? sevillaEbitdaPercent : sevillaEbitda,
-        backgroundColor: 'rgba(147, 51, 234, 0.1)',
-        borderColor: 'rgba(147, 51, 234, 1)',
-        borderWidth: 2,
-        pointBackgroundColor: 'rgba(147, 51, 234, 1)',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2,
-        pointRadius: 5,
-        tension: 0.4
-      },
-      {
-        label: showPercentages ? 'EBITDA % Labranza' : 'EBITDA Labranza',
-        data: showPercentages ? labranzaEbitdaPercent : labranzaEbitda,
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        borderColor: 'rgba(34, 197, 94, 1)',
-        borderWidth: 2,
-        pointBackgroundColor: 'rgba(34, 197, 94, 1)',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2,
-        pointRadius: 5,
-        tension: 0.4
-      }
+      // Datasets dinámicos para cada sucursal
+      ...sucursalesEbitdaData.map((sucursal, index) => {
+        const color = sucursalColors[index % sucursalColors.length];
+        return {
+          label: showPercentages ? `EBITDA % ${sucursal.name}` : `EBITDA ${sucursal.name}`,
+          data: showPercentages ? sucursal.ebitdaPercent : sucursal.ebitda,
+          backgroundColor: color.bg,
+          borderColor: color.line,
+          borderWidth: 2,
+          pointBackgroundColor: color.line,
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          tension: 0.4
+        };
+      })
     ]
   };
 
@@ -418,13 +421,13 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
       ? parseFloat((consolidadoEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitdaPercent.length).toFixed(2))
       : (consolidadoEbitda.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitda.length);
     
-    const sevillaPromedio = showPercentages 
-      ? parseFloat((sevillaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitdaPercent.length).toFixed(2))
-      : (sevillaEbitda.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitda.length);
-    
-    const labranzaPromedio = showPercentages 
-      ? parseFloat((labranzaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitdaPercent.length).toFixed(2))
-      : (labranzaEbitda.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitda.length);
+    // Calcular promedios dinámicos para cada sucursal
+    const sucursalesPromedios = sucursalesEbitdaData.map(sucursal => ({
+      name: sucursal.name,
+      promedio: showPercentages
+        ? parseFloat((sucursal.ebitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / sucursal.ebitdaPercent.length).toFixed(2))
+        : (sucursal.ebitda.reduce((acc: number, val: number) => acc + val, 0) / sucursal.ebitda.length)
+    }));
 
     const formatValue = (value: number): string => {
       if (showPercentages) {
@@ -527,14 +530,24 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
             background: #eff6ff;
           }
           
-          .ebitda-card-sevilla {
-            border-left: 5px solid #8b5cf6;
-            background: #f3e8ff;
+          .ebitda-card-sucursal-0 {
+            border-left: 5px solid #22c55e;
+            background: #f0fdf4;
           }
           
-          .ebitda-card-labranza {
-            border-left: 5px solid #10b981;
-            background: #ecfdf5;
+          .ebitda-card-sucursal-1 {
+            border-left: 5px solid #ea580c;
+            background: #fff7ed;
+          }
+          
+          .ebitda-card-sucursal-2 {
+            border-left: 5px solid #a855f7;
+            background: #faf5ff;
+          }
+          
+          .ebitda-card-sucursal-3 {
+            border-left: 5px solid #ec4899;
+            background: #fdf2f8;
           }
           
           .ebitda-card .card-title {
@@ -548,12 +561,20 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
             color: #1e40af;
           }
           
-          .ebitda-card-sevilla .card-title {
-            color: #7c3aed;
+          .ebitda-card-sucursal-0 .card-title {
+            color: #15803d;
           }
           
-          .ebitda-card-labranza .card-title {
-            color: #059669;
+          .ebitda-card-sucursal-1 .card-title {
+            color: #c2410c;
+          }
+          
+          .ebitda-card-sucursal-2 .card-title {
+            color: #9333ea;
+          }
+          
+          .ebitda-card-sucursal-3 .card-title {
+            color: #db2777;
           }
           
           .ebitda-card .card-value {
@@ -565,12 +586,20 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
             color: #1e3a8a;
           }
           
-          .ebitda-card-sevilla .card-value {
-            color: #6b21a8;
+          .ebitda-card-sucursal-0 .card-value {
+            color: #14532d;
           }
           
-          .ebitda-card-labranza .card-value {
-            color: #047857;
+          .ebitda-card-sucursal-1 .card-value {
+            color: #9a3412;
+          }
+          
+          .ebitda-card-sucursal-2 .card-value {
+            color: #7e22ce;
+          }
+          
+          .ebitda-card-sucursal-3 .card-value {
+            color: #be185d;
           }
         </style>
       </head>
@@ -586,21 +615,18 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
             ` : '<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #9ca3af;">Gráfico no disponible</div>'}
           </div>
           
-          <div class="ebitda-cards">
+          <div class="ebitda-cards" style="grid-template-columns: repeat(${sucursalesPromedios.length + 1}, 1fr);">
             <div class="ebitda-card ebitda-card-consolidado">
               <div class="card-title">EBITDA Promedio<br>Consolidado ${showPercentages ? '(%)' : '(CLP)'}</div>
               <div class="card-value">${formatValue(consolidadoPromedio)}</div>
             </div>
             
-            <div class="ebitda-card ebitda-card-sevilla">
-              <div class="card-title">EBITDA Promedio<br>Sevilla ${showPercentages ? '(%)' : '(CLP)'}</div>
-              <div class="card-value">${formatValue(sevillaPromedio)}</div>
-            </div>
-            
-            <div class="ebitda-card ebitda-card-labranza">
-              <div class="card-title">EBITDA Promedio<br>Labranza ${showPercentages ? '(%)' : '(CLP)'}</div>
-              <div class="card-value">${formatValue(labranzaPromedio)}</div>
-            </div>
+            ${sucursalesPromedios.map((sucursal, index) => `
+              <div class="ebitda-card ebitda-card-sucursal-${index}">
+                <div class="card-title">EBITDA Promedio<br>${sucursal.name} ${showPercentages ? '(%)' : '(CLP)'}</div>
+                <div class="card-value">${formatValue(sucursal.promedio)}</div>
+              </div>
+            `).join('')}
           </div>
         </div>
       </body>
@@ -644,13 +670,13 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
         ? parseFloat((consolidadoEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitdaPercent.length).toFixed(2))
         : (consolidadoEbitda.reduce((acc: number, val: number) => acc + val, 0) / consolidadoEbitda.length);
       
-      const sevillaPromedio = showPercentages 
-        ? parseFloat((sevillaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitdaPercent.length).toFixed(2))
-        : (sevillaEbitda.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitda.length);
-      
-      const labranzaPromedio = showPercentages 
-        ? parseFloat((labranzaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitdaPercent.length).toFixed(2))
-        : (labranzaEbitda.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitda.length);
+      // Calcular promedios dinámicos para cada sucursal
+      const sucursalesPromedios = sucursalesEbitdaData.map(sucursal => ({
+        name: sucursal.name,
+        promedio: showPercentages
+          ? parseFloat((sucursal.ebitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / sucursal.ebitdaPercent.length).toFixed(2))
+          : (sucursal.ebitda.reduce((acc: number, val: number) => acc + val, 0) / sucursal.ebitda.length)
+      }));
 
       const formatValue = (value: number): string => {
         if (showPercentages) {
@@ -831,22 +857,23 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
 
             <!-- Grid Inferior: Cards verticales (40%) + Notas (60%) -->
             <div class="bottom-grid">
-              <!-- Columna Izquierda: 3 Cards verticales -->
+              <!-- Columna Izquierda: Cards verticales dinámicas -->
               <div class="cards-container">
                 <div class="summary-card card-consolidado">
                   <div class="card-title">EBITDA Promedio Consolidado ${showPercentages ? '(%)' : '(CLP)'}</div>
                   <div class="card-value">${formatValue(consolidadoPromedio)}</div>
                 </div>
                 
-                <div class="summary-card card-sevilla">
-                  <div class="card-title">EBITDA Promedio Sevilla ${showPercentages ? '(%)' : '(CLP)'}</div>
-                  <div class="card-value">${formatValue(sevillaPromedio)}</div>
-                </div>
-                
-                <div class="summary-card card-labranza">
-                  <div class="card-title">EBITDA Promedio Labranza ${showPercentages ? '(%)' : '(CLP)'}</div>
-                  <div class="card-value">${formatValue(labranzaPromedio)}</div>
-                </div>
+                ${sucursalesPromedios.map((sucursal, index) => {
+                  const cardClasses = ['card-sevilla', 'card-labranza', 'card-sucursal-3', 'card-sucursal-4'];
+                  const cardClass = cardClasses[index] || `card-sucursal-${index}`;
+                  return `
+                    <div class="summary-card ${cardClass}">
+                      <div class="card-title">EBITDA Promedio ${sucursal.name} ${showPercentages ? '(%)' : '(CLP)'}</div>
+                      <div class="card-value">${formatValue(sucursal.promedio)}</div>
+                    </div>
+                  `;
+                }).join('')}
               </div>
 
               <!-- Columna Derecha: Notas -->
@@ -980,31 +1007,34 @@ export default function ComparativoEbitdaView({ consolidadoData, sevillaData, la
             </div>
           </div>
           
-          <div className="bg-purple-50 border-l-4 border-purple-500 rounded-lg p-4">
-            <div className="text-purple-700 text-sm font-semibold">
-              EBITDA Promedio Sevilla {showPercentages ? '(%)' : '(CLP)'}
-            </div>
-            <div className="text-purple-900 text-lg font-bold mt-1">
-              {showPercentages ? (
-                `${(sevillaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitdaPercent.length).toFixed(2)}%`
-              ) : (
-                `$${(sevillaEbitda.reduce((acc: number, val: number) => acc + val, 0) / sevillaEbitda.length).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-              )}
-            </div>
-          </div>
-          
-          <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-4">
-            <div className="text-green-700 text-sm font-semibold">
-              EBITDA Promedio Labranza {showPercentages ? '(%)' : '(CLP)'}
-            </div>
-            <div className="text-green-900 text-lg font-bold mt-1">
-              {showPercentages ? (
-                `${(labranzaEbitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitdaPercent.length).toFixed(2)}%`
-              ) : (
-                `$${(labranzaEbitda.reduce((acc: number, val: number) => acc + val, 0) / labranzaEbitda.length).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-              )}
-            </div>
-          </div>
+          {/* Cards dinámicos para cada sucursal */}
+          {sucursalesEbitdaData.map((sucursal, index) => {
+            const colors = [
+              { bg: 'bg-green-50', border: 'border-green-500', text: 'text-green-700', textBold: 'text-green-900' },
+              { bg: 'bg-orange-50', border: 'border-orange-600', text: 'text-orange-700', textBold: 'text-orange-900' },
+              { bg: 'bg-purple-50', border: 'border-purple-500', text: 'text-purple-700', textBold: 'text-purple-900' },
+              { bg: 'bg-pink-50', border: 'border-pink-500', text: 'text-pink-700', textBold: 'text-pink-900' }
+            ];
+            const color = colors[index % colors.length];
+            const promedio = showPercentages
+              ? (sucursal.ebitdaPercent.reduce((acc: number, val: number) => acc + val, 0) / sucursal.ebitdaPercent.length)
+              : (sucursal.ebitda.reduce((acc: number, val: number) => acc + val, 0) / sucursal.ebitda.length);
+            
+            return (
+              <div key={sucursal.name} className={`${color.bg} border-l-4 ${color.border} rounded-lg p-4`}>
+                <div className={`${color.text} text-sm font-semibold`}>
+                  EBITDA Promedio {sucursal.name} {showPercentages ? '(%)' : '(CLP)'}
+                </div>
+                <div className={`${color.textBold} text-lg font-bold mt-1`}>
+                  {showPercentages ? (
+                    `${promedio.toFixed(2)}%`
+                  ) : (
+                    `$${promedio.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
           {/* Right Column: Notes Section */}

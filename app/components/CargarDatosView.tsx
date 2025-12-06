@@ -7,12 +7,14 @@ import LibroComprasUpload from './LibroComprasUpload';
 interface CargarDatosViewProps {
   selectedUserId: string | null;
   selectedUserName: string;
+  userSucursales: string[];
   onUserChange: (userId: string, userName: string) => void;
 }
 
 export default function CargarDatosView({ 
   selectedUserId, 
   selectedUserName,
+  userSucursales,
   onUserChange 
 }: CargarDatosViewProps) {
   const [activeSection, setActiveSection] = useState<'usuarios' | 'libro-compras'>('usuarios');
@@ -101,13 +103,14 @@ export default function CargarDatosView({
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-800">Cargar Libro de Compras</h2>
-                  <p className="text-sm text-gray-600">Sube archivos Excel de Sevilla o Labranza</p>
+                  <p className="text-sm text-gray-600">Sube archivos Excel por sucursal</p>
                 </div>
               </div>
               
               {selectedUserId ? (
                 <LibroComprasUpload 
                   userId={selectedUserId}
+                  userSucursales={userSucursales}
                   onUploadSuccess={() => {
                     setTimeout(() => {
                       window.location.reload();

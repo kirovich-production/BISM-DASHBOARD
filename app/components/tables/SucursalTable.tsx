@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import { EERRData, EERRCategory, EERRRow } from '@/types';
 import EditableCell from '../EditableCell';
 
-interface SevillaTableProps {
+interface SucursalTableProps {
   data: EERRData | null;
   periodLabel: string;
   version?: number;
@@ -13,7 +13,7 @@ interface SevillaTableProps {
   onDataRefresh?: () => void;
 }
 
-export default function SevillaTable({ data, periodLabel, version, uploadedAt, userId, onDataRefresh }: SevillaTableProps) {
+export default function SucursalTable({ data, periodLabel, version, uploadedAt, userId, onDataRefresh }: SucursalTableProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   if (!data) {
@@ -25,7 +25,7 @@ export default function SevillaTable({ data, periodLabel, version, uploadedAt, u
           </svg>
           <h3 className="mt-2 text-sm font-semibold text-gray-900">No hay datos disponibles</h3>
           <p className="mt-1 text-sm text-gray-500">
-            No se encontraron datos de Sucursal Sevilla para el período seleccionado.
+            No se encontraron datos para esta sucursal en el período seleccionado.
           </p>
         </div>
       </div>

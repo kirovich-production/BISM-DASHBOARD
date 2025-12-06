@@ -109,10 +109,14 @@ export default function LibroComprasView({ userId, userSucursales = [] }: LibroC
                     value={selectedSucursal || ''}
                     onChange={(e) => setSelectedSucursal(e.target.value || null)}
                     className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] text-gray-900"
+                    disabled={userSucursales.length === 0}
                   >
                     <option value="">Seleccionar...</option>
-                    <option value="Sevilla">Sevilla</option>
-                    <option value="Labranza">Labranza</option>
+                    {userSucursales.map((sucursal) => (
+                      <option key={sucursal} value={sucursal}>
+                        {sucursal}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -253,7 +257,7 @@ export default function LibroComprasView({ userId, userSucursales = [] }: LibroC
                     Selecciona una sucursal
                   </p>
                   <p className="text-xs text-blue-600">
-                    Elige Sevilla o Labranza para ver los períodos disponibles
+                    Elige una sucursal para ver los períodos disponibles
                   </p>
                 </div>
               ) : !selectedYear ? (

@@ -5,14 +5,15 @@ import { LibroComprasUploadResponse } from '@/types';
 
 interface LibroComprasUploadProps {
   userId: string;
+  userSucursales: string[];
   onUploadSuccess: () => void;
 }
 
-export default function LibroComprasUpload({ userId, onUploadSuccess }: LibroComprasUploadProps) {
+export default function LibroComprasUpload({ userId, userSucursales, onUploadSuccess }: LibroComprasUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
-  const [selectedSucursal, setSelectedSucursal] = useState<'Sevilla' | 'Labranza'>('Sevilla');
+  const [selectedSucursal, setSelectedSucursal] = useState<string>(userSucursales[0] || '');
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -93,30 +94,29 @@ export default function LibroComprasUpload({ userId, onUploadSuccess }: LibroCom
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Sucursal
         </label>
-        <div className="flex gap-4">
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              value="Sevilla"
-              checked={selectedSucursal === 'Sevilla'}
-              onChange={(e) => setSelectedSucursal(e.target.value as 'Sevilla' | 'Labranza')}
-              className="mr-2 w-4 h-4 text-blue-600"
-              disabled={isUploading}
-            />
-            <span className="text-sm font-medium text-gray-700">Sevilla</span>
-          </label>
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              value="Labranza"
-              checked={selectedSucursal === 'Labranza'}
-              onChange={(e) => setSelectedSucursal(e.target.value as 'Sevilla' | 'Labranza')}
-              className="mr-2 w-4 h-4 text-blue-600"
-              disabled={isUploading}
-            />
-            <span className="text-sm font-medium text-gray-700">Labranza</span>
-          </label>
-        </div>
+        {userSucursales.length > 0 ? (
+          <div className="flex flex-wrap gap-4">
+            {userSucursales.map((sucursal) => (
+              <label key={sucursal} className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  value={sucursal}
+                  checked={selectedSucursal === sucursal}
+                  onChange={(e) => setSelectedSucursal(e.target.value)}
+                  className="mr-2 w-4 h-4 text-blue-600"
+                  disabled={isUploading}
+                />
+                <span className="text-sm font-medium text-gray-700">{sucursal}</span>
+              </label>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-sm text-yellow-800">
+              No hay sucursales disponibles. Agrega sucursales al usuario en Gestión de Usuarios.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

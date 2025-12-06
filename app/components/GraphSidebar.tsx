@@ -6,9 +6,10 @@ interface GraphSidebarProps {
   selectedPeriod: string | null;
   onPeriodChange: (period: string) => void;
   availablePeriods: string[];
+  userSucursales?: string[]; // Sucursales del usuario para leyenda dinámica
 }
 
-export default function GraphSidebar({ selectedPeriod, onPeriodChange, availablePeriods }: GraphSidebarProps) {
+export default function GraphSidebar({ selectedPeriod, onPeriodChange, availablePeriods, userSucursales = [] }: GraphSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -153,22 +154,38 @@ export default function GraphSidebar({ selectedPeriod, onPeriodChange, available
             </div>
           )}
 
-          {/* Leyenda de colores */}
+          {/* Leyenda de colores dinámica */}
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">Leyenda</h3>
             <div className="space-y-2">
+              {/* Consolidado siempre presente */}
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-indigo-600"></div>
                 <span className="text-sm text-gray-600">Consolidado</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-green-500"></div>
-                <span className="text-sm text-gray-600">Labranza</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-orange-600"></div>
-                <span className="text-sm text-gray-600">Sevilla</span>
-              </div>
+              
+              {/* Sucursales dinámicas del usuario */}
+              {userSucursales.map((sucursal, index) => {
+                // Paleta de colores para sucursales (mismo orden que los gráficos)
+                const colors = [
+                  'bg-green-500',
+                  'bg-orange-600',
+                  'bg-purple-500',
+                  'bg-pink-500',
+                  'bg-yellow-500',
+                  'bg-blue-500',
+                  'bg-red-500',
+                  'bg-teal-500'
+                ];
+                const colorClass = colors[index % colors.length];
+                
+                return (
+                  <div key={sucursal} className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded ${colorClass}`}></div>
+                    <span className="text-sm text-gray-600">{sucursal}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

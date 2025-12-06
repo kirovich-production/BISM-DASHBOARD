@@ -96,16 +96,17 @@ const convertEERRToExcelRows = (eerrData?: EERRData): ExcelRow[] => {
 
 interface EbidtaComboViewProps {
   consolidadoData?: ExcelRow[];
-  sevillaData?: EERRData;  
-  labranzaData?: EERRData;
+  sucursalesData: Array<{
+    name: string;
+    data: EERRData | null;
+  }>;
   selectedUserName?: string;
   selectedPeriod?: string;
 }
 
 export default function EbidtaComboView({
   consolidadoData,
-  sevillaData,
-  labranzaData,
+  sucursalesData,
   selectedUserName,
   selectedPeriod,
 }: EbidtaComboViewProps) {
@@ -113,19 +114,20 @@ export default function EbidtaComboView({
   const contentRef = useRef<HTMLDivElement>(null);
   const [notes, setNotes] = useState("");
   const [mounted, setMounted] = useState(false);
-  const [selectedUnit, setSelectedUnit] = useState<'consolidado' | 'sevilla' | 'labranza'>('consolidado');
+  const [selectedUnit, setSelectedUnit] = useState<string>('consolidado');
+
+  // Helper para crear slug
+  const createSlug = (text: string) => text.toLowerCase().replace(/\s+/g, '_');
 
   // Función para obtener datos activos según la unidad seleccionada
   const getActiveData = (): ExcelRow[] => {
-    switch (selectedUnit) {
-      case 'sevilla':
-        return convertEERRToExcelRows(sevillaData);
-      case 'labranza':
-        return convertEERRToExcelRows(labranzaData);
-      case 'consolidado':
-      default:
-        return consolidadoData || [];
+    if (selectedUnit === 'consolidado') {
+      return consolidadoData || [];
     }
+    
+    // Buscar datos de la sucursal seleccionada
+    const sucursal = sucursalesData.find(s => createSlug(s.name) === selectedUnit);
+    return sucursal?.data ? convertEERRToExcelRows(sucursal.data) : [];
   };
 
   useEffect(() => {

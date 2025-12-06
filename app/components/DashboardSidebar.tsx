@@ -10,6 +10,7 @@ interface DashboardSidebarProps {
   selectedUserName?: string;
   onUserChange: (userId: string, userName: string) => void;
   availableSections?: string[]; // Secciones disponibles desde Excel
+  userSucursales?: string[]; // Sucursales del usuario activo
 }
 
 export default function DashboardSidebar({ 
@@ -17,21 +18,15 @@ export default function DashboardSidebar({
   onViewChange, 
   selectedUserId, 
   onUserChange,
-  availableSections = []
+  availableSections = [],
+  userSucursales = []
 }: DashboardSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Icono genérico para secciones
-  const sectionIcon = (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-      />
-    </svg>
-  );
+  // Helper para crear slug sin espacios (para IDs y navegación)
+  const createSlug = (text: string) => {
+    return text.toLowerCase().replace(/\s+/g, '_');
+  };
 
   // Generar menú dinámicamente
   const generateMenuItems = () => {
@@ -52,47 +47,23 @@ export default function DashboardSidebar({
       },
     ];
 
-    // SIEMPRE agregar Sevilla y Labranza (opciones fijas para Libro de Compras)
-    items.push({
-      id: 'sevilla',
-      label: 'Sevilla',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-      ),
-    });
-
-    items.push({
-      id: 'labranza',
-      label: 'Labranza',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-      ),
-    });
-
-    // Agregar otras secciones dinámicas (excepto sevilla, labranza y consolidado)
-    availableSections
-      .filter(section => !['consolidado', 'consolidados', 'sevilla', 'labranza'].includes(section.toLowerCase()))
-      .forEach(section => {
-        items.push({
-          id: section.toLowerCase(),
-          label: section.charAt(0).toUpperCase() + section.slice(1),
-          icon: sectionIcon,
-        });
+    // Agregar sucursales del usuario dinámicamente (ÚNICA FUENTE DE VERDAD)
+    userSucursales.forEach(sucursal => {
+      items.push({
+        id: createSlug(sucursal), // Slug para navegación: "Pan de Azúcar" -> "pan_de_azucar"
+        label: sucursal, // Nombre real con espacios para display
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+        ),
       });
+    });
 
     // Agregar consolidado si existe (en Excel) o si hay un userId seleccionado (Libro de Compras)
     const hasConsolidado = availableSections.some(s => 

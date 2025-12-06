@@ -251,12 +251,12 @@ export default function UserManagement({
                 type="text"
                 value={newUserName}
                 onChange={(e) => setNewUserName(e.target.value)}
-                placeholder="Ej: Nombre_del_Cliente"
+                placeholder="Ej: Agua Nieves"
                 className="w-full px-4 py-3 text-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 disabled={isCreating}
               />
               <p className="mt-1 text-xs text-gray-500">
-                El nombre debe ser único y sin espacios (usa guiones bajos si es necesario)
+                El nombre debe ser único
               </p>
             </div>
 
@@ -275,7 +275,7 @@ export default function UserManagement({
                       handleAddSucursal();
                     }
                   }}
-                  placeholder="Ej: Sevilla, Labranza, Casa_Matriz..."
+                  placeholder="Ej: Sevilla, Labranza, Casa Matriz..."
                   className="flex-1 px-4 py-3 text-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={isCreating}
                 />
@@ -491,7 +491,7 @@ export default function UserManagement({
                           handleAddEditSucursal();
                         }
                       }}
-                      placeholder="Ej: Sucursal_Nueva..."
+                      placeholder="Ej: Pan de Azúcar, Casa Matriz..."
                       className="flex-1 px-4 py-3 text-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       disabled={isUpdating}
                     />
