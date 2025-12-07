@@ -10,10 +10,11 @@ interface SucursalTableProps {
   version?: number;
   uploadedAt?: string | Date;
   userId?: string;
+  sucursalName?: string;
   onDataRefresh?: () => void;
 }
 
-export default function SucursalTable({ data, periodLabel, version, uploadedAt, userId, onDataRefresh }: SucursalTableProps) {
+export default function SucursalTable({ data, periodLabel, version, uploadedAt, userId, sucursalName, onDataRefresh }: SucursalTableProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   if (!data) {
@@ -479,7 +480,7 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
                     {regularMonths.map((month: string, monthIdx: number) => (
                       <React.Fragment key={monthIdx}>
                         <td className="px-3 py-3 text-sm text-gray-700 text-right whitespace-nowrap border-r border-gray-100">
-                          {row.Item === 'Ventas' && userId && data.monthToPeriod?.[month] ? (
+                          {row.Item === 'Ventas' && userId && sucursalName && data.monthToPeriod?.[month] ? (
                             <EditableCell
                               value={(() => {
                                 const val = row[`${month} Monto`];
@@ -487,7 +488,7 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
                               })()}
                               userId={userId}
                               periodo={data.monthToPeriod[month]}
-                              sucursal="Sevilla"
+                              sucursal={sucursalName}
                               cuenta="Ventas"
                               onValueChange={() => {
                                 if (onDataRefresh) {

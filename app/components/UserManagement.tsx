@@ -170,6 +170,12 @@ export default function UserManagement({
 
       if (result.success) {
         setMessage({ type: 'success', text: 'Sucursales actualizadas exitosamente' });
+        
+        // Si el usuario editado es el seleccionado, refrescar sus sucursales en el padre
+        if (editingUser._id === selectedUserId) {
+          onUserChange(editingUser._id, editingUser.name);
+        }
+        
         setEditingUser(null);
         setEditSucursales([]);
         setEditSucursalInput('');

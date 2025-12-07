@@ -13,7 +13,8 @@ interface TableViewProps {
 
 export default function TableView({ sections, periodLabel, version, uploadedAt }: TableViewProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [selectedTab, setSelectedTab] = useState<'consolidados' | 'sevilla' | 'labranza'>('consolidados');
+  // Estado dinámico: seleccionar 'Consolidados' por defecto
+  const [selectedTab, setSelectedTab] = useState<string>('Consolidados');
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Función auxiliar para generar contenido HTML de cada página (sin estructura completa)
@@ -254,19 +255,8 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
     }
   };
 
-  // Obtener la sección activa según la pestaña seleccionada
-  const activeSection = sections.find(s => {
-    const sectionName = s.name.toLowerCase();
-    if (selectedTab === 'consolidados') return sectionName === 'consolidados';
-    if (selectedTab === 'sevilla') return sectionName === 'sevilla';
-    if (selectedTab === 'labranza') return sectionName === 'labranza';
-    return false;
-  });
-
-  // Verificar qué secciones están disponibles
-  const hasConsolidados = sections.some(s => s.name.toLowerCase() === 'consolidados');
-  const hasSevilla = sections.some(s => s.name.toLowerCase() === 'sevilla');
-  const hasLabranza = sections.some(s => s.name.toLowerCase() === 'labranza');
+  // Obtener la sección activa - comparación directa dinámica
+  const activeSection = sections.find(s => s.name === selectedTab);
 
   // Debug: Log para verificar qué secciones llegan
   console.log('TableView sections:', sections.map(s => ({ name: s.name, dataLength: s.data?.length })));
@@ -283,7 +273,7 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">
-                Consolidado - {selectedTab === 'consolidados' ? 'Consolidados' : selectedTab === 'sevilla' ? 'Sevilla' : 'Labranza'}
+                Consolidado - {selectedTab}
               </h2>
               <p className="text-sm text-gray-600">
                 Período: <strong>{periodLabel}</strong>
@@ -319,62 +309,31 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
         </div>
       </div>
 
-      {/* Pestañas de secciones */}
+      {/* Pestañas dinámicas generadas desde sections */}
       <div className="mb-6 bg-gray-50 p-4 rounded-lg">
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedTab('consolidados')}
-            disabled={!hasConsolidados}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              selectedTab === 'consolidados'
-                ? 'bg-purple-600 text-white shadow-md'
-                : hasConsolidados
-                ? 'bg-white text-gray-700 border border-gray-300 hover:bg-purple-50'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <span>📊</span>
-            <span>Consolidados</span>
-            {hasConsolidados && sections.find(s => s.name.toLowerCase() === 'consolidados')?.data.length && (
-              <span className="text-xs opacity-75">({sections.find(s => s.name.toLowerCase() === 'consolidados')?.data.length})</span>
-            )}
-          </button>
-          
-          <button
-            onClick={() => setSelectedTab('sevilla')}
-            disabled={!hasSevilla}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              selectedTab === 'sevilla'
-                ? 'bg-purple-600 text-white shadow-md'
-                : hasSevilla
-                ? 'bg-white text-gray-700 border border-gray-300 hover:bg-purple-50'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <span>🏭</span>
-            <span>Sevilla</span>
-            {hasSevilla && sections.find(s => s.name.toLowerCase() === 'sevilla')?.data.length && (
-              <span className="text-xs opacity-75">({sections.find(s => s.name.toLowerCase() === 'sevilla')?.data.length})</span>
-            )}
-          </button>
-          
-          <button
-            onClick={() => setSelectedTab('labranza')}
-            disabled={!hasLabranza}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              selectedTab === 'labranza'
-                ? 'bg-purple-600 text-white shadow-md'
-                : hasLabranza
-                ? 'bg-white text-gray-700 border border-gray-300 hover:bg-purple-50'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <span>🌾</span>
-            <span>Labranza</span>
-            {hasLabranza && sections.find(s => s.name.toLowerCase() === 'labranza')?.data.length && (
-              <span className="text-xs opacity-75">({sections.find(s => s.name.toLowerCase() === 'labranza')?.data.length})</span>
-            )}
-          </button>
+          {sections.map((section, index) => {
+            const isConsolidados = section.name === 'Consolidados';
+            const icon = isConsolidados ? '📊' : '🏭';
+            
+            return (
+              <button
+                key={index}
+                onClick={() => setSelectedTab(section.name)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                  selectedTab === section.name
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-purple-50'
+                }`}
+              >
+                <span>{icon}</span>
+                <span>{section.name}</span>
+                {section.data?.length > 0 && (
+                  <span className="text-xs opacity-75">({section.data.length})</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -395,7 +354,7 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
             <div>
               <h3 className="text-sm font-medium text-yellow-800">Sin datos de {selectedTab}</h3>
               <p className="text-sm text-yellow-700">
-                No se encontraron datos para la sección de {selectedTab === 'consolidados' ? 'Consolidados' : selectedTab === 'sevilla' ? 'Sevilla' : 'Labranza'} en este período.
+                No se encontraron datos para la sección de {selectedTab} en este período.
               </p>
             </div>
           </div>

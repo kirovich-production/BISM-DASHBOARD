@@ -295,6 +295,7 @@ export default function Home() {
                   version={excelData.version}
                   uploadedAt={excelData.uploadedAt}
                   userId={selectedUserId || undefined}
+                  sucursalName={userSucursales.find(s => createSlug(s) === activeView)}
                   onDataRefresh={() => fetchData(true)}
                 />
               ) : activeView === 'consolidado' ? (

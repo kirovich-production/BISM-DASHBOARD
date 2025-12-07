@@ -8,7 +8,7 @@ interface EditableCellProps {
   value: number;
   userId: string;
   periodo: string;
-  sucursal: 'Sevilla' | 'Labranza';
+  sucursal: string;
   cuenta: string;
   onValueChange: (newValue: number) => void;
 }
