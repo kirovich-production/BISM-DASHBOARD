@@ -258,9 +258,6 @@ export default function TableView({ sections, periodLabel, version, uploadedAt }
   // Obtener la sección activa - comparación directa dinámica
   const activeSection = sections.find(s => s.name === selectedTab);
 
-  // Debug: Log para verificar qué secciones llegan
-  console.log('TableView sections:', sections.map(s => ({ name: s.name, dataLength: s.data?.length })));
-
   return (
     <div className="flex-1 overflow-auto p-6 md:p-8" ref={contentRef}>
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">

@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     
-    console.log(`[UPLOAD-LC] 📄 Procesando: ${file.name} | Usuario: ${userId} | Sucursal: ${sucursal} | Período: ${periodo}`);
     
     // Parsear Libro de Compras
     const libroComprasTransactions = parseLibroComprasSheet(workbook);
@@ -58,7 +57,6 @@ export async function POST(request: NextRequest) {
 
     // Parsear proveedores/clasificación
     const proveedoresData = parseClasificacionSheet(workbook);
-    console.log(`[UPLOAD-LC] Proveedores parseados: ${proveedoresData?.length || 0}`);
 
     // Conectar a MongoDB
     const { db } = await connectToDatabase();
@@ -86,7 +84,6 @@ export async function POST(request: NextRequest) {
     };
     
     await libroComprasCollection.insertOne(libroComprasDoc);
-    console.log(`[UPLOAD-LC] ✅ Libro de Compras guardado: ${libroComprasTransactions.length} transacciones`);
 
     // Guardar proveedores si existen
     let proveedoresCount = 0;
@@ -116,7 +113,6 @@ export async function POST(request: NextRequest) {
       
       await proveedoresCollection.insertMany(proveedoresDocs);
       proveedoresCount = proveedoresDocs.length;
-      console.log(`[UPLOAD-LC] ✅ Proveedores guardados: ${proveedoresCount} documentos`);
     }
 
     return NextResponse.json({

@@ -20,8 +20,6 @@ export async function GET(request: NextRequest) {
     const { db } = await connectToDatabase();
     const libroComprasCollection = db.collection('libroCompras');
 
-    console.log('[GET libro-compras] Búsqueda con:', { userId, periodo, sucursal });
-
     // Buscar ambos documentos: con ObjectId y con string
     const documentObjectId = await libroComprasCollection.findOne({
       userId: new ObjectId(userId),
@@ -34,9 +32,6 @@ export async function GET(request: NextRequest) {
       periodo,
       sucursal
     });
-
-    console.log('[GET libro-compras] Encontrado con ObjectId:', !!documentObjectId, 'registros:', documentObjectId?.data?.length || 0);
-    console.log('[GET libro-compras] Encontrado con string:', !!documentString, 'registros:', documentString?.transacciones?.length || 0);
 
     // Si no hay ninguno de los dos
     if (!documentObjectId && !documentString) {
@@ -51,8 +46,6 @@ export async function GET(request: NextRequest) {
     const transaccionesObjectId = documentObjectId?.data || [];
     const transaccionesString = documentString?.transacciones || [];
     const todasLasTransacciones = [...transaccionesString, ...transaccionesObjectId];
-
-    console.log('[GET libro-compras] Total transacciones combinadas:', todasLasTransacciones.length);
 
     // Usar el primer documento encontrado como base y agregar todas las transacciones
     const baseDocument = documentString || documentObjectId;

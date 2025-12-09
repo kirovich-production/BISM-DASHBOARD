@@ -44,9 +44,16 @@ const ESTRUCTURA_EERR = [
 ];
 
 /**
- * Clasifica una cuenta del LC en una categoría EERR según keywords
+ * Clasifica una cuenta del LC en una categoría EERR
+ * PRIORIDAD: Si tx.encabezado existe, usarlo. Sino, clasificar por keywords.
  */
-function clasificarCuenta(cuenta: string): string {
+function clasificarCuenta(cuenta: string, encabezado?: string): string {
+  // PRIORIDAD 1: Si el encabezado está definido manualmente, usarlo directamente
+  if (encabezado && encabezado.trim() !== '') {
+    return encabezado.trim();
+  }
+  
+  // PRIORIDAD 2: Clasificar automáticamente por keywords del nombre de cuenta
   const cuentaLower = cuenta.toLowerCase();
   
   // INGRESOS OPERACIONALES
@@ -331,30 +338,35 @@ export function aggregateLibroComprasToEERR(
   
   // Calcular porcentajes basados en Ventas
   // Ventas = 100%, todas las demás cuentas se calculan como: (monto / ventas) * 100
-  let montoVentas = 0;
+  let montoVentasMes = 0;
+  let montoVentasConsolidado = 0;
   
-  // Buscar el monto de Ventas
+  // Buscar los montos de Ventas (mes y consolidado)
   categories.forEach(cat => {
     const ventasRow = cat.rows.find(r => r.Item === 'Ventas');
     if (ventasRow) {
-      const montoVentasMes = ventasRow[`${mesNombre} Monto`];
-      montoVentas = typeof montoVentasMes === 'number' ? montoVentasMes : 0;
+      const ventasMes = ventasRow[`${mesNombre} Monto`];
+      const ventasConsol = ventasRow['CONSOLIDADO Monto'];
+      montoVentasMes = typeof ventasMes === 'number' ? ventasMes : 0;
+      montoVentasConsolidado = typeof ventasConsol === 'number' ? ventasConsol : 0;
     }
   });
   
   // Si hay ventas, calcular porcentajes
-  if (montoVentas > 0) {
+  if (montoVentasMes > 0 || montoVentasConsolidado > 0) {
     categories.forEach(cat => {
       // Calcular % para cada fila
       cat.rows.forEach(row => {
         const montoMes = row[`${mesNombre} Monto`];
         const montoConsolidado = row['CONSOLIDADO Monto'];
         
-        if (typeof montoMes === 'number' && typeof montoConsolidado === 'number') {
-          const porcentajeMes = (montoMes / montoVentas) * 100;
-          const porcentajeConsolidado = (montoConsolidado / montoVentas) * 100;
-          
+        if (typeof montoMes === 'number' && montoVentasMes > 0) {
+          const porcentajeMes = (montoMes / montoVentasMes) * 100;
           row[`${mesNombre} %`] = porcentajeMes;
+        }
+        
+        if (typeof montoConsolidado === 'number' && montoVentasConsolidado > 0) {
+          const porcentajeConsolidado = (montoConsolidado / montoVentasConsolidado) * 100;
           row['CONSOLIDADO %'] = porcentajeConsolidado;
         }
       });
@@ -364,10 +376,12 @@ export function aggregateLibroComprasToEERR(
         const totalMontoMes = cat.total[`${mesNombre} Monto`];
         const totalMontoConsolidado = cat.total['CONSOLIDADO Monto'];
         
-        if (typeof totalMontoMes === 'number' && typeof totalMontoConsolidado === 'number') {
-          // Para MARGEN BRUTO OPERACIONAL: % = (margenBruto / ventas) * 100
-          cat.total[`${mesNombre} %`] = (totalMontoMes / montoVentas) * 100;
-          cat.total['CONSOLIDADO %'] = (totalMontoConsolidado / montoVentas) * 100;
+        if (typeof totalMontoMes === 'number' && montoVentasMes > 0) {
+          cat.total[`${mesNombre} %`] = (totalMontoMes / montoVentasMes) * 100;
+        }
+        
+        if (typeof totalMontoConsolidado === 'number' && montoVentasConsolidado > 0) {
+          cat.total['CONSOLIDADO %'] = (totalMontoConsolidado / montoVentasConsolidado) * 100;
         }
       }
     });
@@ -409,7 +423,9 @@ export function aggregateMultiplePeriodsToEERR(
   const allMonths = [...monthNames, 'ANUAL'];
   
   // Procesar cada documento para agrupar transacciones por cuenta y período
+  // Guardamos también el encabezado de cada cuenta para respetar clasificación manual
   const transaccionesPorPeriodo = new Map<string, Map<string, number>>();
+  const encabezadosPorCuenta = new Map<string, string>(); // cuenta → encabezado (si existe)
   
   docsOrdenados.forEach((doc, periodoIdx) => {
     const mesNombre = monthNames[periodoIdx];
@@ -418,6 +434,11 @@ export function aggregateMultiplePeriodsToEERR(
     doc.transacciones.forEach(tx => {
       const cuenta = (tx.cuenta || 'Sin Clasificar').trim();
       const monto = tx.montoNeto || 0;
+      
+      // Guardar el encabezado manual si existe (para filas creadas desde mantenedor)
+      if (tx.encabezado && !encabezadosPorCuenta.has(cuenta)) {
+        encabezadosPorCuenta.set(cuenta, tx.encabezado);
+      }
       
       const montoActual = mapPeriodo.get(cuenta) || 0;
       mapPeriodo.set(cuenta, montoActual + monto);
@@ -493,8 +514,9 @@ export function aggregateMultiplePeriodsToEERR(
         const yaMapeada = monthNames.some(mes => cuentasMapeadas.has(`${mes}:${cuentaTx}`));
         if (yaMapeada) return;
         
-        // Clasificar la cuenta usando la función de clasificación
-        const categoriaClasificada = clasificarCuenta(cuentaTx);
+        // Clasificar la cuenta: priorizar encabezado manual sobre keywords
+        const encabezadoManual = encabezadosPorCuenta.get(cuentaTx);
+        const categoriaClasificada = clasificarCuenta(cuentaTx, encabezadoManual);
         
         // Si pertenece a esta categoría, agregarla
         if (categoriaClasificada === estructuraCategoria.name) {
@@ -697,7 +719,8 @@ export function aggregateMultiplePeriodsToEERR(
         cat.rows.forEach(row => {
           const montoMes = row[`${mesNombre} Monto`];
           if (typeof montoMes === 'number') {
-            row[`${mesNombre} %`] = (montoMes / montoVentas) * 100;
+            const porcentaje = (montoMes / montoVentas) * 100;
+            row[`${mesNombre} %`] = porcentaje;
           }
         });
         
@@ -721,7 +744,8 @@ export function aggregateMultiplePeriodsToEERR(
       cat.rows.forEach(row => {
         const montoAnual = row['ANUAL Monto'];
         if (typeof montoAnual === 'number') {
-          row['ANUAL %'] = (montoAnual / montoVentasAnualNum) * 100;
+          const porcentaje = (montoAnual / montoVentasAnualNum) * 100;
+          row['ANUAL %'] = porcentaje;
         }
       });
       

@@ -74,9 +74,6 @@ export async function POST(request: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      console.log(`✅ Nuevo proveedor maestro creado: ${rutProveedor} - ${razonSocial}`);
-    } else {
-      console.log(`ℹ️ Proveedor maestro ya existe: ${rutProveedor}`);
     }
 
     // 2. Insertar registro en libroCompras
@@ -102,8 +99,6 @@ export async function POST(request: NextRequest) {
     const registrosExistentesString = docString?.transacciones?.length || 0;
     const totalRegistrosExistentes = registrosExistentesObjectId + registrosExistentesString;
     const proximoNro = totalRegistrosExistentes + 1;
-
-    console.log(`[INSERT] Calculando NRO: ObjectId=${registrosExistentesObjectId}, String=${registrosExistentesString}, Próximo=${proximoNro}`);
 
     const nuevoRegistro = {
       nro: proximoNro,
@@ -147,7 +142,6 @@ export async function POST(request: NextRequest) {
         $push: { data: nuevoRegistro },
         $set: { updatedAt: new Date() },
       });
-      console.log(`✅ Registro agregado a LC existente (ObjectId): ${sucursal} - ${periodo}`);
     } else {
       // Crear nuevo documento LC
       await libroCompras.insertOne({
@@ -156,7 +150,6 @@ export async function POST(request: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      console.log(`✅ Nuevo documento LC creado: ${sucursal} - ${periodo}`);
     }
 
     return NextResponse.json({

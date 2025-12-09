@@ -187,6 +187,7 @@ export interface LibroComprasData {
   sucursal: string; // "pending" por ahora, luego "Sevilla" o "Labranza"
   fileName: string;
   transacciones: LibroComprasTransaction[];
+  data?: LibroComprasTransaction[]; // Filas agregadas manualmente desde el mantenedor
   createdAt: Date;
   updatedAt: Date;
 }

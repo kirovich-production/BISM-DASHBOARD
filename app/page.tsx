@@ -114,7 +114,7 @@ export default function Home() {
 
 
 
-  const fetchData = async (forceReload = false) => {
+  const fetchData = async (forceReload = false): Promise<void> => {
     // Cancelar request anterior si existe
     if (abortControllers.current.data) {
       abortControllers.current.data.abort();
@@ -126,7 +126,7 @@ export default function Home() {
       return;
     }
 
-    // Prevenir llamadas duplicadas simultáneas
+    // Prevenir llamadas duplicadas simultáneas (pero permitir forceReload)
     if (!forceReload && fetchDataInProgress.current) {
       return;
     }
@@ -142,7 +142,8 @@ export default function Home() {
       abortControllers.current.data = new AbortController();
       
       const response = await fetch(url, {
-        signal: abortControllers.current.data.signal
+        signal: abortControllers.current.data.signal,
+        cache: 'no-store' // Forzar no usar cache
       });
       const result = await response.json();
       
@@ -282,6 +283,9 @@ export default function Home() {
           <LibroComprasView 
             userId={selectedUserId}
             userSucursales={userSucursales}
+            onDataChange={async () => {
+              await fetchData(true);
+            }}
           />
         ) : isSucursalView(activeView) || activeView === 'consolidado' || activeView === 'analisis-trimestral' || activeView === 'mes-anual' || activeView === 'waterfall-charts' || activeView === 'ebitda-combo' ? (
           /* Sucursales dinámicas, Consolidado, Charts and Mes-Anual Views */

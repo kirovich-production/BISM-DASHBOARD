@@ -7,9 +7,10 @@ import { obtenerCuentasPorEncabezado } from '@/lib/cuentasEncabezados';
 interface MantenedorLibroDiarioProps {
   userId: string | null;
   userSucursales?: string[];
+  onDataChange?: () => Promise<void>; // Callback async para notificar cambios
 }
 
-export default function MantenedorLibroDiario({ userId, userSucursales = [] }: MantenedorLibroDiarioProps) {
+export default function MantenedorLibroDiario({ userId, userSucursales = [], onDataChange }: MantenedorLibroDiarioProps) {
   const [encabezados, setEncabezados] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
@@ -193,9 +194,14 @@ export default function MantenedorLibroDiario({ userId, userSucursales = [] }: M
       const result = await response.json();
       
       if (result.success) {
+        // Notificar cambio de datos para refrescar EERR ANTES de mostrar mensaje
+        if (onDataChange) {
+          await onDataChange();
+        }
+        
         setMensaje({ 
           tipo: 'success', 
-          texto: `✅ Registro insertado correctamente. ${result.proveedorNuevo ? '(Nuevo proveedor creado)' : '(Proveedor existente)'}`
+          texto: `✅ Registro insertado correctamente. ${result.proveedorNuevo ? '(Nuevo proveedor creado)' : '(Proveedor existente)'} - Datos EERR actualizados`
         });
         
         // Limpiar formulario manteniendo sucursal, año y mes

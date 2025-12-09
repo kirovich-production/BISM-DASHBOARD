@@ -2,8 +2,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase, getUserCollectionName } from '@/lib/mongodb';
 import { aggregateMultiplePeriodsToEERR } from '@/lib/libroComprasAggregator';
 import { convertEERRDataToExcelRows, sumarTablas } from '@/lib/consolidadoHelper';
-import { LibroComprasData } from '@/types';
+import { LibroComprasData, LibroComprasTransaction } from '@/types';
 import { ObjectId } from 'mongodb';
+import { Collection } from 'mongodb';
+
+// Helper: Preparar documentos con valores manuales y combinar transacciones
+async function prepararDocumentosConValores(
+  docs: LibroComprasData[],
+  userId: string,
+  sucursal: string,
+  valoresManualesCollection: Collection
+) {
+  return Promise.all(
+    docs.map(async (doc) => {
+      const valoresManualesDocs = await valoresManualesCollection.find({
+        userId,
+        periodo: doc.periodo,
+        sucursal
+      }).toArray();
+      
+      const valoresManuales: { [cuenta: string]: number } = {};
+      valoresManualesDocs.forEach(v => {
+        valoresManuales[v.cuenta] = v.monto;
+      });
+      
+      // Combinar transacciones del Excel + filas manuales (doc.data)
+      const docData = doc as LibroComprasData & { data?: LibroComprasTransaction[] };
+      const transaccionesExcel = doc.transacciones || [];
+      const transaccionesManuales = docData.data || [];
+      const todasLasTransacciones = [
+        ...transaccionesExcel,
+        ...transaccionesManuales
+      ];
+      
+
+      
+      return {
+        periodo: doc.periodo,
+        transacciones: todasLasTransacciones,
+        valoresManuales
+      };
+    })
+  );
+}
 
 // Obtener la carga más reciente de datos o por período/versión específica
 export async function GET(request: NextRequest) {
@@ -28,30 +69,103 @@ export async function GET(request: NextRequest) {
     
     // Si es userId (Libro de Compras), generar datos con Consolidado
     if (userId) {
-      console.log('🔍 API route.ts - userId:', userId, 'sucursal:', sucursal, 'period:', period);
       const libroComprasCollection = db.collection('libroCompras');
       
       // Si se especifica sucursal, retornar solo esa sucursal
       if (sucursal) {
-      console.log('✅ API route.ts - Entrando a bloque de sucursal específica:', sucursal);
 
       // Obtener documentos de la sucursal especificada
       let sucursalDocs: LibroComprasData[] = [];
       
       if (period) {
-        // Buscar documento específico del período
-        const doc = await libroComprasCollection.findOne({ userId, sucursal, periodo: period }) as LibroComprasData | null;
-        if (doc) sucursalDocs.push(doc);
+        // Buscar AMBOS documentos (ObjectId Y string) para el período
+        const docObjectId = await libroComprasCollection.findOne({ 
+          userId: new ObjectId(userId), 
+          sucursal, 
+          periodo: period 
+        }) as LibroComprasData | null;
+        
+        const docString = await libroComprasCollection.findOne({ 
+          userId: userId, 
+          sucursal, 
+          periodo: period 
+        }) as LibroComprasData | null;
+        
+        // Combinar transacciones de ambos documentos
+        if (docObjectId || docString) {
+          const transaccionesExcel = docString?.transacciones || [];
+          const transaccionesManuales = (docObjectId as LibroComprasData & { data?: LibroComprasTransaction[] })?.data || [];
+          
+          const docCombinado: LibroComprasData = {
+            userId: userId,
+            periodo: period,
+            periodLabel: (docObjectId || docString)!.periodLabel,
+            sucursal: sucursal,
+            fileName: (docObjectId || docString)!.fileName || 'manual',
+            transacciones: [...transaccionesExcel, ...transaccionesManuales],
+            createdAt: (docObjectId || docString)!.createdAt,
+            updatedAt: (docObjectId || docString)!.updatedAt
+          };
+          
+          sucursalDocs.push(docCombinado);
+        }
       } else {
-        // Traer todos los documentos de la sucursal
-        const docs = await libroComprasCollection.find({ userId, sucursal }).sort({ periodo: 1 }).toArray();
-        sucursalDocs = docs as unknown as LibroComprasData[];
+        // Traer TODOS los documentos (ObjectId Y string) y combinar por periodo
+        const docsObjectId = await libroComprasCollection.find({ 
+          userId: new ObjectId(userId), 
+          sucursal 
+        }).sort({ periodo: 1 }).toArray();
+        
+        const docsString = await libroComprasCollection.find({ 
+          userId: userId, 
+          sucursal 
+        }).sort({ periodo: 1 }).toArray();
+        
+        // Combinar documentos por periodo
+        const periodoMap = new Map<string, LibroComprasData>();
+        
+        // Procesar documentos con transacciones del Excel (userId string)
+        for (const doc of docsString) {
+          periodoMap.set(doc.periodo, {
+            userId: userId,
+            periodo: doc.periodo,
+            periodLabel: doc.periodLabel,
+            sucursal: sucursal,
+            fileName: doc.fileName || 'manual',
+            transacciones: doc.transacciones || [],
+            createdAt: doc.createdAt,
+            updatedAt: doc.updatedAt
+          });
+        }
+        
+        // Agregar transacciones manuales (userId ObjectId)
+        for (const doc of docsObjectId) {
+          const docData = doc as unknown as LibroComprasData & { data?: LibroComprasTransaction[] };
+          const existing = periodoMap.get(doc.periodo);
+          
+          if (existing) {
+            existing.transacciones = [
+              ...existing.transacciones,
+              ...(docData.data || [])
+            ];
+          } else {
+            periodoMap.set(doc.periodo, {
+              userId: userId,
+              periodo: doc.periodo,
+              periodLabel: doc.periodLabel,
+              sucursal: sucursal,
+              fileName: doc.fileName || 'manual',
+              transacciones: docData.data || [],
+              createdAt: doc.createdAt,
+              updatedAt: doc.updatedAt
+            });
+          }
+        }
+        
+        sucursalDocs = Array.from(periodoMap.values());
       }
       
-      console.log('📊 API route.ts - Documentos encontrados:', sucursalDocs.length);
-      
       if (sucursalDocs.length === 0) {
-        console.log('❌ API route.ts - No hay documentos para sucursal:', sucursal);
         return NextResponse.json({
           success: true,
           data: null,
@@ -61,26 +175,12 @@ export async function GET(request: NextRequest) {
       
       const valoresManualesCollection = db.collection('valoresManuales');
       
-      // Preparar documentos con valores manuales
-      const docsConValores = await Promise.all(
-        sucursalDocs.map(async (doc) => {
-          const valoresManualesDoc = await valoresManualesCollection.find({
-            userId,
-            periodo: doc.periodo,
-            sucursal
-          }).toArray();
-          
-          const valoresManuales: { [cuenta: string]: number } = {};
-          valoresManualesDoc.forEach(v => {
-            valoresManuales[v.cuenta] = v.monto;
-          });
-          
-          return {
-            periodo: doc.periodo,
-            transacciones: doc.transacciones,
-            valoresManuales
-          };
-        })
+      // Preparar documentos con valores manuales (usando helper)
+      const docsConValores = await prepararDocumentosConValores(
+        sucursalDocs,
+        userId,
+        sucursal,
+        valoresManualesCollection
       );
       
       // Usar función multi-período
@@ -108,9 +208,6 @@ export async function GET(request: NextRequest) {
       // Asignar datos usando slug dinámico
       responseData[sucursalSlug] = eerrData;
       
-      console.log('✅ API route.ts - Retornando datos para sucursal:', sucursal, 'con slug:', sucursalSlug);
-      console.log('📦 API route.ts - responseData keys:', Object.keys(responseData));
-      
       return NextResponse.json({
         success: true,
         data: responseData,
@@ -137,23 +234,97 @@ export async function GET(request: NextRequest) {
       }
       
       const userSucursales: string[] = userDoc.sucursales;
-      console.log('📋 API route.ts - Sucursales del usuario:', userSucursales);
       
       // Obtener documentos de todas las sucursales del usuario
       const sucursalesDocsMap: { [sucursal: string]: LibroComprasData[] } = {};
       
       for (const sucursalName of userSucursales) {
         if (period) {
-          // Buscar documento específico del período
-          const doc = await libroComprasCollection.findOne({ userId, sucursal: sucursalName, periodo: period }) as LibroComprasData | null;
-          if (doc) {
-            sucursalesDocsMap[sucursalName] = [doc];
+          // Buscar AMBOS documentos (ObjectId Y string)
+          const docObjectId = await libroComprasCollection.findOne({ 
+            userId: new ObjectId(userId), 
+            sucursal: sucursalName, 
+            periodo: period 
+          }) as LibroComprasData | null;
+          
+          const docString = await libroComprasCollection.findOne({ 
+            userId: userId, 
+            sucursal: sucursalName, 
+            periodo: period 
+          }) as LibroComprasData | null;
+          
+          // Combinar transacciones
+          if (docObjectId || docString) {
+            const transaccionesExcel = docString?.transacciones || [];
+            const transaccionesManuales = (docObjectId as LibroComprasData & { data?: LibroComprasTransaction[] })?.data || [];
+            
+            const docCombinado: LibroComprasData = {
+              userId: userId,
+              periodo: period,
+              periodLabel: (docObjectId || docString)!.periodLabel,
+              sucursal: sucursalName,
+              fileName: (docObjectId || docString)!.fileName || 'manual',
+              transacciones: [...transaccionesExcel, ...transaccionesManuales],
+              createdAt: (docObjectId || docString)!.createdAt,
+              updatedAt: (docObjectId || docString)!.updatedAt
+            };
+            
+            sucursalesDocsMap[sucursalName] = [docCombinado];
           }
         } else {
-          // Traer todos los documentos de la sucursal
-          const docs = await libroComprasCollection.find({ userId, sucursal: sucursalName }).sort({ periodo: 1 }).toArray();
-          if (docs.length > 0) {
-            sucursalesDocsMap[sucursalName] = docs as unknown as LibroComprasData[];
+          // Traer TODOS los documentos y combinar por periodo
+          const docsObjectId = await libroComprasCollection.find({ 
+            userId: new ObjectId(userId), 
+            sucursal: sucursalName 
+          }).sort({ periodo: 1 }).toArray();
+          
+          const docsString = await libroComprasCollection.find({ 
+            userId: userId, 
+            sucursal: sucursalName 
+          }).sort({ periodo: 1 }).toArray();
+          
+          // Combinar por periodo
+          const periodoMap = new Map<string, LibroComprasData>();
+          
+          for (const doc of docsString) {
+            periodoMap.set(doc.periodo, {
+              userId: userId,
+              periodo: doc.periodo,
+              periodLabel: doc.periodLabel,
+              sucursal: sucursalName,
+              fileName: doc.fileName || 'manual',
+              transacciones: doc.transacciones || [],
+              createdAt: doc.createdAt,
+              updatedAt: doc.updatedAt
+            });
+          }
+          
+          for (const doc of docsObjectId) {
+            const docData = doc as unknown as LibroComprasData & { data?: LibroComprasTransaction[] };
+            const existing = periodoMap.get(doc.periodo);
+            
+            if (existing) {
+              existing.transacciones = [
+                ...existing.transacciones,
+                ...(docData.data || [])
+              ];
+            } else {
+              periodoMap.set(doc.periodo, {
+                userId: userId,
+                periodo: doc.periodo,
+                periodLabel: doc.periodLabel,
+                sucursal: sucursalName,
+                fileName: doc.fileName || 'manual',
+                transacciones: docData.data || [],
+                createdAt: doc.createdAt,
+                updatedAt: doc.updatedAt
+              });
+            }
+          }
+          
+          const docsCombinados = Array.from(periodoMap.values());
+          if (docsCombinados.length > 0) {
+            sucursalesDocsMap[sucursalName] = docsCombinados;
           }
         }
       }
@@ -196,28 +367,12 @@ export async function GET(request: NextRequest) {
       
       for (const [sucursalName, docs] of Object.entries(sucursalesDocsMap)) {
         if (docs.length > 0) {
-          console.log(`📊 Procesando sucursal: ${sucursalName} (${docs.length} documentos)`);
-          
-          // Preparar documentos con valores manuales
-          const docsConValores = await Promise.all(
-            docs.map(async (doc) => {
-              const valoresManualesDocs = await valoresManualesCollection.find({
-                userId,
-                periodo: doc.periodo,
-                sucursal: sucursalName
-              }).toArray();
-              
-              const vm: { [cuenta: string]: number } = {};
-              valoresManualesDocs.forEach(v => {
-                vm[v.cuenta] = v.monto;
-              });
-              
-              return {
-                periodo: doc.periodo,
-                transacciones: doc.transacciones,
-                valoresManuales: vm
-              };
-            })
+          // Preparar documentos con valores manuales (usando helper)
+          const docsConValores = await prepararDocumentosConValores(
+            docs,
+            userId,
+            sucursalName,
+            valoresManualesCollection
           );
           
           // Generar EERR
@@ -238,8 +393,6 @@ export async function GET(request: NextRequest) {
             name: sucursalName,
             data: plana
           });
-          
-          console.log(`✅ Sucursal ${sucursalName} procesada (slug: ${sucursalSlug})`);
         }
       }
       
@@ -257,14 +410,7 @@ export async function GET(request: NextRequest) {
           name: 'Consolidados',
           data: consolidadosPlana
         });
-        
-        console.log('✅ Tabla Consolidados generada');
       }
-      
-      console.log('API Response - consolidado structure:', {
-        consolidadoLength: responseData.consolidado.length,
-        sections: responseData.consolidado.map(s => ({ name: s.name, dataLength: Array.isArray(s.data) ? s.data.length : 0 }))
-      });
       
       return NextResponse.json({
         success: true,

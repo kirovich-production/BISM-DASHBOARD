@@ -8,6 +8,7 @@ import MantenedorLibroDiario from './MantenedorLibroCompras';
 interface LibroComprasViewProps {
   userId: string | null;
   userSucursales?: string[];
+  onDataChange?: () => Promise<void>; // Callback async para refrescar EERR
 }
 
 interface PeriodoLC {
@@ -16,7 +17,7 @@ interface PeriodoLC {
   sucursal: string;
 }
 
-export default function LibroComprasView({ userId, userSucursales = [] }: LibroComprasViewProps) {
+export default function LibroComprasView({ userId, userSucursales = [], onDataChange }: LibroComprasViewProps) {
   const [activeTab, setActiveTab] = useState<'lc' | 'proveedores' | 'mantenedor'>('lc');
   const [periodos, setPeriodos] = useState<PeriodoLC[]>([]);
   const [selectedSucursal, setSelectedSucursal] = useState<string | null>(null);
@@ -310,7 +311,11 @@ export default function LibroComprasView({ userId, userSucursales = [] }: LibroC
 
           {activeTab === 'mantenedor' && (
             <div>
-              <MantenedorLibroDiario userId={userId} userSucursales={userSucursales} />
+              <MantenedorLibroDiario 
+                userId={userId} 
+                userSucursales={userSucursales}
+                onDataChange={onDataChange}
+              />
             </div>
           )}
         </div>
