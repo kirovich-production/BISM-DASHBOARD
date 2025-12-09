@@ -61,6 +61,31 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
     }).format(num);
   };
 
+  // Formato compacto para PDF (cuando hay muchas columnas)
+  const formatNumberCompact = (value: string | number | undefined): string => {
+    if (value === undefined || value === null || value === '') return '-';
+    
+    let num: number;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[$,\s]/g, '').trim();
+      num = parseFloat(cleaned);
+    } else {
+      num = value;
+    }
+    
+    if (isNaN(num)) return '-';
+    
+    const absNum = Math.abs(num);
+    if (absNum >= 1000000000) {
+      return `${(num / 1000000000).toFixed(1)}B`; // Billones
+    } else if (absNum >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`; // Millones
+    } else if (absNum >= 1000) {
+      return `${Math.round(num / 1000)}K`; // Miles
+    }
+    return num.toString();
+  };
+
   const formatPercentage = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
     
@@ -78,9 +103,84 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
     return `${num.toFixed(2)}%`;
   };
 
+  // Formato compacto para porcentajes en PDF
+  const formatPercentageCompact = (value: string | number | undefined): string => {
+    if (value === undefined || value === null || value === '') return '-';
+    
+    let num: number;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[%\s]/g, '').trim();
+      num = parseFloat(cleaned);
+    } else {
+      num = value;
+    }
+    
+    if (isNaN(num)) return '-';
+    return `${num.toFixed(1)}%`; // Solo 1 decimal para PDF
+  };
+
   // Detectar si existe CONSOLIDADO o ANUAL
   const consolidadoColumn = data.months.find(m => m.toUpperCase().includes('CONSOLIDADO') || m.toUpperCase().includes('ANUAL')) || 'CONSOLIDADO';
   const regularMonths = data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO') && !m.toUpperCase().includes('ANUAL'));
+
+  // Calcular estilos dinámicos basados en cantidad de columnas
+  const totalColumns = (regularMonths.length * 2) + 3;
+  let pdfStyles = {
+    itemColumnWidth: '170px',
+    itemColumnFontSize: '9px',
+    itemColumnPadding: '5px 8px',
+    numericColumnWidth: 'auto',
+    numericFontSize: '8px',
+    numericPadding: '4px 3px',
+    headerFontSize: '8px',
+    useCompactFormat: false,
+  };
+
+  if (totalColumns <= 9) { // Hasta 3 meses
+    pdfStyles = {
+      itemColumnWidth: '170px',
+      itemColumnFontSize: '9px',
+      itemColumnPadding: '5px 8px',
+      numericColumnWidth: 'auto',
+      numericFontSize: '8px',
+      numericPadding: '4px 3px',
+      headerFontSize: '8px',
+      useCompactFormat: false,
+    };
+  } else if (totalColumns <= 15) { // 4-6 meses
+    pdfStyles = {
+      itemColumnWidth: '140px',
+      itemColumnFontSize: '8px',
+      itemColumnPadding: '4px 6px',
+      numericColumnWidth: '48px',
+      numericFontSize: '7px',
+      numericPadding: '3px 2px',
+      headerFontSize: '7px',
+      useCompactFormat: false,
+    };
+  } else if (totalColumns <= 21) { // 7-9 meses
+    pdfStyles = {
+      itemColumnWidth: '110px',
+      itemColumnFontSize: '7px',
+      itemColumnPadding: '3px 5px',
+      numericColumnWidth: '40px',
+      numericFontSize: '6px',
+      numericPadding: '2px 2px',
+      headerFontSize: '6px',
+      useCompactFormat: true,
+    };
+  } else { // 10-12 meses
+    pdfStyles = {
+      itemColumnWidth: '85px',
+      itemColumnFontSize: '6.5px',
+      itemColumnPadding: '2px 4px',
+      numericColumnWidth: '32px',
+      numericFontSize: '5.5px',
+      numericPadding: '2px 1px',
+      headerFontSize: '5.5px',
+      useCompactFormat: true,
+    };
+  }
 
   const generatePDF = async () => {
     if (!contentRef.current || isGeneratingPdf) return;
@@ -124,13 +224,38 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
         container.scrollLeft = originalScrollPositions[index];
       });
 
+      // Aplicar formato compacto si es necesario
+      if (pdfStyles.useCompactFormat) {
+        // Reemplazar valores numéricos con formato compacto en el clon
+        const numericCells = clonedContent.querySelectorAll('td:not(:first-child)');
+        numericCells.forEach(cell => {
+          const text = cell.textContent?.trim() || '';
+          // Si es un porcentaje
+          if (text.includes('%') && text !== '-') {
+            const cleaned = text.replace(/[%\s]/g, '');
+            const num = parseFloat(cleaned);
+            if (!isNaN(num)) {
+              cell.textContent = formatPercentageCompact(num);
+            }
+          }
+          // Si es un número con formato de moneda
+          else if (text.includes('$') && text !== '-') {
+            const cleaned = text.replace(/[$,\s]/g, '');
+            const num = parseFloat(cleaned);
+            if (!isNaN(num)) {
+              cell.textContent = formatNumberCompact(num);
+            }
+          }
+        });
+      }
+
       const fullHtml = `
         <!DOCTYPE html>
         <html lang="es">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Sucursal Sevilla - ${periodLabel}</title>
+            <title>${sucursalName || 'Sucursal'} - ${periodLabel}</title>
             <style>
               @page {
                 size: A4 landscape;
@@ -151,7 +276,7 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
               body {
                 font-family: system-ui, -apple-system, sans-serif;
                 background: white;
-                padding: 12px;
+                padding: 10px;
                 width: 297mm;
                 max-width: 297mm;
                 min-height: 210mm;
@@ -165,24 +290,32 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
               table {
                 width: 100% !important;
                 max-width: 100% !important;
-                font-size: 8px !important;
+                font-size: ${pdfStyles.numericFontSize} !important;
                 border-collapse: collapse !important;
-                table-layout: auto !important;
+                table-layout: fixed !important;
               }
               
               th, td {
-                padding: 4px 3px !important;
+                padding: ${pdfStyles.numericPadding} !important;
                 border: 1px solid #d1d5db !important;
                 text-align: center !important;
                 white-space: nowrap !important;
-                overflow: visible !important;
-                font-size: 8px !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                font-size: ${pdfStyles.numericFontSize} !important;
               }
               
               th {
                 background-color: #4f46e5 !important;
                 color: white !important;
                 font-weight: 600 !important;
+                font-size: ${pdfStyles.headerFontSize} !important;
+              }
+              
+              th:not(:first-child),
+              td:not(:first-child) {
+                width: ${pdfStyles.numericColumnWidth} !important;
+                max-width: ${pdfStyles.numericColumnWidth} !important;
               }
               
               th:first-child,
@@ -190,14 +323,13 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
                 text-align: left !important;
                 background: white !important;
                 position: relative !important;
-                min-width: 150px !important;
-                max-width: 200px !important;
-                width: 170px !important;
-                font-size: 9px !important;
-                padding: 5px 8px !important;
+                width: ${pdfStyles.itemColumnWidth} !important;
+                max-width: ${pdfStyles.itemColumnWidth} !important;
+                font-size: ${pdfStyles.itemColumnFontSize} !important;
+                padding: ${pdfStyles.itemColumnPadding} !important;
                 word-wrap: break-word !important;
                 white-space: normal !important;
-                line-height: 1.3 !important;
+                line-height: 1.2 !important;
                 font-weight: 600 !important;
                 border-right: 2px solid #4f46e5 !important;
               }
@@ -233,25 +365,21 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
                 left: auto !important;
               }
               
-              h1, h2, h3 {
-                font-size: 12px !important;
-                margin: 5px 0 !important;
+              h1 {
+                font-size: 14px !important;
+                margin: 4px 0 !important;
                 padding: 0 !important;
               }
               
               p {
-                font-size: 9px !important;
-                margin: 3px 0 !important;
-              }
-              
-              span {
                 font-size: 8px !important;
+                margin: 2px 0 !important;
               }
               
               .border-b {
                 border-bottom: 2px solid #e5e7eb !important;
-                margin-bottom: 12px !important;
-                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
+                padding-bottom: 6px !important;
               }
             </style>
           </head>
