@@ -84,7 +84,6 @@ const parseValue = (value: string | number | undefined): number => {
 const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
   const rows: ExcelRow[] = [];
   
-  
   eerrData.categories.forEach((category) => {
     category.rows.forEach((row) => {
       rows.push(row);
@@ -201,38 +200,14 @@ export default function TrimestralAnalysisView({
 
       
       const values = quarter.months.map((month) => {
-        // Intentar múltiples formatos de columnas
-        const possibleColumnNames = [
-          `${month} Monto`,                    // "Enero Monto"
-          `${month.toUpperCase()} Monto`,      // "ENERO Monto"
-          `${month} MONTO`,                    // "Enero MONTO"
-          `${month.toUpperCase()} MONTO`,      // "ENERO MONTO"
-          month,                               // "Enero"
-          month.toUpperCase(),                 // "ENERO"
-          `${month} Value`,                    // "Enero Value"
-          `${month.toUpperCase()} VALUE`       // "ENERO VALUE"
-        ];
+        // Buscar columna que contenga el nombre del mes (case-insensitive)
+        const monthLower = month.toLowerCase();
+        const matchingColumn = Object.keys(itemRow).find(col => 
+          col.toLowerCase().includes(monthLower) && 
+          (col.toLowerCase().includes('monto') || col.toLowerCase().includes('value'))
+        );
         
-        let rawValue = undefined;
-        
-        // Buscar en todos los formatos posibles
-        for (const columnName of possibleColumnNames) {
-          if (itemRow[columnName] !== undefined) {
-            rawValue = itemRow[columnName];
-            break;
-          }
-        }
-        
-        // Si no encontró nada, buscar por coincidencia parcial
-        if (rawValue === undefined) {
-          const matchingColumn = Object.keys(itemRow).find(col => 
-            col.toLowerCase().includes(month.toLowerCase())
-          );
-          if (matchingColumn) {
-            rawValue = itemRow[matchingColumn];
-          }
-        }
-        
+        const rawValue = matchingColumn ? itemRow[matchingColumn] : undefined;
         const parsedValue = parseValue(rawValue);
         return parsedValue;
       });
@@ -368,13 +343,6 @@ export default function TrimestralAnalysisView({
           },
         },
       },
-      // title: {
-      //   display: true,
-      //   text: `Comparación Trimestral: ${QUARTERS[selectedQuarter1].label} vs ${QUARTERS[selectedQuarter2].label}`,
-      //   font: { size: 18, weight: "bold" },
-      //   color: "#1f2937",
-      //   padding: 20,
-      // },
       tooltip: {
         backgroundColor: "rgba(0, 0, 0, 0.8)",
         titleColor: "white",
@@ -612,7 +580,7 @@ export default function TrimestralAnalysisView({
 
           .trimestral-chart {
             grid-column: 1;
-            grid-row: 1 / 3;
+            grid-row: 1;
             background: white;
             border: 1px solid #e5e7eb;
             border-radius: 8px;
@@ -964,14 +932,14 @@ export default function TrimestralAnalysisView({
               uniqueKey={`TrimestralAnalysis-${selectedUnit}-${selectedQuarter1}-${selectedQuarter2}-${[...selectedItems].sort().join(',')}-${periodLabel}`}
               contentRef={contentRef as React.RefObject<HTMLElement>}
               period={periodLabel}
-              disabled={selectedItems.length === 0 || selectedItems.length > 6}
+              disabled={selectedItems.length === 0 || selectedItems.length > 8}
               captureMode="html"
-              htmlGenerator={() => generateAnalysisHTML(false, false)}
+              htmlGenerator={() => generateAnalysisHTML(true, false)}
             />
             
-            {selectedItems.length > 6 && (
+            {selectedItems.length > 8 && (
               <p className="text-xs text-red-600 mt-1">
-                ⚠️ Máximo 6 ítems permitidos para agregar al reporte ({selectedItems.length}/6)
+                ⚠️ Máximo 8 ítems permitidos para agregar al reporte ({selectedItems.length}/8)
               </p>
             )}
             
