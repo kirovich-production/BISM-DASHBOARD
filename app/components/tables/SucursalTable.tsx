@@ -82,20 +82,53 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
   const consolidadoColumn = data.months.find(m => m.toUpperCase().includes('CONSOLIDADO') || m.toUpperCase().includes('ANUAL')) || 'CONSOLIDADO';
   const regularMonths = data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO') && !m.toUpperCase().includes('ANUAL'));
 
-  // Dividir meses en 3 páginas para PDF
-  const page1Months = regularMonths.slice(0, 5);  // Enero a Mayo
-  const page2Months = regularMonths.slice(5, 10); // Junio a Octubre
-  const page3Months = regularMonths.slice(10);    // Noviembre y Diciembre
+  // Calcular distribución dinámica de páginas según cantidad de meses
+  const totalMonths = regularMonths.length;
+  let pages: { months: string[], includeAnual: boolean }[] = [];
+
+  if (totalMonths === 0) {
+    // Solo ANUAL sin meses regulares
+    pages = [{ months: [], includeAnual: true }];
+  } else if (totalMonths <= 6) {
+    // 1 página: Todos los meses + ANUAL
+    pages = [{ months: regularMonths, includeAnual: true }];
+  } else if (totalMonths <= 8) {
+    // 2 páginas: Primera mitad | Segunda mitad + ANUAL
+    const mid = Math.ceil(totalMonths / 2);
+    pages = [
+      { months: regularMonths.slice(0, mid), includeAnual: false },
+      { months: regularMonths.slice(mid), includeAnual: true }
+    ];
+  } else {
+    // 3 páginas: Distribuir en tercios aproximados
+    const third = Math.ceil(totalMonths / 3);
+    pages = [
+      { months: regularMonths.slice(0, third), includeAnual: false },
+      { months: regularMonths.slice(third, third * 2), includeAnual: false },
+      { months: regularMonths.slice(third * 2), includeAnual: true }
+    ];
+  }
 
   // Función helper para generar HTML de tabla por página
-  const generateTableHTML = (months: string[], includeAnual: boolean, pageNumber: number) => {
-    const pageTitle = pageNumber === 1 ? 'Enero - Mayo' : pageNumber === 2 ? 'Junio - Octubre' : 'Noviembre - Diciembre + Anual';
+  const generateTableHTML = (months: string[], includeAnual: boolean, pageNumber: number, totalPages: number) => {
+    // Generar título dinámico basado en los meses
+    let pageTitle = '';
+    if (months.length > 0) {
+      const firstMonth = months[0];
+      const lastMonth = months[months.length - 1];
+      pageTitle = months.length === 1 ? firstMonth : `${firstMonth} - ${lastMonth}`;
+      if (includeAnual) {
+        pageTitle += ' + Anual';
+      }
+    } else if (includeAnual) {
+      pageTitle = 'Anual';
+    }
     
     let tableHTML = `
       <div class="page-container">
         <div class="page-header">
           <h1>${sucursalName || 'Sucursal Sevilla'}</h1>
-          <p>Período: ${periodLabel} | ${pageTitle} | Página ${pageNumber} de 3</p>
+          <p>Período: ${periodLabel} | ${pageTitle} | Página ${pageNumber} de ${totalPages}</p>
         </div>
         <table>
           <thead>
@@ -213,10 +246,11 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
         container.scrollLeft = originalScrollPositions[index];
       });
 
-      // Generar HTML de las 3 páginas
-      const page1HTML = generateTableHTML(page1Months, false, 1);
-      const page2HTML = generateTableHTML(page2Months, false, 2);
-      const page3HTML = generateTableHTML(page3Months, true, 3);
+      // Generar HTML dinámico de todas las páginas
+      const totalPages = pages.length;
+      const pagesHTML = pages.map((page, idx) => 
+        generateTableHTML(page.months, page.includeAnual, idx + 1, totalPages)
+      ).join('');
 
       const fullHtml = `
         <!DOCTYPE html>
@@ -344,9 +378,7 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
             </style>
           </head>
           <body>
-            ${page1HTML}
-            ${page2HTML}
-            ${page3HTML}
+            ${pagesHTML}
           </body>
         </html>
       `;
