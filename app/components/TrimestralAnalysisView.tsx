@@ -575,7 +575,7 @@ export default function TrimestralAnalysisView({
           }
           
           .trimestral-main {
-            padding: 10px;
+            padding: ${includeHeader ? '10px' : '0'};
             page-break-before: avoid;
             break-before: avoid;
           }
@@ -588,6 +588,7 @@ export default function TrimestralAnalysisView({
             align-items: start;
             page-break-before: avoid;
             break-before: avoid;
+            margin-top: ${includeHeader ? '0' : '-10px'};
           }
 
           .trimestral-chart {
