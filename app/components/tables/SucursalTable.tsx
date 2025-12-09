@@ -61,31 +61,6 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
     }).format(num);
   };
 
-  // Formato compacto para PDF (cuando hay muchas columnas)
-  const formatNumberCompact = (value: string | number | undefined): string => {
-    if (value === undefined || value === null || value === '') return '-';
-    
-    let num: number;
-    if (typeof value === 'string') {
-      const cleaned = value.replace(/[$,\s]/g, '').trim();
-      num = parseFloat(cleaned);
-    } else {
-      num = value;
-    }
-    
-    if (isNaN(num)) return '-';
-    
-    const absNum = Math.abs(num);
-    if (absNum >= 1000000000) {
-      return `${(num / 1000000000).toFixed(1)}B`; // Billones
-    } else if (absNum >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`; // Millones
-    } else if (absNum >= 1000) {
-      return `${Math.round(num / 1000)}K`; // Miles
-    }
-    return num.toString();
-  };
-
   const formatPercentage = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
     
@@ -103,84 +78,100 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
     return `${num.toFixed(2)}%`;
   };
 
-  // Formato compacto para porcentajes en PDF
-  const formatPercentageCompact = (value: string | number | undefined): string => {
-    if (value === undefined || value === null || value === '') return '-';
-    
-    let num: number;
-    if (typeof value === 'string') {
-      const cleaned = value.replace(/[%\s]/g, '').trim();
-      num = parseFloat(cleaned);
-    } else {
-      num = value;
-    }
-    
-    if (isNaN(num)) return '-';
-    return `${num.toFixed(1)}%`; // Solo 1 decimal para PDF
-  };
-
   // Detectar si existe CONSOLIDADO o ANUAL
   const consolidadoColumn = data.months.find(m => m.toUpperCase().includes('CONSOLIDADO') || m.toUpperCase().includes('ANUAL')) || 'CONSOLIDADO';
   const regularMonths = data.months.filter(m => !m.toUpperCase().includes('CONSOLIDADO') && !m.toUpperCase().includes('ANUAL'));
 
-  // Calcular estilos dinámicos basados en cantidad de columnas
-  const totalColumns = (regularMonths.length * 2) + 3;
-  let pdfStyles = {
-    itemColumnWidth: '170px',
-    itemColumnFontSize: '9px',
-    itemColumnPadding: '5px 8px',
-    numericColumnWidth: 'auto',
-    numericFontSize: '8px',
-    numericPadding: '4px 3px',
-    headerFontSize: '8px',
-    useCompactFormat: false,
-  };
+  // Dividir meses en 3 páginas para PDF
+  const page1Months = regularMonths.slice(0, 5);  // Enero a Mayo
+  const page2Months = regularMonths.slice(5, 10); // Junio a Octubre
+  const page3Months = regularMonths.slice(10);    // Noviembre y Diciembre
 
-  if (totalColumns <= 9) { // Hasta 3 meses
-    pdfStyles = {
-      itemColumnWidth: '170px',
-      itemColumnFontSize: '9px',
-      itemColumnPadding: '5px 8px',
-      numericColumnWidth: 'auto',
-      numericFontSize: '8px',
-      numericPadding: '4px 3px',
-      headerFontSize: '8px',
-      useCompactFormat: false,
-    };
-  } else if (totalColumns <= 15) { // 4-6 meses
-    pdfStyles = {
-      itemColumnWidth: '140px',
-      itemColumnFontSize: '8px',
-      itemColumnPadding: '4px 6px',
-      numericColumnWidth: '48px',
-      numericFontSize: '7px',
-      numericPadding: '3px 2px',
-      headerFontSize: '7px',
-      useCompactFormat: false,
-    };
-  } else if (totalColumns <= 21) { // 7-9 meses
-    pdfStyles = {
-      itemColumnWidth: '110px',
-      itemColumnFontSize: '7px',
-      itemColumnPadding: '3px 5px',
-      numericColumnWidth: '40px',
-      numericFontSize: '6px',
-      numericPadding: '2px 2px',
-      headerFontSize: '6px',
-      useCompactFormat: true,
-    };
-  } else { // 10-12 meses
-    pdfStyles = {
-      itemColumnWidth: '85px',
-      itemColumnFontSize: '6.5px',
-      itemColumnPadding: '2px 4px',
-      numericColumnWidth: '32px',
-      numericFontSize: '5.5px',
-      numericPadding: '2px 1px',
-      headerFontSize: '5.5px',
-      useCompactFormat: true,
-    };
-  }
+  // Función helper para generar HTML de tabla por página
+  const generateTableHTML = (months: string[], includeAnual: boolean, pageNumber: number) => {
+    const pageTitle = pageNumber === 1 ? 'Enero - Mayo' : pageNumber === 2 ? 'Junio - Octubre' : 'Noviembre - Diciembre + Anual';
+    
+    let tableHTML = `
+      <div class="page-container">
+        <div class="page-header">
+          <h1>${sucursalName || 'Sucursal Sevilla'}</h1>
+          <p>Período: ${periodLabel} | ${pageTitle} | Página ${pageNumber} de 3</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th class="concept-header">Concepto</th>
+              ${months.map(month => `<th colspan="2">${month}</th>`).join('')}
+              ${includeAnual ? `<th colspan="3">${consolidadoColumn.toUpperCase()}</th>` : ''}
+            </tr>
+            <tr>
+              <th class="concept-header"></th>
+              ${months.map(() => '<th>Monto</th><th>%</th>').join('')}
+              ${includeAnual ? '<th>Monto</th><th>%</th><th>Promedio</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>`;
+
+    // Generar filas de categorías y datos
+    data.categories.forEach((category: EERRCategory) => {
+      // Fila de categoría
+      const totalCols = (months.length * 2) + (includeAnual ? 3 : 0) + 1;
+      tableHTML += `
+        <tr class="category-row">
+          <td class="category-name">${category.name}</td>
+          <td colspan="${totalCols - 1}"></td>
+        </tr>`;
+
+      // Filas de datos
+      category.rows.forEach((row: EERRRow) => {
+        tableHTML += `<tr class="data-row"><td class="item-name">${row.Item}</td>`;
+        
+        months.forEach(month => {
+          const monto = row[`${month} Monto`];
+          const porcentaje = row[`${month} %`];
+          tableHTML += `
+            <td class="numeric">${formatNumber(monto)}</td>
+            <td class="numeric">${formatPercentage(porcentaje)}</td>`;
+        });
+
+        if (includeAnual) {
+          tableHTML += `
+            <td class="numeric anual">${formatNumber(row[`${consolidadoColumn} Monto`])}</td>
+            <td class="numeric anual">${formatPercentage(row[`${consolidadoColumn} %`])}</td>
+            <td class="numeric anual">${formatNumber(row[`${consolidadoColumn} Promedio`])}</td>`;
+        }
+
+        tableHTML += '</tr>';
+      });
+
+      // Fila de total si existe
+      if (category.total) {
+        tableHTML += `<tr class="total-row"><td class="item-name">${category.total.Item}</td>`;
+        
+        months.forEach(month => {
+          tableHTML += `
+            <td class="numeric">${formatNumber(category.total![`${month} Monto`])}</td>
+            <td class="numeric">${formatPercentage(category.total![`${month} %`])}</td>`;
+        });
+
+        if (includeAnual) {
+          tableHTML += `
+            <td class="numeric anual">${formatNumber(category.total![`${consolidadoColumn} Monto`])}</td>
+            <td class="numeric anual">${formatPercentage(category.total![`${consolidadoColumn} %`])}</td>
+            <td class="numeric anual">${formatNumber(category.total![`${consolidadoColumn} Promedio`])}</td>`;
+        }
+
+        tableHTML += '</tr>';
+      }
+    });
+
+    tableHTML += `
+          </tbody>
+        </table>
+      </div>`;
+
+    return tableHTML;
+  };
 
   const generatePDF = async () => {
     if (!contentRef.current || isGeneratingPdf) return;
@@ -214,8 +205,6 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
       });
 
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const clonedContent = contentRef.current.cloneNode(true) as HTMLElement;
 
       stickyElements.forEach(el => {
         (el as HTMLElement).style.position = 'sticky';
@@ -224,30 +213,10 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
         container.scrollLeft = originalScrollPositions[index];
       });
 
-      // Aplicar formato compacto si es necesario
-      if (pdfStyles.useCompactFormat) {
-        // Reemplazar valores numéricos con formato compacto en el clon
-        const numericCells = clonedContent.querySelectorAll('td:not(:first-child)');
-        numericCells.forEach(cell => {
-          const text = cell.textContent?.trim() || '';
-          // Si es un porcentaje
-          if (text.includes('%') && text !== '-') {
-            const cleaned = text.replace(/[%\s]/g, '');
-            const num = parseFloat(cleaned);
-            if (!isNaN(num)) {
-              cell.textContent = formatPercentageCompact(num);
-            }
-          }
-          // Si es un número con formato de moneda
-          else if (text.includes('$') && text !== '-') {
-            const cleaned = text.replace(/[$,\s]/g, '');
-            const num = parseFloat(cleaned);
-            if (!isNaN(num)) {
-              cell.textContent = formatNumberCompact(num);
-            }
-          }
-        });
-      }
+      // Generar HTML de las 3 páginas
+      const page1HTML = generateTableHTML(page1Months, false, 1);
+      const page2HTML = generateTableHTML(page2Months, false, 2);
+      const page3HTML = generateTableHTML(page3Months, true, 3);
 
       const fullHtml = `
         <!DOCTYPE html>
@@ -259,7 +228,7 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
             <style>
               @page {
                 size: A4 landscape;
-                margin: 0;
+                margin: 15mm 10mm;
               }
               
               * {
@@ -268,123 +237,116 @@ export default function SucursalTable({ data, periodLabel, version, uploadedAt, 
                 box-sizing: border-box;
               }
               
-              html {
-                width: 297mm;
-                height: 210mm;
-              }
-              
               body {
                 font-family: system-ui, -apple-system, sans-serif;
                 background: white;
-                padding: 10px;
-                width: 297mm;
-                max-width: 297mm;
-                min-height: 210mm;
+                color: #1f2937;
               }
               
-              .flex-1 {
-                width: 100% !important;
-                max-width: 100% !important;
+              .page-container {
+                page-break-after: always;
+                width: 100%;
+              }
+              
+              .page-container:last-child {
+                page-break-after: avoid;
+              }
+              
+              .page-header {
+                margin-bottom: 10px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid #4f46e5;
+              }
+              
+              .page-header h1 {
+                font-size: 16px;
+                color: #4f46e5;
+                font-weight: 700;
+                margin-bottom: 4px;
+              }
+              
+              .page-header p {
+                font-size: 10px;
+                color: #6b7280;
               }
               
               table {
-                width: 100% !important;
-                max-width: 100% !important;
-                font-size: ${pdfStyles.numericFontSize} !important;
-                border-collapse: collapse !important;
-                table-layout: fixed !important;
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 8px;
+                table-layout: fixed;
               }
               
               th, td {
-                padding: ${pdfStyles.numericPadding} !important;
-                border: 1px solid #d1d5db !important;
-                text-align: center !important;
-                white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
-                font-size: ${pdfStyles.numericFontSize} !important;
+                border: 1px solid #d1d5db;
+                padding: 5px 4px;
+                text-align: center;
               }
               
               th {
-                background-color: #4f46e5 !important;
-                color: white !important;
-                font-weight: 600 !important;
-                font-size: ${pdfStyles.headerFontSize} !important;
+                background-color: #4f46e5;
+                color: white;
+                font-weight: 600;
+                font-size: 8px;
               }
               
-              th:not(:first-child),
-              td:not(:first-child) {
-                width: ${pdfStyles.numericColumnWidth} !important;
-                max-width: ${pdfStyles.numericColumnWidth} !important;
+              th.concept-header {
+                text-align: left;
+                width: 180px;
+                padding: 5px 8px;
               }
               
-              th:first-child,
-              td:first-child {
-                text-align: left !important;
-                background: white !important;
-                position: relative !important;
-                width: ${pdfStyles.itemColumnWidth} !important;
-                max-width: ${pdfStyles.itemColumnWidth} !important;
-                font-size: ${pdfStyles.itemColumnFontSize} !important;
-                padding: ${pdfStyles.itemColumnPadding} !important;
-                word-wrap: break-word !important;
-                white-space: normal !important;
-                line-height: 1.2 !important;
-                font-weight: 600 !important;
-                border-right: 2px solid #4f46e5 !important;
+              td.concept-name,
+              td.item-name {
+                text-align: left;
+                padding: 5px 8px;
+                width: 180px;
+                font-weight: 600;
               }
               
-              th:first-child {
-                background-color: #4f46e5 !important;
-                color: white !important;
+              td.category-name {
+                background: linear-gradient(to right, #e0e7ff, #eef2ff);
+                color: #312e81;
+                font-weight: 700;
+                text-transform: uppercase;
+                font-size: 9px;
               }
               
-              .bg-gradient-to-r {
-                background: #e0e7ff !important;
+              td.numeric {
+                text-align: right;
+                font-size: 8px;
+                white-space: nowrap;
               }
               
-              .bg-indigo-50 {
-                background-color: #eef2ff !important;
+              td.numeric.anual {
+                background-color: #eef2ff;
+                font-weight: 600;
               }
               
-              .bg-indigo-100 {
-                background-color: #e0e7ff !important;
+              tr.category-row {
+                background: linear-gradient(to right, #e0e7ff, #eef2ff);
+                border-top: 2px solid #4f46e5;
               }
               
-              .text-indigo-900 {
-                color: #312e81 !important;
-                font-weight: 700 !important;
+              tr.data-row:hover {
+                background-color: #f9fafb;
               }
               
-              .fixed, button, nav {
-                display: none !important;
+              tr.total-row {
+                background-color: #eef2ff;
+                font-weight: 700;
+                border-top: 2px solid #c7d2fe;
               }
               
-              .sticky {
-                position: relative !important;
-                left: auto !important;
-              }
-              
-              h1 {
-                font-size: 14px !important;
-                margin: 4px 0 !important;
-                padding: 0 !important;
-              }
-              
-              p {
-                font-size: 8px !important;
-                margin: 2px 0 !important;
-              }
-              
-              .border-b {
-                border-bottom: 2px solid #e5e7eb !important;
-                margin-bottom: 8px !important;
-                padding-bottom: 6px !important;
+              tr.total-row td {
+                color: #312e81;
               }
             </style>
           </head>
           <body>
-            ${clonedContent.outerHTML}
+            ${page1HTML}
+            ${page2HTML}
+            ${page3HTML}
           </body>
         </html>
       `;
