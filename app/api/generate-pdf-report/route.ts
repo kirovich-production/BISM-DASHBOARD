@@ -188,11 +188,6 @@ export async function POST(request: NextRequest) {
           if (graph.htmlData) {
             return `
               <div class="graph-page">
-                <div class="graph-header">
-                  <div class="graph-title">${index + 1}. ${graph.viewName}</div>
-                  <div class="graph-period">Período: ${graph.period}</div>
-                </div>
-                
                 <div class="graph-container">
                   ${graph.htmlData}
                 </div>
@@ -209,11 +204,6 @@ export async function POST(request: NextRequest) {
             // Si tiene imageData, usar imagen (para gráficos simples)
             return `
               <div class="graph-page">
-                <div class="graph-header">
-                  <div class="graph-title">${index + 1}. ${graph.viewName}</div>
-                  <div class="graph-period">Período: ${graph.period}</div>
-                </div>
-                
                 <div class="graph-container">
                   <img src="${graph.imageData}" alt="${graph.viewName}" />
                 </div>
