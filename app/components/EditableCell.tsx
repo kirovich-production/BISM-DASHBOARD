@@ -84,14 +84,14 @@ export default function EditableCell({
   };
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full flex justify-end">
       <input
         type="text"
         value={`$ ${displayValue}`}
         onChange={handleChange}
         className={`
-          w-full text-right border-0 focus:outline-none
-          ${isSaving ? 'bg-yellow-50' : 'bg-transparent'}
+          w-32 text-right px-2 py-1 rounded border border-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
+          ${isSaving ? 'bg-yellow-50' : 'bg-white'}
         `}
         style={{ paddingRight: isSaving ? '20px' : '0' }}
         placeholder="$ 0"
