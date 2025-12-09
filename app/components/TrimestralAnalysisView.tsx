@@ -274,7 +274,9 @@ export default function TrimestralAnalysisView({
     selectedQuarter2,
     selectedItems,
     calculateQuarterMetrics,
-  ]); // Datos para gráfico de evolución mensual
+  ]);
+
+  // Datos para gráfico de evolución mensual
   const evolutionChartData = useMemo(() => {
     if (selectedItems.length === 0) return { labels: [], datasets: [] };
 
@@ -535,6 +537,11 @@ export default function TrimestralAnalysisView({
             line-height: 1.4;
           }
           
+          .trimestral-page-wrapper {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          
           .trimestral-header {
             text-align: center;
             margin: 0 0 15px 0;
@@ -574,7 +581,7 @@ export default function TrimestralAnalysisView({
             display: grid;
             grid-template-columns: 70% 30%;
             grid-template-rows: auto auto;
-            gap: 10px;
+            gap: 20px;
             align-items: start;
           }
 
@@ -715,8 +722,9 @@ export default function TrimestralAnalysisView({
             padding: 15px;
             page-break-inside: avoid;
             break-inside: avoid;
-            width: 66.67%;
-            max-width: 66.67%;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 20px;
           }
           .trimestral-notes-title {
             color: #000000;
@@ -732,64 +740,66 @@ export default function TrimestralAnalysisView({
         </style>
       </head>
       <body>
-        <div class="trimestral-main">
-          ${includeHeader ? `<div class="trimestral-header">
-            <h1>📊 Análisis Trimestral Comparativo</h1>
-            <div class="business-unit">
-              ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : sucursalesData.find(s => createSlug(s.name) === selectedUnit)?.name || selectedUnit}
-            </div>
-            <p>Período: ${periodLabel} | Generado: ${currentDate}</p>
-          </div>` : ''}
-          
-          <div class="trimestral-grid">
-            <div class="trimestral-chart">
-              <h3 class="trimestral-chart-title">
-                ${analysisType === "comparison"
-                  ? `📊 Gráfico de Comparación: ${QUARTERS[selectedQuarter1].label} vs ${QUARTERS[selectedQuarter2].label}`
-                  : `📈 Gráfico de Evolución: ${QUARTERS[selectedQuarter1].label} + ${QUARTERS[selectedQuarter2].label}`}
-              </h3>
-              ${chartImageBase64
-                ? `<img src="${chartImageBase64}" alt="Gráfico de Análisis Trimestral" class="trimestral-chart-image ${comparativeMetrics.length >= 4 ? 'compact' : ''}" />`
-                : `<div class="trimestral-chart-placeholder">Gráfico no disponible</div>`}
-            </div>
-
-            <div class="trimestral-metrics">
-              <div class="trimestral-metrics-grid compact">
-                ${comparativeMetrics.map((metric) => {
-                  const isCompact = true;
-                  return `
-                    <div class="trimestral-metric-card ${isCompact ? 'compact' : ''}">
-                      <div class="trimestral-metric-title ${isCompact ? 'compact' : ''}">${metric.item}</div>
-                      <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
-                        <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">${QUARTERS[selectedQuarter1].label}</span>
-                        <span class="trimestral-metric-value ${isCompact ? 'compact' : ''} trimestral-metric-q1">$${metric.q1.total.toLocaleString("es-CL")}</span>
-                      </div>
-                      <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
-                        <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">${QUARTERS[selectedQuarter2].label}</span>
-                        <span class="trimestral-metric-value ${isCompact ? 'compact' : ''} trimestral-metric-q2">$${metric.q2.total.toLocaleString("es-CL")}</span>
-                      </div>
-                      <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
-                        <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">Variación</span>
-                        <span class="trimestral-metric-value ${isCompact ? 'compact' : ''} ${metric.variation >= 0 ? "trimestral-variation-positive" : "trimestral-variation-negative"}">
-                          ${metric.variation >= 0 ? "+" : ""}${metric.variation.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
-                        <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">Mejor Trimestre</span>
-                        <span class="trimestral-winner-badge">${QUARTERS[metric.winner].label}</span>
-                      </div>
-                    </div>
-                  `;
-                }).join("")}
+        <div class="trimestral-page-wrapper">
+          <div class="trimestral-main">
+            ${includeHeader ? `<div class="trimestral-header">
+              <h1>📊 Análisis Trimestral Comparativo</h1>
+              <div class="business-unit">
+                ${selectedUnit === 'consolidado' ? '🏢 Consolidado' : sucursalesData.find(s => createSlug(s.name) === selectedUnit)?.name || selectedUnit}
               </div>
-            </div>
-
-            ${includeNotes && notes.trim() ? `
-              <div class="trimestral-notes">
-                <div class="trimestral-notes-title">Análisis del gráfico:</div>
-                <div class="trimestral-notes-content">${notes.replace(/\n/g, "<br>")}</div>
+              <p>Período: ${periodLabel} | Generado: ${currentDate}</p>
+            </div>` : ''}
+            
+            <div class="trimestral-grid">
+              <div class="trimestral-chart">
+                <h3 class="trimestral-chart-title">
+                  ${analysisType === "comparison"
+                    ? `📊 Gráfico de Comparación: ${QUARTERS[selectedQuarter1].label} vs ${QUARTERS[selectedQuarter2].label}`
+                    : `📈 Gráfico de Evolución: ${QUARTERS[selectedQuarter1].label} + ${QUARTERS[selectedQuarter2].label}`}
+                </h3>
+                ${chartImageBase64
+                  ? `<img src="${chartImageBase64}" alt="Gráfico de Análisis Trimestral" class="trimestral-chart-image ${comparativeMetrics.length >= 4 ? 'compact' : ''}" />`
+                  : `<div class="trimestral-chart-placeholder">Gráfico no disponible</div>`}
               </div>
-            ` : ""}
+
+              <div class="trimestral-metrics">
+                <div class="trimestral-metrics-grid compact">
+                  ${comparativeMetrics.map((metric) => {
+                    const isCompact = true;
+                    return `
+                      <div class="trimestral-metric-card ${isCompact ? 'compact' : ''}">
+                        <div class="trimestral-metric-title ${isCompact ? 'compact' : ''}">${metric.item}</div>
+                        <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
+                          <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">${QUARTERS[selectedQuarter1].label}</span>
+                          <span class="trimestral-metric-value ${isCompact ? 'compact' : ''} trimestral-metric-q1">$${metric.q1.total.toLocaleString("es-CL")}</span>
+                        </div>
+                        <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
+                          <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">${QUARTERS[selectedQuarter2].label}</span>
+                          <span class="trimestral-metric-value ${isCompact ? 'compact' : ''} trimestral-metric-q2">$${metric.q2.total.toLocaleString("es-CL")}</span>
+                        </div>
+                        <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
+                          <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">Variación</span>
+                          <span class="trimestral-metric-value ${isCompact ? 'compact' : ''} ${metric.variation >= 0 ? "trimestral-variation-positive" : "trimestral-variation-negative"}">
+                            ${metric.variation >= 0 ? "+" : ""}${metric.variation.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div class="trimestral-metric-row ${isCompact ? 'compact' : ''}">
+                          <span class="trimestral-metric-label ${isCompact ? 'compact' : ''}">Mejor Trimestre</span>
+                          <span class="trimestral-winner-badge">${QUARTERS[metric.winner].label}</span>
+                        </div>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              </div>
+
+              ${includeNotes && notes.trim() ? `
+                <div class="trimestral-notes">
+                  <div class="trimestral-notes-title">Análisis del gráfico:</div>
+                  <div class="trimestral-notes-content">${notes.replace(/\n/g, "<br>")}</div>
+                </div>
+              ` : ""}
+            </div>
           </div>
         </div>
       </body>
@@ -1294,7 +1304,7 @@ export default function TrimestralAnalysisView({
                       maximumFractionDigits: 0,
                     })}
                   </span>
-                </div>{" "}
+                </div>
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-gray-900">
