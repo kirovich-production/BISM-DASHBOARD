@@ -229,9 +229,7 @@ export async function POST(request: NextRequest) {
           }
         }).join('')}
         
-        // <div class="page-footer">
-        //   Reporte generado automáticamente - ${currentDate}
-        // </div>
+        
       </body>
       </html>
     `;
