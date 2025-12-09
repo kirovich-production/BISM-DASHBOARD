@@ -538,11 +538,17 @@ export default function TrimestralAnalysisView({
           }
           
           .trimestral-page-wrapper {
+            page-break-before: avoid;
+            page-break-after: avoid;
             page-break-inside: avoid;
             break-inside: avoid;
+            break-before: avoid;
+            break-after: avoid;
           }
           
           .trimestral-header {
+            page-break-after: avoid;
+            break-after: avoid;
             text-align: center;
             margin: 0 0 15px 0;
             padding: 10px 15px 12px 15px;
@@ -575,6 +581,9 @@ export default function TrimestralAnalysisView({
           .trimestral-main {
             padding: 10px;
             page-break-inside: avoid;
+            break-inside: avoid;
+            page-break-before: avoid;
+            break-before: avoid;
           }
           
           .trimestral-grid {
@@ -583,6 +592,10 @@ export default function TrimestralAnalysisView({
             grid-template-rows: auto auto;
             gap: 20px;
             align-items: start;
+            page-break-before: avoid;
+            break-before: avoid;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
 
           .trimestral-chart {
@@ -595,6 +608,8 @@ export default function TrimestralAnalysisView({
             text-align: center;
             page-break-inside: avoid;
             break-inside: avoid;
+            page-break-before: avoid;
+            break-before: avoid;
             display: flex;
             flex-direction: column;
             height: 100%;
