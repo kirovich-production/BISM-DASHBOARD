@@ -648,6 +648,8 @@ export default function TrimestralAnalysisView({
             grid-row: 1 / 3;
             page-break-inside: avoid;
             break-inside: avoid;
+            overflow: hidden;
+            max-width: 100%;
           }
           .trimestral-metrics-grid {
             display: grid;
@@ -733,17 +735,20 @@ export default function TrimestralAnalysisView({
             width: 90%;
             max-width: 90%;
             margin-top: 20px;
+            text-align: left;
           }
           .trimestral-notes-title {
             color: #000000;
             font-weight: bold;
             margin-bottom: 8px;
             font-size: 14px;
+            text-align: left;
           }
           .trimestral-notes-content {
             color: #000000;
             line-height: 1.6;
             font-size: 12px;
+            text-align: left;
           }
         </style>
       </head>
