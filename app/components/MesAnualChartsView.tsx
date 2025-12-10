@@ -743,11 +743,12 @@ export default function MesAnualChartsView({
           
           .mes-anual-container {
             display: grid;
-            grid-template-columns: 70% 30%;
-            grid-template-rows: auto auto auto;
+            grid-template-columns: 68% 32%;
+            grid-template-rows: auto 1fr auto;
             gap: 10px;
-            height: auto;
-            padding: 2px;
+            height: 100%;
+            max-height: 500px;
+            padding: 5px;
             box-sizing: border-box;
             page-break-inside: avoid;
             break-inside: avoid;
@@ -756,14 +757,13 @@ export default function MesAnualChartsView({
           .mes-anual-title {
             grid-column: 1 / 3;
             grid-row: 1;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             color: #1f2937;
-            border-bottom: 1px solid #3b82f6;
-            padding-bottom: 2px;
-            margin-bottom: 2px;
-            page-break-after: avoid;
-            break-after: avoid;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            text-align: center;
           }
           
           .mes-anual-chart {
@@ -773,14 +773,17 @@ export default function MesAnualChartsView({
             border-radius: 8px;
             padding: 10px;
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             overflow: hidden;
-            min-height: 400px;
+            background: #fafafa;
           }
           
           .mes-anual-chart .chart-image {
-            width: 100%;
-            height: 100%;
+            max-width: 100%;
+            max-height: 380px;
+            width: auto;
+            height: auto;
             object-fit: contain;
             border-radius: 4px;
           }
@@ -791,30 +794,22 @@ export default function MesAnualChartsView({
             border: 1px solid #e5e7eb;
             border-radius: 8px;
             padding: 10px;
-            overflow: auto;
+            overflow: hidden;
           }
           
           .mes-anual-table table {
             width: 100%;
             font-size: 10px;
             border-collapse: collapse;
-            display: flex;
-            flex-direction: column;
           }
           
           .mes-anual-table thead {
             display: none;
           }
           
-          .mes-anual-table tbody {
-            display: flex;
-            flex-direction: column;
-          }
-          
           .mes-anual-table tbody tr {
             display: flex;
             flex-direction: column;
-            margin-bottom: 0;
             padding: 8px;
             background: #f9fafb;
             border-radius: 4px;
@@ -825,8 +820,8 @@ export default function MesAnualChartsView({
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 0;
-            font-size: 9px;
+            padding: 5px 0;
+            font-size: 10px;
             border: none;
           }
           
@@ -846,8 +841,9 @@ export default function MesAnualChartsView({
           }
           
           .mes-anual-table .item-name {
-            font-weight: 600;
+            font-weight: 700;
             color: #1f2937;
+            font-size: 11px;
           }
           
           .mes-anual-table .month-value {
@@ -875,23 +871,25 @@ export default function MesAnualChartsView({
             grid-row: 3;
             background: #ffffff;
             border: 1px solid #6b7280;
-            border-radius: 12px;
-            padding: 15px;
+            border-radius: 8px;
+            padding: 12px;
             text-align: left;
+            max-height: 150px;
+            overflow: hidden;
           }
           
           .mes-anual-notes-title {
             color: #000000;
             font-weight: bold;
-            margin-bottom: 8px;
-            font-size: 12px;
+            margin-bottom: 6px;
+            font-size: 11px;
             text-align: left;
           }
           
           .mes-anual-notes-content {
             color: #000000;
-            line-height: 1.5;
-            font-size: 10px;
+            line-height: 1.4;
+            font-size: 9px;
             text-align: left;
           }
         </style>
@@ -933,12 +931,10 @@ export default function MesAnualChartsView({
             </table>
           </div>
           
-          ${notes.trim() ? `
-            <div class="mes-anual-notes">
-              <div class="mes-anual-notes-title">Análisis del gráfico:</div>
-              <div class="mes-anual-notes-content">${notes.replace(/\n/g, '<br>')}</div>
-            </div>
-          ` : ''}
+          <div class="mes-anual-notes">
+            <div class="mes-anual-notes-title">Análisis del gráfico:</div>
+            <div class="mes-anual-notes-content">${notes.trim() ? notes.replace(/\n/g, '<br>') : 'Sin notas adicionales.'}</div>
+          </div>
         </div>
       </body>
       </html>
