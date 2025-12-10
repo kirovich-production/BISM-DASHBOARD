@@ -582,9 +582,9 @@ export default function TrimestralAnalysisView({
           
           .trimestral-grid {
             display: grid;
-            grid-template-columns: 70% 30%;
+            grid-template-columns: 75% 25%;
             grid-template-rows: auto auto;
-            gap: 20px;
+            gap: 15px;
             align-items: start;
             page-break-before: avoid;
             break-before: avoid;
@@ -732,8 +732,8 @@ export default function TrimestralAnalysisView({
             padding: 15px;
             page-break-inside: auto;
             break-inside: auto;
-            width: 100%;
-            max-width: 100%;
+            width: 95%;
+            max-width: 95%;
             margin-top: 15px;
             text-align: left;
           }
