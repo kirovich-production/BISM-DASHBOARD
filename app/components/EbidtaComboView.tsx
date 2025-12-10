@@ -479,47 +479,53 @@ export default function EbidtaComboView({
           }
           
           .ebitda-combo-container {
-            display: grid;
-            grid-template-rows: auto auto 65px;
-            gap: 2px;
-            padding: 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 5px;
             page-break-inside: avoid;
             break-inside: avoid;
           }
           
           .ebitda-combo-title {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             color: #1f2937;
-            border-bottom: 1px solid #3b82f6;
-            padding-bottom: 1px;
-            margin-bottom: 1px;
-            page-break-after: avoid;
-            break-after: avoid;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 5px;
+            text-align: center;
           }
           
           .ebitda-combo-chart {
             border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            padding: 0;
+            border-radius: 8px;
+            padding: 10px;
             display: flex;
-            align-items: stretch;
+            align-items: center;
             justify-content: center;
             overflow: hidden;
-            height: 420px;
+            background: #fafafa;
           }
           
           .ebitda-combo-chart .chart-image {
             width: 100%;
-            height: 100%;
-            max-height: 100%;
+            height: auto;
+            max-height: 320px;
             object-fit: contain;
             border-radius: 4px;
           }
           
+          .ebitda-combo-bottom {
+            display: grid;
+            grid-template-columns: 50% 50%;
+            gap: 12px;
+            margin-top: 8px;
+          }
+          
           .ebitda-combo-cards {
             display: grid;
-            grid-template-columns: 2fr 1fr 2fr 1fr;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
             gap: 8px;
           }
           
@@ -556,9 +562,9 @@ export default function EbidtaComboView({
           }
           
           .ebitda-combo-card .card-title {
-            font-size: 9px;
+            font-size: 10px;
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             line-height: 1.2;
           }
           
@@ -579,7 +585,7 @@ export default function EbidtaComboView({
           }
           
           .ebitda-combo-card .card-value {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
           }
           
@@ -598,6 +604,31 @@ export default function EbidtaComboView({
           .card-purple .card-value {
             color: #6b21a8;
           }
+          
+          .ebitda-combo-notes {
+            background: #ffffff;
+            border: 1px solid #6b7280;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .ebitda-combo-notes-title {
+            color: #000000;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 11px;
+            text-align: left;
+          }
+          
+          .ebitda-combo-notes-content {
+            color: #000000;
+            line-height: 1.4;
+            font-size: 10px;
+            text-align: left;
+            flex-grow: 1;
+          }
         </style>
       </head>
       <body>
@@ -609,28 +640,35 @@ export default function EbidtaComboView({
           <div class="ebitda-combo-chart">
             ${chartImageBase64 ? `
               <img src="${chartImageBase64}" alt="Gráfico Combo EBITDA" class="chart-image" />
-            ` : '<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #9ca3af;">Gráfico no disponible</div>'}
+            ` : '<div style="display: flex; align-items: center; justify-content: center; height: 300px; color: #9ca3af;">Gráfico no disponible</div>'}
           </div>
           
-          <div class="ebitda-combo-cards">
-            <div class="ebitda-combo-card card-blue">
-              <div class="card-title">EBITDA Promedio</div>
-              <div class="card-value">${formatCurrency(ebitdaPromedio)}</div>
+          <div class="ebitda-combo-bottom">
+            <div class="ebitda-combo-cards">
+              <div class="ebitda-combo-card card-blue">
+                <div class="card-title">EBITDA Promedio</div>
+                <div class="card-value">${formatCurrency(ebitdaPromedio)}</div>
+              </div>
+              
+              <div class="ebitda-combo-card card-green">
+                <div class="card-title">Margen Promedio</div>
+                <div class="card-value">${margenPromedio.toFixed(1)}%</div>
+              </div>
+              
+              <div class="ebitda-combo-card card-amber">
+                <div class="card-title">EBITDA Máximo</div>
+                <div class="card-value">${formatCurrency(ebitdaMaximo)}</div>
+              </div>
+              
+              <div class="ebitda-combo-card card-purple">
+                <div class="card-title">Margen Máximo</div>
+                <div class="card-value">${margenMaximo.toFixed(1)}%</div>
+              </div>
             </div>
             
-            <div class="ebitda-combo-card card-green">
-              <div class="card-title">Margen Promedio</div>
-              <div class="card-value">${margenPromedio.toFixed(1)}%</div>
-            </div>
-            
-            <div class="ebitda-combo-card card-amber">
-              <div class="card-title">EBITDA Máximo</div>
-              <div class="card-value">${formatCurrency(ebitdaMaximo)}</div>
-            </div>
-            
-            <div class="ebitda-combo-card card-purple">
-              <div class="card-title">Margen Máximo</div>
-              <div class="card-value">${margenMaximo.toFixed(1)}%</div>
+            <div class="ebitda-combo-notes">
+              <div class="ebitda-combo-notes-title">📝 Análisis del gráfico:</div>
+              <div class="ebitda-combo-notes-content">${notes.trim() ? notes.replace(/\n/g, '<br>') : 'Sin notas adicionales.'}</div>
             </div>
           </div>
         </div>
