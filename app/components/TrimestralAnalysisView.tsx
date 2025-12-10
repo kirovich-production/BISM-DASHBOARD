@@ -653,8 +653,8 @@ export default function TrimestralAnalysisView({
           }
           .trimestral-metrics-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
+            grid-template-columns: 1fr;
+            gap: 8px;
           }
           .trimestral-metric-card {
             background: white;
@@ -732,9 +732,9 @@ export default function TrimestralAnalysisView({
             padding: 15px;
             page-break-inside: auto;
             break-inside: auto;
-            width: 90%;
-            max-width: 90%;
-            margin-top: 20px;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 15px;
             text-align: left;
           }
           .trimestral-notes-title {
@@ -827,7 +827,7 @@ export default function TrimestralAnalysisView({
       return;
     }
 
-    if (selectedItems.length > 8) {
+    if (selectedItems.length > 4) {
       setShowPdfWarning(true);
       return;
     }
@@ -931,9 +931,9 @@ export default function TrimestralAnalysisView({
                 <p className="text-sm font-bold text-amber-900">
                   {selectedItems.length === 0 
                     ? "Debes seleccionar al menos un ítem para exportar" 
-                    : `Para exportar a PDF, selecciona máximo 8 ítems`}
+                    : `Para exportar a PDF, selecciona máximo 4 ítems`}
                 </p>
-                {selectedItems.length > 8 && (
+                {selectedItems.length > 4 && (
                   <p className="text-xs text-amber-800 mt-1">
                     Actualmente tienes {selectedItems.length} ítems seleccionados. Por favor, reduce tu selección.
                   </p>
@@ -955,14 +955,14 @@ export default function TrimestralAnalysisView({
               uniqueKey={`TrimestralAnalysis-${selectedUnit}-${selectedQuarter1}-${selectedQuarter2}-${[...selectedItems].sort().join(',')}-${periodLabel}`}
               contentRef={contentRef as React.RefObject<HTMLElement>}
               period={periodLabel}
-              disabled={selectedItems.length === 0 || selectedItems.length > 8}
+              disabled={selectedItems.length === 0 || selectedItems.length > 4}
               captureMode="html"
               htmlGenerator={() => generateAnalysisHTML(true, false)}
             />
             
-            {selectedItems.length > 8 && (
+            {selectedItems.length > 4 && (
               <p className="text-xs text-red-600 mt-1">
-                ⚠️ Máximo 8 ítems permitidos para agregar al reporte ({selectedItems.length}/8)
+                ⚠️ Máximo 4 ítems permitidos para agregar al reporte ({selectedItems.length}/4)
               </p>
             )}
             
