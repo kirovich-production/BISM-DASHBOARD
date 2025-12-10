@@ -517,7 +517,7 @@ export default function EbidtaComboView({
           
           .ebitda-combo-bottom {
             display: grid;
-            grid-template-columns: 50% 50%;
+            grid-template-columns: 50% 48%;
             gap: 12px;
             margin-top: 8px;
           }
