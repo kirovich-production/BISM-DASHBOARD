@@ -468,55 +468,60 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
           }
           
           .ebitda-container {
-            display: grid;
-            grid-template-rows: auto 1fr auto;
-            gap: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             height: auto;
-            padding: 2px;
+            padding: 5px;
             page-break-inside: avoid;
             break-inside: avoid;
           }
           
           .ebitda-title {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             color: #1f2937;
-            border-bottom: 1px solid #22c55e;
-            padding-bottom: 2px;
-            margin-bottom: 2px;
-            page-break-after: avoid;
-            break-after: avoid;
+            border-bottom: 2px solid #22c55e;
+            padding-bottom: 5px;
+            text-align: center;
           }
           
           .ebitda-chart {
             border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            padding: 3px;
+            border-radius: 8px;
+            padding: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            background: #fafafa;
           }
           
           .ebitda-chart .chart-image {
             width: 100%;
             height: auto;
-            max-height: 420px;
+            max-height: 320px;
             object-fit: contain;
             border-radius: 4px;
           }
           
-          .ebitda-cards {
+          .ebitda-bottom {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: 40% 60%;
+            gap: 12px;
+            margin-top: 8px;
+          }
+          
+          .ebitda-cards {
+            display: flex;
+            flex-direction: column;
             gap: 8px;
-            margin-top: 4px;
           }
           
           .ebitda-card {
             background: white;
             border-radius: 6px;
-            padding: 8px 10px;
+            padding: 10px 12px;
             border: 2px solid #e5e7eb;
             text-align: center;
             display: flex;
@@ -551,9 +556,9 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
           }
           
           .ebitda-card .card-title {
-            font-size: 9px;
+            font-size: 10px;
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             line-height: 1.2;
           }
           
@@ -601,6 +606,31 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
           .ebitda-card-sucursal-3 .card-value {
             color: #be185d;
           }
+          
+          .ebitda-notes {
+            background: #ffffff;
+            border: 1px solid #6b7280;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .ebitda-notes-title {
+            color: #000000;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 11px;
+            text-align: left;
+          }
+          
+          .ebitda-notes-content {
+            color: #000000;
+            line-height: 1.4;
+            font-size: 10px;
+            text-align: left;
+            flex-grow: 1;
+          }
         </style>
       </head>
       <body>
@@ -612,21 +642,28 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
           <div class="ebitda-chart">
             ${chartImageBase64 ? `
               <img src="${chartImageBase64}" alt="Gráfico Comparativo EBITDA" class="chart-image" />
-            ` : '<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #9ca3af;">Gráfico no disponible</div>'}
+            ` : '<div style="display: flex; align-items: center; justify-content: center; height: 300px; color: #9ca3af;">Gráfico no disponible</div>'}
           </div>
           
-          <div class="ebitda-cards" style="grid-template-columns: repeat(${sucursalesPromedios.length + 1}, 1fr);">
-            <div class="ebitda-card ebitda-card-consolidado">
-              <div class="card-title">EBITDA Promedio<br>Consolidado ${showPercentages ? '(%)' : '(CLP)'}</div>
-              <div class="card-value">${formatValue(consolidadoPromedio)}</div>
+          <div class="ebitda-bottom">
+            <div class="ebitda-cards">
+              <div class="ebitda-card ebitda-card-consolidado">
+                <div class="card-title">EBITDA Promedio Consolidado ${showPercentages ? '(%)' : '(CLP)'}</div>
+                <div class="card-value">${formatValue(consolidadoPromedio)}</div>
+              </div>
+              
+              ${sucursalesPromedios.slice(0, 2).map((sucursal, index) => `
+                <div class="ebitda-card ebitda-card-sucursal-${index}">
+                  <div class="card-title">EBITDA Promedio ${sucursal.name} ${showPercentages ? '(%)' : '(CLP)'}</div>
+                  <div class="card-value">${formatValue(sucursal.promedio)}</div>
+                </div>
+              `).join('')}
             </div>
             
-            ${sucursalesPromedios.map((sucursal, index) => `
-              <div class="ebitda-card ebitda-card-sucursal-${index}">
-                <div class="card-title">EBITDA Promedio<br>${sucursal.name} ${showPercentages ? '(%)' : '(CLP)'}</div>
-                <div class="card-value">${formatValue(sucursal.promedio)}</div>
-              </div>
-            `).join('')}
+            <div class="ebitda-notes">
+              <div class="ebitda-notes-title">📝 Análisis del comparativo:</div>
+              <div class="ebitda-notes-content">${notes.trim() ? notes.replace(/\n/g, '<br>') : 'Sin notas adicionales.'}</div>
+            </div>
           </div>
         </div>
       </body>
