@@ -743,7 +743,7 @@ export default function MesAnualChartsView({
           
           .mes-anual-container {
             display: grid;
-            grid-template-columns: 68% 32%;
+            grid-template-columns: 65% 30%;
             grid-template-rows: auto 1fr auto;
             gap: 10px;
             height: 100%;
