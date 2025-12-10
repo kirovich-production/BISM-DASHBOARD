@@ -747,7 +747,7 @@ export default function MesAnualChartsView({
             grid-template-rows: auto 1fr auto;
             gap: 10px;
             height: 100%;
-            max-height: 500px;
+            max-height: 700px;
             padding: 5px;
             box-sizing: border-box;
             page-break-inside: avoid;
