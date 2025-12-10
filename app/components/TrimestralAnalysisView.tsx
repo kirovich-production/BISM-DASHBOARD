@@ -730,8 +730,8 @@ export default function TrimestralAnalysisView({
             padding: 15px;
             page-break-inside: auto;
             break-inside: auto;
-            width: 100%;
-            max-width: 100%;
+            width: 90%;
+            max-width: 90%;
             margin-top: 20px;
           }
           .trimestral-notes-title {

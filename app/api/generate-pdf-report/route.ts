@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
         </div>
         
         <!-- GRÁFICOS -->
-        ${graphs.map((graph, index) => {
+        ${graphs.map((graph) => {
           // Si tiene htmlData, usar el HTML completo (para vistas complejas)
           if (graph.htmlData) {
             return `
