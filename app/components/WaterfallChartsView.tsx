@@ -507,7 +507,7 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
           
           .ebitda-bottom {
             display: grid;
-            grid-template-columns: 40% 60%;
+            grid-template-columns: 40% 55%;
             gap: 12px;
             margin-top: 8px;
           }
