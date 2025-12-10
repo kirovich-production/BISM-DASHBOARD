@@ -85,6 +85,27 @@ const getMonthValue = (row: ExcelRow, month: string): number => {
   return parseValue(rawValue);
 };
 
+// Funciones de formato compartidas (movidas fuera del componente para evitar duplicación)
+const formatValue = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined || value === '') return '-';
+  if (typeof value === 'number') {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0,
+    }).format(value);
+  }
+  return String(value);
+};
+
+const formatPercentage = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined || value === '') return '-';
+  if (typeof value === 'number') {
+    return `${value.toFixed(2)}%`;
+  }
+  return String(value);
+};
+
 export default function MesAnualChartsView({ 
   consolidadoData, 
   sucursalesData,
@@ -365,27 +386,6 @@ export default function MesAnualChartsView({
         hour: '2-digit',
         minute: '2-digit'
       });
-
-      // Funciones de formato
-      const formatValue = (value: string | number | null | undefined): string => {
-        if (value === null || value === undefined || value === '') return '-';
-        if (typeof value === 'number') {
-          return new Intl.NumberFormat('es-CL', {
-            style: 'currency',
-            currency: 'CLP',
-            minimumFractionDigits: 0,
-          }).format(value);
-        }
-        return String(value);
-      };
-
-      const formatPercentage = (value: string | number | null | undefined): string => {
-        if (value === null || value === undefined || value === '') return '-';
-        if (typeof value === 'number') {
-          return `${value.toFixed(1)}%`;
-        }
-        return String(value);
-      };
 
       const html = `
         <!DOCTYPE html>
@@ -714,27 +714,6 @@ export default function MesAnualChartsView({
     // Filtrar tabla para mostrar solo el ítem del gráfico actual
     const filteredTableData = tableData.filter(row => row.item === selectedItemForChart);
 
-    // Funciones de formato
-    const formatValue = (value: string | number | null | undefined): string => {
-      if (value === null || value === undefined || value === '') return '-';
-      if (typeof value === 'number') {
-        return new Intl.NumberFormat('es-CL', {
-          style: 'currency',
-          currency: 'CLP',
-          minimumFractionDigits: 0,
-        }).format(value);
-      }
-      return String(value);
-    };
-
-    const formatPercentage = (value: string | number | null | undefined): string => {
-      if (value === null || value === undefined || value === '') return '-';
-      if (typeof value === 'number') {
-        return `${value.toFixed(2)}%`;
-      }
-      return String(value);
-    };
-
     return `
       <!DOCTYPE html>
       <html lang="es">
@@ -764,9 +743,9 @@ export default function MesAnualChartsView({
           
           .mes-anual-container {
             display: grid;
-            grid-template-columns: 40% 60%;
-            grid-template-rows: auto 1fr;
-            gap: 4px;
+            grid-template-columns: 70% 30%;
+            grid-template-rows: auto auto auto;
+            gap: 10px;
             height: auto;
             padding: 2px;
             box-sizing: border-box;
@@ -787,12 +766,31 @@ export default function MesAnualChartsView({
             break-after: avoid;
           }
           
-          .mes-anual-table {
+          .mes-anual-chart {
             grid-column: 1;
+            grid-row: 2 / 4;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 400px;
+          }
+          
+          .mes-anual-chart .chart-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+          }
+          
+          .mes-anual-table {
+            grid-column: 2;
             grid-row: 2;
             border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            padding: 3px;
+            border-radius: 8px;
+            padding: 10px;
             overflow: auto;
           }
           
@@ -872,24 +870,29 @@ export default function MesAnualChartsView({
             font-weight: 600;
           }
           
-          .mes-anual-chart {
+          .mes-anual-notes {
             grid-column: 2;
-            grid-row: 2;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            padding: 3px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            max-height: 450px;
+            grid-row: 3;
+            background: #ffffff;
+            border: 1px solid #6b7280;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: left;
           }
           
-          .mes-anual-chart .chart-image {
-            width: 100%;
-            height: 100%;
-            max-height: 440px;
-            object-fit: contain;
-            border-radius: 4px;
+          .mes-anual-notes-title {
+            color: #000000;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-align: left;
+          }
+          
+          .mes-anual-notes-content {
+            color: #000000;
+            line-height: 1.5;
+            font-size: 10px;
+            text-align: left;
           }
         </style>
       </head>
@@ -897,6 +900,12 @@ export default function MesAnualChartsView({
         <div class="mes-anual-container">
           <div class="mes-anual-title">
             📊 Comparación ${selectedMonth} vs Anual - ${selectedUnit === 'consolidado' ? 'Consolidado' : sucursalesData.find(s => createSlug(s.name) === selectedUnit)?.name || selectedUnit}
+          </div>
+          
+          <div class="mes-anual-chart">
+            ${chartImageBase64 ? `
+              <img src="${chartImageBase64}" alt="Gráfico de comparación" class="chart-image" />
+            ` : '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af;">Gráfico no disponible</div>'}
           </div>
           
           <div class="mes-anual-table">
@@ -924,11 +933,12 @@ export default function MesAnualChartsView({
             </table>
           </div>
           
-          <div class="mes-anual-chart">
-            ${chartImageBase64 ? `
-              <img src="${chartImageBase64}" alt="Gráfico de comparación" class="chart-image" />
-            ` : '<div style="display: flex; align-items: center; justify-center; height: 100%; color: #9ca3af;">Gráfico no disponible</div>'}
-          </div>
+          ${notes.trim() ? `
+            <div class="mes-anual-notes">
+              <div class="mes-anual-notes-title">Análisis del gráfico:</div>
+              <div class="mes-anual-notes-content">${notes.replace(/\n/g, '<br>')}</div>
+            </div>
+          ` : ''}
         </div>
       </body>
       </html>
