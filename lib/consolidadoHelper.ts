@@ -1,26 +1,11 @@
-import { EERRData, ExcelRow } from '@/types';
+import { ExcelRow } from '@/types';
+import { convertEERRToExcelRows } from '@/lib/formatters';
 
 /**
- * Convierte EERRData (formato con categorías) a ExcelRow[] (formato plano)
- * para compatibilidad con TableView del Consolidado
+ * Re-exportar la función centralizada para mantener compatibilidad
+ * @deprecated Usar directamente `convertEERRToExcelRows` de '@/lib/formatters'
  */
-export function convertEERRDataToExcelRows(eerrData: EERRData): ExcelRow[] {
-  const rows: ExcelRow[] = [];
-  
-  eerrData.categories.forEach(category => {
-    // Agregar filas de la categoría
-    category.rows.forEach(row => {
-      rows.push(row as ExcelRow);
-    });
-    
-    // Agregar total de categoría si existe
-    if (category.total) {
-      rows.push(category.total as ExcelRow);
-    }
-  });
-  
-  return rows;
-}
+export const convertEERRDataToExcelRows = convertEERRToExcelRows;
 
 /**
  * Suma dos tablas ExcelRow[] (Labranza + Sevilla = Consolidados)

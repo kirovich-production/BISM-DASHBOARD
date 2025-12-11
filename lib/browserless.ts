@@ -3,7 +3,7 @@
  * Centraliza la configuración y manejo de errores para generación de PDF
  */
 
-const BROWSERLESS_URL = 'https://production-sfo.browserless.io/pdf';
+const BROWSERLESS_URL = process.env.BROWSERLESS_URL || 'https://production-sfo.browserless.io/pdf';
 
 export interface BrowserlessPdfOptions {
   format?: 'A4' | 'Letter' | 'Legal';

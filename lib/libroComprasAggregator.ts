@@ -1,12 +1,10 @@
 import { LibroComprasTransaction, EERRData, EERRCategory, EERRRow } from '@/types';
+import { MONTH_NAMES } from '@/lib/constants';
 
 /**
- * Nombres de meses en español (calendario chileno)
+ * Usar MONTH_NAMES centralizado desde constants.ts
  */
-const MESES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
+const MESES = MONTH_NAMES;
 
 /**
  * Estructura de encabezados EERR (sin cuentas hardcodeadas)
