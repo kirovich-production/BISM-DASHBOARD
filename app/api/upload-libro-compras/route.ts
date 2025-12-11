@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import * as XLSX from 'xlsx';
 import { parseLibroComprasSheet, parseClasificacionSheet } from '@/lib/excelParser';
+import { COLLECTIONS, isValidExcelType } from '@/lib/constants';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,27 +15,22 @@ export async function POST(request: NextRequest) {
     
     if (!file) {
       return NextResponse.json(
-        { success: false, message: 'No se proporcionó ningún archivo' },
+        { success: false, error: 'No se proporcionó ningún archivo' },
         { status: 400 }
       );
     }
 
     if (!userId || !sucursal || !periodo) {
       return NextResponse.json(
-        { success: false, message: 'Faltan parámetros requeridos (userId, sucursal, periodo)' },
+        { success: false, error: 'Faltan parámetros requeridos (userId, sucursal, periodo)' },
         { status: 400 }
       );
     }
 
     // Validar que sea un archivo Excel
-    const validTypes = [
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    ];
-    
-    if (!validTypes.includes(file.type)) {
+    if (!isValidExcelType(file.type)) {
       return NextResponse.json(
-        { success: false, message: 'El archivo debe ser un Excel (.xls o .xlsx)' },
+        { success: false, error: 'El archivo debe ser un Excel (.xls o .xlsx)' },
         { status: 400 }
       );
     }
@@ -50,7 +46,7 @@ export async function POST(request: NextRequest) {
     
     if (!libroComprasTransactions || libroComprasTransactions.length === 0) {
       return NextResponse.json(
-        { success: false, message: 'No se encontró la hoja "LC" o no contiene datos válidos' },
+        { success: false, error: 'No se encontró la hoja "LC" o no contiene datos válidos' },
         { status: 400 }
       );
     }
@@ -62,7 +58,7 @@ export async function POST(request: NextRequest) {
     const { db } = await connectToDatabase();
     
     // Guardar Libro de Compras
-    const libroComprasCollection = db.collection('libroCompras');
+    const libroComprasCollection = db.collection(COLLECTIONS.LIBRO_COMPRAS);
     
     // Eliminar documento existente del mismo userId, período y sucursal
     await libroComprasCollection.deleteMany({
@@ -88,7 +84,7 @@ export async function POST(request: NextRequest) {
     // Guardar proveedores si existen
     let proveedoresCount = 0;
     if (proveedoresData && proveedoresData.length > 0) {
-      const proveedoresCollection = db.collection('proveedores');
+      const proveedoresCollection = db.collection(COLLECTIONS.PROVEEDORES);
       
       // Eliminar proveedores existentes del mismo userId, período y sucursal
       await proveedoresCollection.deleteMany({
@@ -130,7 +126,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false,
-        message: 'Error al procesar el archivo',
+        error: 'Error al procesar el archivo',
         details: error instanceof Error ? error.message : 'Error desconocido'
       },
       { status: 500 }

@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase, getUserCollectionName } from '@/lib/mongodb';
 import { UserSession } from '@/types';
 import { randomUUID } from 'crypto';
-
-const SESSION_DURATION_DAYS = 7; // 7 días de duración de sesión
-const SESSION_COLLECTION = 'sessions';
+import { COLLECTIONS, SESSION_CONFIG } from '@/lib/constants';
 
 /**
  * POST /api/auth/session - Crear nueva sesión
@@ -40,11 +38,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 🗑️ LIMPIAR SESIONES ANTIGUAS DE ESTE USUARIO (una sesión por usuario)
-    await db.collection(SESSION_COLLECTION).deleteMany({ userId });
+    await db.collection(COLLECTIONS.SESSIONS).deleteMany({ userId });
 
     // 🆕 CREAR NUEVA SESIÓN
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + SESSION_CONFIG.DURATION_DAYS * 24 * 60 * 60 * 1000);
     const sessionId = randomUUID();
 
     const newSession: UserSession = {
@@ -60,7 +58,7 @@ export async function POST(request: NextRequest) {
                  'unknown'
     };
 
-    await db.collection(SESSION_COLLECTION).insertOne(newSession);
+    await db.collection(COLLECTIONS.SESSIONS).insertOne(newSession);
 
     // 🍪 GUARDAR SESSION_ID EN COOKIE
     const response = NextResponse.json({
@@ -70,11 +68,11 @@ export async function POST(request: NextRequest) {
       userName
     });
 
-    response.cookies.set('bism_session_id', sessionId, {
+    response.cookies.set(SESSION_CONFIG.COOKIE_NAME, sessionId, {
       httpOnly: true,           // No accesible desde JavaScript (seguridad)
       secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
       sameSite: 'lax',          // Protección CSRF
-      maxAge: SESSION_DURATION_DAYS * 24 * 60 * 60, // 7 días
+      maxAge: SESSION_CONFIG.DURATION_DAYS * 24 * 60 * 60, // 7 días
       path: '/'
     });
 
@@ -96,7 +94,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const sessionId = request.cookies.get('bism_session_id')?.value;
+    const sessionId = request.cookies.get(SESSION_CONFIG.COOKIE_NAME)?.value;
 
     if (!sessionId) {
       return NextResponse.json({
@@ -108,7 +106,7 @@ export async function GET(request: NextRequest) {
     const { db } = await connectToDatabase();
 
     // 🔍 BUSCAR SESIÓN EN BD
-    const session = await db.collection(SESSION_COLLECTION).findOne({ sessionId }) as UserSession | null;
+    const session = await db.collection(COLLECTIONS.SESSIONS).findOne({ sessionId }) as UserSession | null;
 
     if (!session) {
       console.warn(`[SESSION] ⚠️ Sesión no encontrada: ${sessionId}`);
@@ -121,13 +119,13 @@ export async function GET(request: NextRequest) {
     // ⏰ VERIFICAR SI LA SESIÓN EXPIRÓ
     if (new Date() > session.expiresAt) {
       console.warn(`[SESSION] ⏰ Sesión expirada: ${sessionId} (usuario: ${session.userName})`);
-      await db.collection(SESSION_COLLECTION).deleteOne({ sessionId });
+      await db.collection(COLLECTIONS.SESSIONS).deleteOne({ sessionId });
       
       const response = NextResponse.json({
         success: false,
         error: 'Sesión expirada'
       });
-      response.cookies.delete('bism_session_id');
+      response.cookies.delete(SESSION_CONFIG.COOKIE_NAME);
       return response;
     }
 
@@ -135,7 +133,7 @@ export async function GET(request: NextRequest) {
     // La validación se hace al momento de cargar datos, no en la sesión
 
     // ✅ SESIÓN VÁLIDA - Actualizar última actividad
-    await db.collection(SESSION_COLLECTION).updateOne(
+    await db.collection(COLLECTIONS.SESSIONS).updateOne(
       { sessionId },
       { $set: { lastActivityAt: new Date() } }
     );
@@ -162,7 +160,7 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const sessionId = request.cookies.get('bism_session_id')?.value;
+    const sessionId = request.cookies.get(SESSION_CONFIG.COOKIE_NAME)?.value;
 
     if (!sessionId) {
       return NextResponse.json({
@@ -174,7 +172,7 @@ export async function DELETE(request: NextRequest) {
     const { db } = await connectToDatabase();
 
     // 🗑️ ELIMINAR SESIÓN DE BD
-    await db.collection(SESSION_COLLECTION).deleteOne({ sessionId });
+    await db.collection(COLLECTIONS.SESSIONS).deleteOne({ sessionId });
 
     // 🍪 ELIMINAR COOKIE
     const response = NextResponse.json({
@@ -182,7 +180,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Sesión cerrada correctamente'
     });
 
-    response.cookies.delete('bism_session_id');
+    response.cookies.delete(SESSION_CONFIG.COOKIE_NAME);
 
     return response;
 

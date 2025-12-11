@@ -1,56 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { 
+  generatePdfWithBrowserless, 
+  isBrowserlessConfigured 
+} from '@/lib/browserless';
 
 export async function POST(request: NextRequest) {
   try {
-    
     const { html, options } = await request.json();
     
     if (!html) {
       return NextResponse.json({ error: 'HTML content is required' }, { status: 400 });
     }
 
-    // Verificar que tenemos el token de Browserless
-    const browserlessToken = process.env.BROWSERLESS_API_TOKEN;
-    if (!browserlessToken) {
+    if (!isBrowserlessConfigured()) {
       console.error('❌ BROWSERLESS_API_TOKEN no configurado');
       return NextResponse.json({ error: 'Browserless token not configured' }, { status: 500 });
     }
 
-    const response = await fetch(`https://production-sfo.browserless.io/pdf?token=${browserlessToken}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        html,
-        options: {
-          format: 'A4',
-          landscape: true,
-          printBackground: true,
-          margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' },
-          displayHeaderFooter: false,
-          ...options
-        }
-      })
-    });
+    const result = await generatePdfWithBrowserless(html, options);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Browserless error:', response.status, errorText);
+    if (!result.success || !result.pdfBuffer) {
+      console.error('❌ Browserless error:', result.error);
       return NextResponse.json({ 
-        error: `Browserless failed: ${response.status} - ${errorText}` 
+        error: result.error || 'Browserless failed'
       }, { status: 500 });
     }
 
-    // Obtener el PDF como buffer
-    const pdfBuffer = await response.arrayBuffer();
-    
-    
-    // Retornar el PDF como respuesta
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(result.pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Length': pdfBuffer.byteLength.toString(),
+        'Content-Length': result.pdfBuffer.byteLength.toString(),
       },
     });
 

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     if (!userId || !periodo || !sucursal) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan parámetros requeridos: userId, periodo, sucursal',
+        error: 'Faltan parámetros requeridos: userId, periodo, sucursal',
       }, { status: 400 });
     }
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     console.error('[valores-manuales GET] Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al obtener valores manuales',
+      error: error instanceof Error ? error.message : 'Error al obtener valores manuales',
     }, { status: 500 });
   }
 }
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     if (!userId || !periodo || !sucursal || !cuenta || monto === undefined) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan datos requeridos: userId, periodo, sucursal, cuenta, monto',
+        error: 'Faltan datos requeridos: userId, periodo, sucursal, cuenta, monto',
       }, { status: 400 });
     }
 
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     console.error('[valores-manuales POST] Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al guardar valor manual',
+      error: error instanceof Error ? error.message : 'Error al guardar valor manual',
     }, { status: 500 });
   }
 }

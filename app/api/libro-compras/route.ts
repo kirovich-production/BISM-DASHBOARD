@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (!userId || !periodo || !sucursal) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan parámetros requeridos: userId, periodo, sucursal',
+        error: 'Faltan parámetros requeridos: userId, periodo, sucursal',
       }, { status: 400 });
     }
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     if (!documentObjectId && !documentString) {
       return NextResponse.json({
         success: false,
-        message: 'No se encontraron datos para este período',
+        error: 'No se encontraron datos para este período',
         data: null
       });
     }
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     console.error('[libro-compras GET] ❌ Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al obtener datos',
+      error: error instanceof Error ? error.message : 'Error al obtener datos',
     }, { status: 500 });
   }
 }
@@ -77,7 +77,7 @@ export async function PUT(request: NextRequest) {
     if (!userId || !periodo || !sucursal || transaccionIndex === undefined || !transaccion) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan datos requeridos: userId, periodo, sucursal, transaccionIndex, transaccion',
+        error: 'Faltan datos requeridos: userId, periodo, sucursal, transaccionIndex, transaccion',
       }, { status: 400 });
     }
 
@@ -100,7 +100,7 @@ export async function PUT(request: NextRequest) {
     if (result.matchedCount === 0) {
       return NextResponse.json({
         success: false,
-        message: 'No se encontró el documento',
+        error: 'No se encontró el documento',
       }, { status: 404 });
     }
 
@@ -113,7 +113,7 @@ export async function PUT(request: NextRequest) {
     console.error('[libro-compras PUT] ❌ Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al actualizar transacción',
+      error: error instanceof Error ? error.message : 'Error al actualizar transacción',
     }, { status: 500 });
   }
 }
@@ -129,7 +129,7 @@ export async function DELETE(request: NextRequest) {
     if (!userId || !periodo || !sucursal) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan parámetros requeridos: userId, periodo, sucursal',
+        error: 'Faltan parámetros requeridos: userId, periodo, sucursal',
       }, { status: 400 });
     }
 
@@ -145,7 +145,7 @@ export async function DELETE(request: NextRequest) {
     if (result.deletedCount === 0) {
       return NextResponse.json({
         success: false,
-        message: 'No se encontró el documento para eliminar',
+        error: 'No se encontró el documento para eliminar',
       }, { status: 404 });
     }
 
@@ -158,7 +158,7 @@ export async function DELETE(request: NextRequest) {
     console.error('[libro-compras DELETE] ❌ Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al eliminar datos',
+      error: error instanceof Error ? error.message : 'Error al eliminar datos',
     }, { status: 500 });
   }
 }

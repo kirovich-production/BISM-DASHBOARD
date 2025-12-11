@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     console.error('[proveedores-excel GET] ❌ Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al obtener proveedores',
+      error: error instanceof Error ? error.message : 'Error al obtener proveedores',
     }, { status: 500 });
   }
 }

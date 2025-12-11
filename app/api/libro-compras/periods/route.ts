@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({
         success: false,
-        message: 'Falta parámetro requerido: userId',
+        error: 'Falta parámetro requerido: userId',
       }, { status: 400 });
     }
 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     console.error('[libro-compras/periods GET] ❌ Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al obtener períodos',
+      error: error instanceof Error ? error.message : 'Error al obtener períodos',
       periods: []
     }, { status: 500 });
   }

@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     console.error('[proveedores GET] ❌ Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al obtener proveedores',
+      error: error instanceof Error ? error.message : 'Error al obtener proveedores',
     }, { status: 500 });
   }
 }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     if (!rut || !nombre) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan datos requeridos: rut, nombre',
+        error: 'Faltan datos requeridos: rut, nombre',
       }, { status: 400 });
     }
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     if (existingProveedor) {
       return NextResponse.json({
         success: false,
-        message: 'Ya existe un proveedor con ese RUT',
+        error: 'Ya existe un proveedor con ese RUT',
       }, { status: 400 });
     }
 
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     console.error('[proveedores POST] ❌ Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al crear proveedor',
+      error: error instanceof Error ? error.message : 'Error al crear proveedor',
     }, { status: 500 });
   }
 }
@@ -103,7 +103,7 @@ export async function PUT(request: NextRequest) {
     if (!_id || !rut || !nombre) {
       return NextResponse.json({
         success: false,
-        message: 'Faltan datos requeridos: _id, rut, nombre',
+        error: 'Faltan datos requeridos: _id, rut, nombre',
       }, { status: 400 });
     }
 
@@ -127,7 +127,7 @@ export async function PUT(request: NextRequest) {
     if (result.matchedCount === 0) {
       return NextResponse.json({
         success: false,
-        message: 'No se encontró el proveedor',
+        error: 'No se encontró el proveedor',
       }, { status: 404 });
     }
 
@@ -140,7 +140,7 @@ export async function PUT(request: NextRequest) {
     console.error('[proveedores PUT] ❌ Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al actualizar proveedor',
+      error: error instanceof Error ? error.message : 'Error al actualizar proveedor',
     }, { status: 500 });
   }
 }
@@ -154,7 +154,7 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json({
         success: false,
-        message: 'Falta parámetro requerido: id',
+        error: 'Falta parámetro requerido: id',
       }, { status: 400 });
     }
 
@@ -166,7 +166,7 @@ export async function DELETE(request: NextRequest) {
     if (result.deletedCount === 0) {
       return NextResponse.json({
         success: false,
-        message: 'No se encontró el proveedor',
+        error: 'No se encontró el proveedor',
       }, { status: 404 });
     }
 
@@ -179,7 +179,7 @@ export async function DELETE(request: NextRequest) {
     console.error('[proveedores DELETE] ❌ Error:', error);
     return NextResponse.json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error al eliminar proveedor',
+      error: error instanceof Error ? error.message : 'Error al eliminar proveedor',
     }, { status: 500 });
   }
 }
