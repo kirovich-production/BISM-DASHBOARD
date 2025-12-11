@@ -101,45 +101,58 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
     return 0;
   };
 
+  // Nombres de meses completos para mapeo dinámico
+  const MONTH_NAMES = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  
+  // Nombres cortos para el gráfico
+  const MONTH_SHORT_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  // Función para obtener meses disponibles desde EERRData
+  const getAvailableMonths = (data: EERRData | null): string[] => {
+    if (!data || !data.months) return [];
+    // Filtrar ANUAL y CONSOLIDADO, quedarse solo con meses
+    return data.months.filter(m => 
+      !m.toUpperCase().includes('ANUAL') && 
+      !m.toUpperCase().includes('CONSOLIDADO')
+    );
+  };
+
   // Función para extraer EBITDA de una tabla específica (formato antiguo - Consolidado)
-  const getEbitdaFromConsolidado = (data: ExcelRow[]) => {
+  const getEbitdaFromConsolidado = (data: ExcelRow[], availableMonths: string[]) => {
     const ebitdaRow = data?.find(row => 
       row.Item && typeof row.Item === 'string' && 
       row.Item.toLowerCase().includes('ebidta')
     );
 
-    const monthKeys = [
-      'Enero Monto', 'Febrero Monto', 'Marzo Monto', 'Abril Monto', 'Mayo Monto', 'Junio Monto',
-      'Julio Monto', 'Agosto Monto', 'Septiembre Monto', 'Octubre Monto', 'Noviembre Monto', 'Diciembre Monto'
-    ];
-    
-    return monthKeys.map((monthKey, index) => {
+    // Usar los meses disponibles dinámicamente
+    return MONTH_NAMES.map((monthName) => {
+      // Verificar si este mes está disponible
+      const monthAvailable = availableMonths.some(m => 
+        m.toLowerCase() === monthName.toLowerCase()
+      );
+      
+      if (!monthAvailable) return 0;
+      
+      const monthKey = `${monthName} Monto`;
       const value = ebitdaRow ? parseValue(ebitdaRow[monthKey]) : 0;
-      if (index < 3) {
-      }
       return value;
     });
   };
 
-  // Función para extraer EBITDA de formato EERR (Sevilla/Labranza)
+  // Función para extraer EBITDA de formato EERR (Sevilla/Labranza) - DINÁMICO
   const getEbitdaFromEERR = (data: EERRData | null) => {
     if (!data || !data.categories) {
-      return Array(12).fill(0); // 12 meses con valor 0
+      return Array(12).fill(0);
     }
 
-    // Buscar EBITDA en todas las categorías - probar diferentes variantes
+    const availableMonths = getAvailableMonths(data);
+
+    // Buscar EBITDA en todas las categorías
     let ebitdaRow = null;
     for (const category of data.categories) {
-      
-      // Mostrar todas las filas disponibles en esta categoría
-      if (category.rows) {
-        category.rows.forEach((row, idx) => {
-          if (idx < 5) { // Mostrar solo las primeras 5 filas
-          }
-        });
-      }
-      
-      // Buscar EBITDA con diferentes variantes
       ebitdaRow = category.rows?.find(row => 
         row.Item && typeof row.Item === 'string' && (
           row.Item.toLowerCase().includes('ebidta') ||
@@ -149,33 +162,42 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
         )
       );
       
-      if (ebitdaRow) {
-        break;
-      }
+      if (ebitdaRow) break;
     }
 
     if (!ebitdaRow) {
       return Array(12).fill(0);
     }
 
-    
-
-    const monthKeys = [
-      'ENERO Monto', 'FEBRERO Monto', 'MARZO Monto', 'ABRIL Monto', 'MAYO Monto', 'JUNIO Monto',
-      'JULIO Monto', 'AGOSTO Monto', 'SEPTIEMBRE Monto', 'OCTUBRE Monto', 'NOVIEMBRE Monto', 'DICIEMBRE Monto'
-    ];
-    
-    return monthKeys.map((monthKey, index) => {
-      const rawValue = ebitdaRow?.[monthKey];
-      const value = ebitdaRow ? parseValue(rawValue) : 0;
-      if (index < 3) {
+    // Extraer valores dinámicamente según los meses disponibles
+    return MONTH_NAMES.map((monthName) => {
+      // Verificar si este mes está disponible en los datos
+      const monthAvailable = availableMonths.some(m => 
+        m.toLowerCase() === monthName.toLowerCase()
+      );
+      
+      if (!monthAvailable) return 0;
+      
+      // Probar diferentes formatos de clave (Enero Monto, ENERO Monto, enero Monto)
+      const possibleKeys = [
+        `${monthName} Monto`,
+        `${monthName.toUpperCase()} Monto`,
+        `${monthName.toLowerCase()} Monto`
+      ];
+      
+      for (const key of possibleKeys) {
+        const rawValue = ebitdaRow?.[key];
+        if (rawValue !== undefined && rawValue !== null) {
+          return parseValue(rawValue);
+        }
       }
-      return value;
+      
+      return 0;
     });
   };
 
-  // Función para extraer EBITDA % de Consolidado
-  const getEbitdaPercentageFromConsolidado = (data: ExcelRow[]) => {
+  // Función para extraer EBITDA % de Consolidado - DINÁMICO
+  const getEbitdaPercentageFromConsolidado = (data: ExcelRow[], availableMonths: string[]) => {
     const ebitdaRow = data?.find(row => 
       row.Item && typeof row.Item === 'string' && 
       row.Item.toLowerCase().includes('ebidta')
@@ -185,27 +207,31 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
       return Array(12).fill(0);
     }
 
-    const monthKeys = [
-      'Enero %', 'Febrero %', 'Marzo %', 'Abril %', 'Mayo %', 'Junio %',
-      'Julio %', 'Agosto %', 'Septiembre %', 'Octubre %', 'Noviembre %', 'Diciembre %'
-    ];
-
-    return monthKeys.map((key) => {
-      const rawValue = ebitdaRow[key];
+    return MONTH_NAMES.map((monthName) => {
+      // Verificar si este mes está disponible
+      const monthAvailable = availableMonths.some(m => 
+        m.toLowerCase() === monthName.toLowerCase()
+      );
+      
+      if (!monthAvailable) return 0;
+      
+      const monthKey = `${monthName} %`;
+      const rawValue = ebitdaRow[monthKey];
       if (!rawValue || rawValue === '#DIV/0!') return 0;
       
-      // Limpiar porcentaje: "2.62%" -> 2.62
       const cleaned = String(rawValue).replace('%', '');
       const parsed = parseFloat(cleaned);
       return isNaN(parsed) ? 0 : parsed;
     });
   };
 
-  // Función para extraer EBITDA % de EERR (Sevilla/Labranza)
+  // Función para extraer EBITDA % de EERR (Sevilla/Labranza) - DINÁMICO
   const getEbitdaPercentageFromEERR = (data: EERRData | null) => {
     if (!data || !data.categories) {
       return Array(12).fill(0);
     }
+
+    const availableMonths = getAvailableMonths(data);
 
     // Buscar EBITDA en todas las categorías
     let ebitdaRow = null;
@@ -224,34 +250,73 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
       return Array(12).fill(0);
     }
 
-    const monthKeys = [
-      'ENERO %', 'FEBRERO %', 'MARZO %', 'ABRIL %', 'MAYO %', 'JUNIO %',
-      'JULIO %', 'AGOSTO %', 'SEPTIEMBRE %', 'OCTUBRE %', 'NOVIEMBRE %', 'DICIEMBRE %'
-    ];
-    
-    return monthKeys.map((monthKey) => {
-      const rawValue = ebitdaRow?.[monthKey];
-      if (!rawValue || rawValue === '#DIV/0!') return 0;
+    return MONTH_NAMES.map((monthName) => {
+      // Verificar si este mes está disponible
+      const monthAvailable = availableMonths.some(m => 
+        m.toLowerCase() === monthName.toLowerCase()
+      );
       
-      // Limpiar porcentaje: "2.62%" -> 2.62
-      const cleaned = String(rawValue).replace('%', '');
-      const parsed = parseFloat(cleaned);
-      return isNaN(parsed) ? 0 : parsed;
+      if (!monthAvailable) return 0;
+      
+      // Probar diferentes formatos de clave
+      const possibleKeys = [
+        `${monthName} %`,
+        `${monthName.toUpperCase()} %`,
+        `${monthName.toLowerCase()} %`
+      ];
+      
+      for (const key of possibleKeys) {
+        const rawValue = ebitdaRow?.[key];
+        if (rawValue !== undefined && rawValue !== null && rawValue !== '#DIV/0!') {
+          const cleaned = String(rawValue).replace('%', '');
+          const parsed = parseFloat(cleaned);
+          if (!isNaN(parsed)) return parsed;
+        }
+      }
+      
+      return 0;
     });
   };
 
-  // Obtener datos EBITDA de todas las sucursales dinámicamente
-  const consolidadoEbitda = getEbitdaFromConsolidado(consolidadoData);
-  const consolidadoEbitdaPercent = getEbitdaPercentageFromConsolidado(consolidadoData);
+  // Determinar los meses disponibles de todas las fuentes de datos
+  const allAvailableMonths = new Set<string>();
+  
+  // Agregar meses de sucursales
+  sucursalesData.forEach(sucursal => {
+    if (sucursal.data?.months) {
+      getAvailableMonths(sucursal.data).forEach(m => allAvailableMonths.add(m.toLowerCase()));
+    }
+  });
+  
+  // Convertir a array ordenado de índices de meses
+  const availableMonthIndices = MONTH_NAMES
+    .map((name, index) => ({ name, index }))
+    .filter(m => allAvailableMonths.has(m.name.toLowerCase()))
+    .map(m => m.index);
+
+  // Obtener datos EBITDA dinámicamente
+  const availableMonthsList = Array.from(allAvailableMonths);
+  const consolidadoEbitda = getEbitdaFromConsolidado(consolidadoData, availableMonthsList);
+  const consolidadoEbitdaPercent = getEbitdaPercentageFromConsolidado(consolidadoData, availableMonthsList);
   
   // Generar datasets dinámicamente para cada sucursal
   const sucursalesEbitdaData = sucursalesData.map(sucursal => ({
     name: sucursal.name,
     ebitda: getEbitdaFromEERR(sucursal.data),
-    ebitdaPercent: getEbitdaPercentageFromEERR(sucursal.data)
+    ebitdaPercent: getEbitdaPercentageFromEERR(sucursal.data),
+    availableMonths: sucursal.data ? getAvailableMonths(sucursal.data) : []
   }));
 
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  // Usar solo los meses que tienen datos (filtrar por índices disponibles)
+  const months = availableMonthIndices.length > 0 
+    ? availableMonthIndices.map(i => MONTH_SHORT_NAMES[i])
+    : MONTH_SHORT_NAMES; // Fallback a todos los meses si no hay datos
+
+  // Filtrar datos para mostrar solo los meses disponibles
+  const filterByAvailableMonths = (data: number[]) => {
+    if (availableMonthIndices.length === 0) return data;
+    return availableMonthIndices.map(i => data[i] || 0);
+  };
 
   // Colores para sucursales (alineado con leyenda)
   const sucursalColors = [
@@ -267,7 +332,7 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
     datasets: [
       {
         label: showPercentages ? 'EBITDA % Consolidado' : 'EBITDA Consolidado',
-        data: showPercentages ? consolidadoEbitdaPercent : consolidadoEbitda,
+        data: filterByAvailableMonths(showPercentages ? consolidadoEbitdaPercent : consolidadoEbitda),
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderColor: 'rgba(59, 130, 246, 1)',
         borderWidth: 3,
@@ -283,7 +348,7 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
         const color = sucursalColors[index % sucursalColors.length];
         return {
           label: showPercentages ? `EBITDA % ${sucursal.name}` : `EBITDA ${sucursal.name}`,
-          data: showPercentages ? sucursal.ebitdaPercent : sucursal.ebitda,
+          data: filterByAvailableMonths(showPercentages ? sucursal.ebitdaPercent : sucursal.ebitda),
           backgroundColor: color.bg,
           borderColor: color.line,
           borderWidth: 2,
