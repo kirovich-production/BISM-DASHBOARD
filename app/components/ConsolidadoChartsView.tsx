@@ -15,6 +15,7 @@ import {
 } from 'chart.js';
 import type { ExcelRow } from '@/types';
 import AddToReportButton from './AddToReportButton';
+import { MONTH_NAMES } from '@/lib/constants';
 
 // Registrar componentes de Chart.js
 ChartJS.register(
@@ -31,10 +32,8 @@ interface ConsolidadoChartsViewProps {
   periodLabel: string;
 }
 
-const MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
+// Usar MONTH_NAMES desde constants
+const MONTHS = MONTH_NAMES;
 
 // Colores suaves predefinidos para los ítems
 const ITEM_COLORS: { [key: string]: string } = {

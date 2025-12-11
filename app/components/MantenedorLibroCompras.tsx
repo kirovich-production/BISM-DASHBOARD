@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ENCABEZADOS_EERR, UNIDADES_NEGOCIO } from '@/lib/encabezadosEERR';
 import { obtenerCuentasPorEncabezado } from '@/lib/cuentasEncabezados';
+import { MONTH_NAMES } from '@/lib/constants';
 
 interface MantenedorLibroDiarioProps {
   userId: string | null;
@@ -19,21 +20,11 @@ export default function MantenedorLibroDiario({ userId, userSucursales = [], onD
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
   
-  // Meses
-  const months = [
-    { value: '01', label: 'Enero' },
-    { value: '02', label: 'Febrero' },
-    { value: '03', label: 'Marzo' },
-    { value: '04', label: 'Abril' },
-    { value: '05', label: 'Mayo' },
-    { value: '06', label: 'Junio' },
-    { value: '07', label: 'Julio' },
-    { value: '08', label: 'Agosto' },
-    { value: '09', label: 'Septiembre' },
-    { value: '10', label: 'Octubre' },
-    { value: '11', label: 'Noviembre' },
-    { value: '12', label: 'Diciembre' },
-  ];
+  // Meses - usando MONTH_NAMES de constants
+  const months = MONTH_NAMES.map((label, index) => ({
+    value: String(index + 1).padStart(2, '0'),
+    label
+  }));
 
   // Función helper para obtener el estado inicial del formulario
   const getInitialFormData = () => {

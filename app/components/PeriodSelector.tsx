@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Period } from '@/types';
+import { MONTH_SHORT_NAMES } from '@/lib/constants';
 
 interface PeriodSelectorProps {
   periods: Period[];
@@ -9,7 +10,8 @@ interface PeriodSelectorProps {
   onPeriodChange: (period: string) => void;
 }
 
-const MONTHS_SHORT = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+// Usar MONTH_SHORT_NAMES desde constants (convertido a mayúsculas)
+const MONTHS_SHORT = MONTH_SHORT_NAMES.map(m => m.toUpperCase());
 
 export default function PeriodSelector({ periods, selectedPeriod, onPeriodChange }: PeriodSelectorProps) {
   const [isExpanded, setIsExpanded] = useState(false); // Estado para colapsar/expandir - Inicia contraído

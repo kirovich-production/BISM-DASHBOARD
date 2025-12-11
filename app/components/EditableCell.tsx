@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { formatNumber as formatNum } from '@/lib/formatters';
 
+// Wrapper para mantener compatibilidad con number
 const formatNumber = (num: number): string => {
-  return num.toLocaleString('es-CL');
+  const result = formatNum(num);
+  return result === '-' ? '0' : result;
 };
 
 interface EditableCellProps {

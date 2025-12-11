@@ -2,17 +2,14 @@
 
 import { Fragment } from 'react';
 import { ExcelRow } from '@/types';
+import { MONTH_NAMES } from '@/lib/constants';
+import { formatNumber as formatNum } from '@/lib/formatters';
 
 interface DataTableProps {
   data: ExcelRow[];
   sectionName: string;
   visibleMonths?: string[]; // Nuevos props para filtrado
 }
-
-const MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
 
 export default function DataTable({ data, sectionName, visibleMonths }: DataTableProps) {
   if (!data || data.length === 0) {
@@ -30,7 +27,7 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
     const availableMonths: string[] = [];
     
     // Revisar cada mes para ver si tiene datos
-    for (const month of MONTHS) {
+    for (const month of MONTH_NAMES) {
       const montoKey = `${month} Monto`;
       const percentKey = `${month} %`;
       
@@ -47,7 +44,7 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
       }
     }
     
-    return availableMonths.length > 0 ? availableMonths : MONTHS;
+    return availableMonths.length > 0 ? availableMonths : [...MONTH_NAMES];
   };
 
   const displayMonths = detectAvailableMonths();
@@ -62,39 +59,15 @@ export default function DataTable({ data, sectionName, visibleMonths }: DataTabl
            (anualPromedio !== undefined && anualPromedio !== null && anualPromedio !== '');
   });
 
-  const formatNumber = (value: string | number | undefined): string => {
-    if (value === undefined || value === null || value === '') return '-';
-    
-    const strValue = String(value);
-    
-    // Si contiene #DIV/0! u otro error
-    if (strValue.includes('#') || strValue.includes('DIV')) return strValue;
-    
-    const numValue = typeof value === 'number' ? value : parseFloat(strValue.replace(/,/g, ''));
-    
-    if (isNaN(numValue)) return strValue;
-    
-    return new Intl.NumberFormat('es-CL', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(numValue);
-  };
-
+  // Usar funciones de formateo centralizadas
+  const formatNumber = formatNum;
   const formatPercentage = (value: string | number | undefined): string => {
     if (value === undefined || value === null || value === '') return '-';
-    
     const strValue = String(value);
-    
-    // Si contiene #DIV/0! u otro error
     if (strValue.includes('#') || strValue.includes('DIV')) return strValue;
-    
-    // Si ya tiene el símbolo %
     if (strValue.includes('%')) return strValue;
-    
     const numValue = typeof value === 'number' ? value : parseFloat(strValue.replace(/,/g, ''));
-    
     if (isNaN(numValue)) return strValue;
-    
     return `${numValue.toFixed(2)}%`;
   };
 

@@ -14,6 +14,8 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import AddToReportButton from './AddToReportButton';
+import { MONTH_NAMES } from '@/lib/constants';
+import { convertEERRToExcelRows, parseValue, formatCurrency } from '@/lib/formatters';
 
 ChartJS.register(
   CategoryScale,
@@ -33,44 +35,11 @@ interface MesAnualChartsViewProps {
   periodLabel: string;
 }
 
-const MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
-
-// Función para convertir EERRData a ExcelRow[] - reutilizada del análisis trimestral
-const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
-  const rows: ExcelRow[] = [];
-  
-  eerrData.categories.forEach(category => {
-    category.rows.forEach(row => {
-      rows.push(row);
-    });
-    
-    // Agregar fila de total si existe
-    if (category.total) {
-      rows.push(category.total);
-    }
-  });
-  
-  return rows;
-};
+// Usar MONTH_NAMES desde constants
+const MONTHS: string[] = [...MONTH_NAMES];
 
 // Función para obtener valor con ambos formatos de columna (normal y mayúsculas)
 const getMonthValue = (row: ExcelRow, month: string): number => {
-  // Función para limpiar valores numéricos
-  const parseValue = (value: string | number | undefined): number => {
-    if (typeof value === 'number') return value;
-    if (typeof value === 'string') {
-      const cleaned = value
-        .replace(/[$%\s]/g, '')
-        .replace(/,/g, '');
-      const num = parseFloat(cleaned);
-      return isNaN(num) ? 0 : num;
-    }
-    return 0;
-  };
-
   // Intentar ambos formatos: "Enero Monto" y "ENERO Monto"
   const columnName1 = `${month} Monto`;           // Formato normal
   const columnName2 = `${month.toUpperCase()} Monto`;  // Formato mayúsculas
@@ -85,18 +54,8 @@ const getMonthValue = (row: ExcelRow, month: string): number => {
   return parseValue(rawValue);
 };
 
-// Funciones de formato compartidas (movidas fuera del componente para evitar duplicación)
-const formatValue = (value: string | number | null | undefined): string => {
-  if (value === null || value === undefined || value === '') return '-';
-  if (typeof value === 'number') {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      minimumFractionDigits: 0,
-    }).format(value);
-  }
-  return String(value);
-};
+// Funciones de formato usando imports centralizados
+const formatValue = formatCurrency;
 
 const formatPercentage = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined || value === '') return '-';

@@ -15,6 +15,7 @@ import {
 } from "chart.js";
 import { Chart } from "react-chartjs-2";
 import AddToReportButton from './AddToReportButton';
+import { convertEERRToExcelRows } from '@/lib/formatters';
 
 ChartJS.register(
   CategoryScale,
@@ -59,40 +60,7 @@ interface EERRRow {
   [key: string]: string | number | undefined;
 }
 
-// Función helper fuera del componente para evitar recreaciones
-const convertEERRToExcelRows = (eerrData?: EERRData): ExcelRow[] => {
-  if (!eerrData || !eerrData.categories) return [];
-  
-  const rows: ExcelRow[] = [];
-  
-  eerrData.categories.forEach(category => {
-    category.rows.forEach(row => {
-      const convertedRow: ExcelRow = { Item: row.Item };
-      
-      Object.keys(row).forEach(key => {
-        if (key !== 'Item') {
-          convertedRow[key] = row[key];
-        }
-      });
-      
-      rows.push(convertedRow);
-    });
-    
-    if (category.total) {
-      const convertedRow: ExcelRow = { Item: category.total.Item };
-      
-      Object.keys(category.total).forEach(key => {
-        if (key !== 'Item') {
-          convertedRow[key] = category.total![key];
-        }
-      });
-      
-      rows.push(convertedRow);
-    }
-  });
-  
-  return rows;
-};
+// Usar función centralizada de formatters (con cast para mantener compatibilidad de tipos locales)
 
 interface EbidtaComboViewProps {
   consolidadoData?: ExcelRow[];

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import UserSelector from './UserSelector';
+import { MONTH_NAMES } from '@/lib/constants';
 
 interface PeriodInputProps {
   onPeriodChange: (period: string, periodLabel: string) => void;
@@ -10,10 +11,8 @@ interface PeriodInputProps {
   selectedUserName?: string;
 }
 
-const MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
+// Usar MONTH_NAMES desde constants
+const MONTHS = MONTH_NAMES;
 
 export default function PeriodInput({ onPeriodChange, onUserChange, selectedUserId, selectedUserName }: PeriodInputProps) {
   const currentDate = new Date();

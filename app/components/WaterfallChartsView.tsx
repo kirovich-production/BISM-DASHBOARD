@@ -14,6 +14,8 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import AddToReportButton from './AddToReportButton';
+import { MONTH_NAMES, MONTH_SHORT_NAMES } from '@/lib/constants';
+import { parseValue } from '@/lib/formatters';
 
 ChartJS.register(
   CategoryScale,
@@ -81,34 +83,7 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
     );
   }
 
-  // Función para parsear valores monetarios (mejorada)
-  const parseValue = (value: string | number | undefined): number => {
-    if (value === undefined || value === null) return 0;
-    if (typeof value === 'number') return value;
-    if (typeof value === 'string') {
-      // Manejar casos especiales
-      if (value.includes('#DIV/0!') || value.trim() === '$0' || value.trim() === '') return 0;
-      
-      // Limpiar: remover $, espacios, pero mantener números y comas
-      let cleaned = value.replace(/[$\s]/g, '');
-      
-      // Si hay comas, asumir que son separadores de miles (formato: 2,365,037)
-      cleaned = cleaned.replace(/,/g, '');
-      
-      const parsed = parseFloat(cleaned);
-      return isNaN(parsed) ? 0 : parsed;
-    }
-    return 0;
-  };
-
-  // Nombres de meses completos para mapeo dinámico
-  const MONTH_NAMES = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-  
-  // Nombres cortos para el gráfico
-  const MONTH_SHORT_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  // Usar parseValue importado de formatters (ya importado arriba)
 
   // Función para obtener meses disponibles desde EERRData
   const getAvailableMonths = (data: EERRData | null): string[] => {
@@ -310,7 +285,7 @@ export default function ComparativoEbitdaView({ consolidadoData, sucursalesData,
   // Usar solo los meses que tienen datos (filtrar por índices disponibles)
   const months = availableMonthIndices.length > 0 
     ? availableMonthIndices.map(i => MONTH_SHORT_NAMES[i])
-    : MONTH_SHORT_NAMES; // Fallback a todos los meses si no hay datos
+    : [...MONTH_SHORT_NAMES]; // Fallback a todos los meses si no hay datos (spread para evitar readonly)
 
   // Filtrar datos para mostrar solo los meses disponibles
   const filterByAvailableMonths = (data: number[]) => {

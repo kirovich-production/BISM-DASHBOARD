@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { LibroComprasUploadResponse } from '@/types';
+import { MONTH_NAMES } from '@/lib/constants';
 
 interface LibroComprasUploadProps {
   userId: string;
@@ -17,10 +18,8 @@ export default function LibroComprasUpload({ userId, userSucursales, onUploadSuc
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
+  // Usar MONTH_NAMES desde constants
+  const monthNames = MONTH_NAMES;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];

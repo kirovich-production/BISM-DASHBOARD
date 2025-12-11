@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LibroComprasData } from '@/types';
 import { asignarEncabezadoPorCuenta } from '@/lib/cuentasEncabezados';
+import { formatCurrency } from '@/lib/formatters';
 
 interface LibroComprasTableProps {
   userId: string;
@@ -77,15 +78,8 @@ export default function LibroComprasTable({ userId, periodo, sucursal, onDataLoa
     });
   }, [data, searchTerm, filterUnidad, filterCuenta]);
 
-  const formatNumber = (value: number | undefined) => {
-    if (value === undefined || value === null) return '-';
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
+  // Usar función de formateo centralizada
+  const formatNumber = formatCurrency;
 
   if (isLoading) {
     return (

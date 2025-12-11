@@ -16,6 +16,7 @@ import {
 } from "chart.js";
 import type { ExcelRow, EERRData } from "@/types";
 import AddToReportButton from "./AddToReportButton";
+import { parseValue, convertEERRToExcelRows } from '@/lib/formatters';
 
 // Registrar componentes de Chart.js
 ChartJS.register(
@@ -64,39 +65,7 @@ const QUARTERS = {
 
 type QuarterKey = keyof typeof QUARTERS;
 
-// Función para parsear valores monetarios
-const parseValue = (value: string | number | undefined): number => {
-  if (value === undefined || value === null) return 0;
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
-    if (value === "#DIV/0!" || value === "" || value === "$0") return 0;
-    let cleaned = value.replace(/\$|\s/g, "");
-    if (cleaned.includes(",")) {
-      cleaned = cleaned.replace(/,/g, "");
-    }
-    const parsed = parseFloat(cleaned);
-    return isNaN(parsed) ? 0 : parsed;
-  }
-  return 0;
-};
-
-// Función para convertir EERRData a ExcelRow[]
-const convertEERRToExcelRows = (eerrData: EERRData): ExcelRow[] => {
-  const rows: ExcelRow[] = [];
-  
-  eerrData.categories.forEach((category) => {
-    category.rows.forEach((row) => {
-      rows.push(row);
-    });
-    
-    // Agregar fila de total si existe
-    if (category.total) {
-      rows.push(category.total);
-    }
-  });
-  
-  return rows;
-};
+// Usar funciones de formateo centralizadas (parseValue y convertEERRToExcelRows importadas arriba)
 
 export default function TrimestralAnalysisView({
   consolidadoData,
