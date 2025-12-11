@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { MONTH_NAMES, COLLECTIONS } from '@/lib/constants';
+
+/**
+ * Genera periodLabel desde periodo (ej: "2025-09" → "Septiembre 2025")
+ */
+function getPeriodLabel(periodo: string): string {
+  const [year, month] = periodo.split('-');
+  const monthIndex = parseInt(month, 10) - 1;
+  const monthName = MONTH_NAMES[monthIndex] || 'Desconocido';
+  return `${monthName} ${year}`;
+}
 
 // POST /api/libro-compras/insert - Insertar registro en Libro de Compras
 export async function POST(request: NextRequest) {
@@ -61,7 +71,7 @@ export async function POST(request: NextRequest) {
     const { db } = await connectToDatabase();
 
     // 1. Validar/Crear proveedor en proveedoresMaestro
-    const proveedoresMaestro = db.collection('proveedoresMaestro');
+    const proveedoresMaestro = db.collection(COLLECTIONS.PROVEEDORES_MAESTRO);
     
     const proveedorExistente = await proveedoresMaestro.findOne({ rut: rutProveedor });
     
@@ -77,28 +87,20 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Insertar registro en libroCompras
-    const libroCompras = db.collection('libroCompras');
+    const libroCompras = db.collection(COLLECTIONS.LIBRO_COMPRAS);
     
-    // Buscar documento del periodo/sucursal/usuario
+    // Buscar documento existente del periodo/sucursal/usuario (userId como string, consistente con upload)
     const filter = {
-      userId: new ObjectId(userId),
+      userId,
       sucursal,
       periodo,
     };
 
-    // Calcular el próximo número correlativo
-    // Buscar ambos documentos (ObjectId y string) para contar todas las transacciones existentes
-    const docObjectId = await libroCompras.findOne(filter);
-    const docString = await libroCompras.findOne({
-      userId,
-      sucursal,
-      periodo,
-    });
+    const docExistente = await libroCompras.findOne(filter);
 
-    const registrosExistentesObjectId = docObjectId?.data?.length || 0;
-    const registrosExistentesString = docString?.transacciones?.length || 0;
-    const totalRegistrosExistentes = registrosExistentesObjectId + registrosExistentesString;
-    const proximoNro = totalRegistrosExistentes + 1;
+    // Calcular el próximo número correlativo
+    const transaccionesExistentes = docExistente?.transacciones?.length || 0;
+    const proximoNro = transaccionesExistentes + 1;
 
     const nuevoRegistro = {
       nro: proximoNro,
@@ -135,18 +137,22 @@ export async function POST(request: NextRequest) {
       creadoEn: new Date(),
     };
 
-    if (docObjectId) {
-      // Agregar registro al array data existente (documento con ObjectId)
+    if (docExistente) {
+      // Agregar registro al array transacciones existente
       await libroCompras.updateOne(filter, {
         // @ts-expect-error - MongoDB types don't properly handle $push with complex types
-        $push: { data: nuevoRegistro },
+        $push: { transacciones: nuevoRegistro },
         $set: { updatedAt: new Date() },
       });
     } else {
-      // Crear nuevo documento LC
+      // Crear nuevo documento LC con estructura consistente con upload-libro-compras
       await libroCompras.insertOne({
-        ...filter,
-        data: [nuevoRegistro],
+        userId,
+        periodo,
+        periodLabel: getPeriodLabel(periodo),
+        sucursal,
+        fileName: 'Ingreso Manual',
+        transacciones: [nuevoRegistro],
         createdAt: new Date(),
         updatedAt: new Date(),
       });
