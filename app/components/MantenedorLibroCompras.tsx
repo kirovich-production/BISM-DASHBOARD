@@ -206,7 +206,7 @@ export default function MantenedorLibroDiario({ userId, userSucursales = [], onD
         setMensaje({ tipo: 'error', texto: result.error || 'Error al insertar registro' });
       }
     } catch (error) {
-      console.error('Error al insertar en Libro Diario:', error);
+      console.error('Error al insertar en Libro Compras:', error);
       setMensaje({ tipo: 'error', texto: 'Error de conexión al servidor' });
     } finally {
       setIsSubmitting(false);
@@ -845,7 +845,7 @@ export default function MantenedorLibroDiario({ userId, userSucursales = [], onD
             disabled={!userId || isSubmitting}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium transition-colors"
           >
-            {isSubmitting ? 'Insertando...' : '💾 Insertar en Libro Diario'}
+            {isSubmitting ? 'Insertando...' : '💾 Insertar en Libro Compras'}
           </button>
 
           <button
