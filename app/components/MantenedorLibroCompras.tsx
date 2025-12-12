@@ -38,7 +38,7 @@ export default function MantenedorLibroDiario({ userId, userSucursales = [], onD
       year: currentYear.toString(),
       month: monthStr,
       
-      // Columnas del Libro Diario (29 columnas completas)
+      // Columnas del Libro Compras (29 columnas completas)
       tipoDoc: '',
       tipoCompra: '',
       rutProveedor: '',
@@ -149,7 +149,7 @@ export default function MantenedorLibroDiario({ userId, userSucursales = [], onD
           userId,
           sucursal: formData.sucursal,
           periodo,
-          // Todas las 29 columnas del Libro Diario
+          // Todas las 29 columnas del Libro Compras
           tipoDoc: formData.tipoDoc,
           tipoCompra: formData.tipoCompra,
           rutProveedor: formData.rutProveedor,
